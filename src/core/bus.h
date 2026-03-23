@@ -1,4 +1,11 @@
 #pragma once
+
+// Switch cannot allocate 4GB virtual address space for MMap fastmem.
+// Use LUT fastmem mode instead (~8MB).
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+#undef WITH_MMAP_FASTMEM
+#endif
+
 #include "common/bitfield.h"
 #include "common/memory_arena.h"
 #include "types.h"

@@ -1,11 +1,13 @@
+#include "cpu_code_cache.h"
 #include "cpu_core.h"
 #include "cpu_core_private.h"
 #include "cpu_recompiler_code_generator.h"
 #include "cpu_recompiler_thunks.h"
 #include "settings.h"
 #include "timing_event.h"
+#include <cstdio>
 
-namespace a64 = vixl::aarch64;
+namespace a64 = swanstation_vixl::aarch64;
 
 namespace CPU::Recompiler {
 
@@ -83,10 +85,22 @@ static const a64::XRegister GetFastmemBasePtrReg()
 
 CodeGenerator::CodeGenerator(JitCodeBuffer* code_buffer)
   : m_code_buffer(code_buffer), m_register_cache(*this),
-    m_near_emitter(static_cast<vixl::byte*>(code_buffer->GetFreeCodePointer()), code_buffer->GetFreeCodeSpace(),
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+    // On Switch, RW and RX memory mappings are at different virtual addresses.
+    // PositionIndependentCode prevents vixl from using PC-relative addressing
+    // which would calculate wrong offsets (relative to RW but executed from RX).
+    m_near_emitter(static_cast<swanstation_vixl::byte*>(code_buffer->GetFreeCodePointer()), code_buffer->GetFreeCodeSpace(),
+                   a64::PositionIndependentCode),
+#else
+    m_near_emitter(static_cast<swanstation_vixl::byte*>(code_buffer->GetFreeCodePointer()), code_buffer->GetFreeCodeSpace(),
                    a64::PositionDependentCode),
-    m_far_emitter(static_cast<vixl::byte*>(code_buffer->GetFreeFarCodePointer()), code_buffer->GetFreeFarCodeSpace(),
+#endif
+    m_far_emitter(static_cast<swanstation_vixl::byte*>(code_buffer->GetFreeFarCodePointer()), code_buffer->GetFreeFarCodeSpace(),
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+                  a64::PositionIndependentCode),
+#else
                   a64::PositionDependentCode),
+#endif
     m_emit(&m_near_emitter)
 {
   // remove the temporaries from vixl's list to prevent it from using them.
@@ -128,12 +142,22 @@ void CodeGenerator::SwitchToNearCode()
 
 void* CodeGenerator::GetCurrentNearCodePointer() const
 {
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // On Switch, return RX address since code executes from RX region
+  return static_cast<u8*>(m_code_buffer->GetFreeRxCodePointer()) + m_near_emitter.GetCursorOffset();
+#else
   return static_cast<u8*>(m_code_buffer->GetFreeCodePointer()) + m_near_emitter.GetCursorOffset();
+#endif
 }
 
 void* CodeGenerator::GetCurrentFarCodePointer() const
 {
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // On Switch, return RX address since code executes from RX region
+  return static_cast<u8*>(m_code_buffer->GetFreeFarRxCodePointer()) + m_far_emitter.GetCursorOffset();
+#else
   return static_cast<u8*>(m_code_buffer->GetFreeFarCodePointer()) + m_far_emitter.GetCursorOffset();
+#endif
 }
 
 Value CodeGenerator::GetValueInHostRegister(const Value& value, bool allow_zero_register /* = true */)
@@ -242,8 +266,20 @@ void CodeGenerator::FinalizeBlock(CodeBlock::HostCodePointer* out_host_code, u32
   m_near_emitter.FinalizeCode();
   m_far_emitter.FinalizeCode();
 
-  *out_host_code = reinterpret_cast<CodeBlock::HostCodePointer>(m_code_buffer->GetFreeCodePointer());
+  CodeBlock::HostCodePointer rx_ptr =
+    reinterpret_cast<CodeBlock::HostCodePointer>(m_code_buffer->GetFreeRxCodePointer());
+  *out_host_code = rx_ptr;
   *out_host_code_size = static_cast<u32>(m_near_emitter.GetSizeOfCodeGenerated());
+
+  /*
+    FILE* fp = fopen("sdmc:/tiicu/debug/debug_jit.txt", "a");
+    if (fp)
+    {
+      fprintf(fp, "FinalizeBlock: RW=%p RX=%p Size=%u\n", m_code_buffer->GetFreeCodePointer(), rx_ptr,
+              *out_host_code_size);
+      fclose(fp);
+    }
+  */
 
   m_code_buffer->CommitCode(static_cast<u32>(m_near_emitter.GetSizeOfCodeGenerated()));
   m_code_buffer->CommitFarCode(static_cast<u32>(m_far_emitter.GetSizeOfCodeGenerated()));
@@ -555,13 +591,9 @@ void CodeGenerator::EmitDiv(HostReg to_reg_quotient, HostReg to_reg_remainder, H
   }
 }
 
-void CodeGenerator::EmitInc(HostReg to_reg, RegSize size)
-{
-}
+void CodeGenerator::EmitInc(HostReg to_reg, RegSize size) {}
 
-void CodeGenerator::EmitDec(HostReg to_reg, RegSize size)
-{
-}
+void CodeGenerator::EmitDec(HostReg to_reg, RegSize size) {}
 
 void CodeGenerator::EmitShl(HostReg to_reg, HostReg from_reg, RegSize size, const Value& amount_value,
                             bool assume_amount_masked /* = true */)
@@ -916,7 +948,7 @@ void CodeGenerator::RestoreStackAfterCall(u32 adjust_size)
 void CodeGenerator::EmitCall(const void* ptr)
 {
   const s64 displacement = GetPCDisplacement(GetCurrentCodePointer(), ptr);
-  const bool use_blr = !vixl::IsInt26(displacement);
+  const bool use_blr = !swanstation_vixl::IsInt26(displacement);
   if (use_blr)
   {
     m_emit->Mov(GetHostReg64(RSCRATCH), reinterpret_cast<uintptr_t>(ptr));
@@ -1105,7 +1137,7 @@ void CodeGenerator::EmitLoadCPUStructField(HostReg host_reg, RegSize guest_size,
       break;
 
     default:
-    break;
+      break;
   }
 }
 
@@ -1133,7 +1165,7 @@ void CodeGenerator::EmitStoreCPUStructField(u32 offset, const Value& value)
       break;
 
     default:
-    break;
+      break;
   }
 }
 
@@ -1210,7 +1242,7 @@ void CodeGenerator::EmitAddCPUStructField(u32 offset, const Value& value)
     break;
 
     default:
-    break;
+      break;
   }
 }
 
@@ -1619,12 +1651,19 @@ void CodeGenerator::EmitUpdateFastmemBase()
 
 bool CodeGenerator::BackpatchLoadStore(const LoadStoreBackpatchInfo& lbi)
 {
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // On Switch, lbi.host_pc is RX address but we need to write to RW
+  void* host_pc_write = CPU::CodeCache::GetCodeBuffer().RxToRw(lbi.host_pc);
+#else
+  void* host_pc_write = lbi.host_pc;
+#endif
+
   // check jump distance
   const s64 jump_distance =
     static_cast<s64>(reinterpret_cast<intptr_t>(lbi.host_slowmem_pc) - reinterpret_cast<intptr_t>(lbi.host_pc));
 
   // turn it into a jump to the slowmem handler
-  vixl::aarch64::MacroAssembler emit(static_cast<vixl::byte*>(lbi.host_pc), lbi.host_code_size,
+  swanstation_vixl::aarch64::MacroAssembler emit(static_cast<swanstation_vixl::byte*>(host_pc_write), lbi.host_code_size,
                                      a64::PositionDependentCode);
   emit.b(jump_distance >> 2);
 
@@ -1632,28 +1671,58 @@ bool CodeGenerator::BackpatchLoadStore(const LoadStoreBackpatchInfo& lbi)
   for (s32 i = 0; i < nops; i++)
     emit.nop();
 
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // Flush D-Cache for RW (clean to PoU)
+  armDCacheFlush(host_pc_write, lbi.host_code_size);
+  // Invalidate I-Cache for RX (invalidate to PoU)
+  armICacheInvalidate(lbi.host_pc, lbi.host_code_size);
+#else
   JitCodeBuffer::FlushInstructionCache(lbi.host_pc, lbi.host_code_size);
+#endif
   return true;
 }
 
 void CodeGenerator::BackpatchReturn(void* pc, u32 pc_size)
 {
-  vixl::aarch64::MacroAssembler emit(static_cast<vixl::byte*>(pc), pc_size, a64::PositionDependentCode);
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // pc is RX, convert to RW for writing
+  void* pc_write = CPU::CodeCache::GetCodeBuffer().RxToRw(pc);
+  if (!pc_write)
+    return; // Should not happen
+#else
+  void* pc_write = pc;
+#endif
+
+  swanstation_vixl::aarch64::MacroAssembler emit(static_cast<swanstation_vixl::byte*>(pc_write), pc_size, a64::PositionDependentCode);
   emit.ret();
 
   const s32 nops = (static_cast<s32>(pc_size) - static_cast<s32>(emit.GetCursorOffset())) / 4;
   for (s32 i = 0; i < nops; i++)
     emit.nop();
 
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  armDCacheFlush(pc_write, pc_size);
+  armICacheInvalidate(pc, pc_size);
+#else
   JitCodeBuffer::FlushInstructionCache(pc, pc_size);
+#endif
 }
 
 void CodeGenerator::BackpatchBranch(void* pc, u32 pc_size, void* target)
 {
-  // check jump distance
+  // check jump distance (using PC relative to target, both should be RX)
   const s64 jump_distance = static_cast<s64>(reinterpret_cast<intptr_t>(target) - reinterpret_cast<intptr_t>(pc));
 
-  vixl::aarch64::MacroAssembler emit(static_cast<vixl::byte*>(pc), pc_size, a64::PositionDependentCode);
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // pc is RX, convert to RW for writing
+  void* pc_write = CPU::CodeCache::GetCodeBuffer().RxToRw(pc);
+  if (!pc_write)
+    return; // Should not happen
+#else
+  void* pc_write = pc;
+#endif
+
+  swanstation_vixl::aarch64::MacroAssembler emit(static_cast<swanstation_vixl::byte*>(pc_write), pc_size, a64::PositionDependentCode);
   emit.b(jump_distance >> 2);
 
   // shouldn't have any nops
@@ -1661,7 +1730,12 @@ void CodeGenerator::BackpatchBranch(void* pc, u32 pc_size, void* target)
   for (s32 i = 0; i < nops; i++)
     emit.nop();
 
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  armDCacheFlush(pc_write, pc_size);
+  armICacheInvalidate(pc, pc_size);
+#else
   JitCodeBuffer::FlushInstructionCache(pc, pc_size);
+#endif
 }
 
 void CodeGenerator::EmitLoadGlobal(HostReg host_reg, RegSize size, const void* ptr)
@@ -1853,7 +1927,6 @@ void CodeGenerator::EmitBranch(const void* address, bool allow_scratch)
     m_emit->b(jump_distance >> 2);
     return;
   }
-
 
   m_emit->Mov(GetHostReg64(RSCRATCH), reinterpret_cast<uintptr_t>(address));
   m_emit->br(GetHostReg64(RSCRATCH));
@@ -2082,13 +2155,19 @@ void CodeGenerator::EmitBindLabel(LabelType* label)
 
 void CodeGenerator::EmitLoadGlobalAddress(HostReg host_reg, const void* ptr)
 {
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // On Switch, code is written to RW but executed from RX at a different address.
+  // PC-relative addressing (adrp) calculates offsets from the wrong base.
+  // Always use absolute immediate load.
+  m_emit->Mov(GetHostReg64(host_reg), reinterpret_cast<uintptr_t>(ptr));
+#else
   const void* current_code_ptr_page = reinterpret_cast<const void*>(
     reinterpret_cast<uintptr_t>(GetCurrentCodePointer()) & ~static_cast<uintptr_t>(0xFFF));
   const void* ptr_page =
     reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(ptr) & ~static_cast<uintptr_t>(0xFFF));
   const s64 page_displacement = GetPCDisplacement(current_code_ptr_page, ptr_page) >> 10;
   const u32 page_offset = static_cast<u32>(reinterpret_cast<uintptr_t>(ptr) & 0xFFFu);
-  if (vixl::IsInt21(page_displacement) && a64::Assembler::IsImmLogical(page_offset, 64))
+  if (swanstation_vixl::IsInt21(page_displacement) && a64::Assembler::IsImmLogical(page_offset, 64))
   {
     m_emit->adrp(GetHostReg64(host_reg), page_displacement);
     m_emit->orr(GetHostReg64(host_reg), GetHostReg64(host_reg), page_offset);
@@ -2097,6 +2176,7 @@ void CodeGenerator::EmitLoadGlobalAddress(HostReg host_reg, const void* ptr)
   {
     m_emit->Mov(GetHostReg64(host_reg), reinterpret_cast<uintptr_t>(ptr));
   }
+#endif
 }
 
 CodeCache::DispatcherFunction CodeGenerator::CompileDispatcher()
@@ -2165,14 +2245,17 @@ CodeCache::DispatcherFunction CodeGenerator::CompileDispatcher()
   m_emit->ldr(a64::w8, a64::MemOperand(GetHostReg64(RCPUPTR), offsetof(State, regs.pc)));
 
   // x9 <- s_fast_map[pc >> 16]
-  EmitLoadGlobalAddress(10, CodeCache::GetFastMapPointer());
-  m_emit->lsr(a64::w9, a64::w8, 16);
-  m_emit->lsr(a64::w8, a64::w8, 2);
-  m_emit->ldr(a64::x9, a64::MemOperand(a64::x10, a64::x9, a64::LSL, 3));
+  // EmitLoadGlobalAddress(10, CodeCache::GetFastMapPointer());
+  // m_emit->lsr(a64::w9, a64::w8, 16);
+  // m_emit->lsr(a64::w8, a64::w8, 2);
+  // m_emit->ldr(a64::x9, a64::MemOperand(a64::x10, a64::x9, a64::LSL, 3));
 
   // blr(x9[pc * 2]) (fast_map[pc >> 2])
-  m_emit->ldr(a64::x8, a64::MemOperand(a64::x9, a64::x8, a64::LSL, 3));
-  m_emit->blr(a64::x8);
+  // m_emit->ldr(a64::x8, a64::MemOperand(a64::x9, a64::x8, a64::LSL, 3));
+  // m_emit->blr(a64::x8);
+
+  // DEBUG: Bypass FastMap and always call FastCompileBlockFunction
+  EmitCall(reinterpret_cast<const void*>(&CodeCache::FastCompileBlockFunction));
 
   // end while
   m_emit->Bind(&downcount_hit);
@@ -2203,12 +2286,19 @@ CodeCache::DispatcherFunction CodeGenerator::CompileDispatcher()
 CodeCache::SingleBlockDispatcherFunction CodeGenerator::CompileSingleBlockDispatcher()
 {
   m_emit->sub(a64::sp, a64::sp, FUNCTION_STACK_SIZE);
+
+  // Safe-keep RARG1 (x0) in a callee-saved register (x21) BEFORE reserving
+  // callee-saved registers. This ensures x21 is pushed with the correct value
+  // and restored correctly by PopCalleeSavedRegisters.
+  m_emit->Mov(a64::x21, a64::XRegister(RARG1));
+
   m_register_cache.ReserveCalleeSavedRegisters();
+
   const u32 stack_adjust = PrepareStackForCall();
 
   EmitLoadGlobalAddress(RCPUPTR, &g_state);
 
-  m_emit->blr(GetHostReg64(RARG1));
+  m_emit->blr(a64::x21);
 
   RestoreStackAfterCall(stack_adjust);
   m_register_cache.PopCalleeSavedRegisters(true);

@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH32_LABEL_AARCH32_H_
-#define VIXL_AARCH32_LABEL_AARCH32_H_
+#ifndef SWANSTATION_VIXL_AARCH32_LABEL_AARCH32_H_
+#define SWANSTATION_VIXL_AARCH32_LABEL_AARCH32_H_
 
 extern "C" {
 #include <stdint.h>
@@ -43,7 +43,7 @@ extern "C" {
 #include "constants-aarch32.h"
 #include "instructions-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 namespace aarch32 {
 
@@ -64,9 +64,9 @@ class Location : public LocationBase<int32_t> {
   typedef int32_t Offset;
 
   ~Location() {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     if (IsReferenced() && !IsBound()) {
-      VIXL_ABORT_WITH_MSG("Location, label or literal used but not bound.\n");
+      SWANSTATION_VIXL_ABORT_WITH_MSG("Location, label or literal used but not bound.\n");
     }
 #endif
   }
@@ -77,12 +77,12 @@ class Location : public LocationBase<int32_t> {
   class EmitOperator {
    public:
     explicit EmitOperator(InstructionSet isa) : isa_(isa) {
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
       USE(isa_);
-      VIXL_ASSERT(isa == A32);
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
+      SWANSTATION_VIXL_ASSERT(isa == A32);
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
       USE(isa_);
-      VIXL_ASSERT(isa == T32);
+      SWANSTATION_VIXL_ASSERT(isa == T32);
 #endif
     }
     virtual ~EmitOperator() {}
@@ -91,9 +91,9 @@ class Location : public LocationBase<int32_t> {
                             const Location* /*label*/) const {
       return 0;
     }
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
     bool IsUsingT32() const { return false; }
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
     bool IsUsingT32() const { return true; }
 #else
     bool IsUsingT32() const { return isa_ == T32; }
@@ -188,14 +188,14 @@ class Location : public LocationBase<int32_t> {
 
  private:
   virtual void ResolveReferences(internal::AssemblerBase* assembler)
-      VIXL_OVERRIDE;
+      SWANSTATION_VIXL_OVERRIDE;
 
   void SetReferenced() { referenced_ = true; }
 
   bool HasForwardReferences() const { return !forward_.empty(); }
 
   ForwardRef GetLastForwardReference() const {
-    VIXL_ASSERT(HasForwardReferences());
+    SWANSTATION_VIXL_ASSERT(HasForwardReferences());
     return forward_.Back();
   }
 
@@ -234,14 +234,14 @@ class Location : public LocationBase<int32_t> {
   explicit Location(Offset location)
       : LocationBase<int32_t>(location), referenced_(false) {}
 
-  virtual int GetMaxAlignment() const VIXL_OVERRIDE;
-  virtual int GetMinLocation() const VIXL_OVERRIDE;
+  virtual int GetMaxAlignment() const SWANSTATION_VIXL_OVERRIDE;
+  virtual int GetMinLocation() const SWANSTATION_VIXL_OVERRIDE;
 
  private:
   // Included to make the class concrete, however should never be called.
-  virtual void EmitPoolObject(MacroAssemblerInterface* masm) VIXL_OVERRIDE {
+  virtual void EmitPoolObject(MacroAssemblerInterface* masm) SWANSTATION_VIXL_OVERRIDE {
     USE(masm);
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
   }
 };
 
@@ -262,21 +262,21 @@ class Label : public Location {
   explicit Label(Offset location) : Location(location) {}
 
  private:
-  virtual bool ShouldBeDeletedOnPlacementByPoolManager() const VIXL_OVERRIDE {
+  virtual bool ShouldBeDeletedOnPlacementByPoolManager() const SWANSTATION_VIXL_OVERRIDE {
     return false;
   }
-  virtual bool ShouldDeletePoolObjectOnPlacement() const VIXL_OVERRIDE {
+  virtual bool ShouldDeletePoolObjectOnPlacement() const SWANSTATION_VIXL_OVERRIDE {
     return false;
   }
 
-  virtual void UpdatePoolObject(PoolObject<int32_t>* object) VIXL_OVERRIDE;
-  virtual void EmitPoolObject(MacroAssemblerInterface* masm) VIXL_OVERRIDE;
+  virtual void UpdatePoolObject(PoolObject<int32_t>* object) SWANSTATION_VIXL_OVERRIDE;
+  virtual void EmitPoolObject(MacroAssemblerInterface* masm) SWANSTATION_VIXL_OVERRIDE;
 
-  virtual bool UsePoolObjectEmissionMargin() const VIXL_OVERRIDE {
+  virtual bool UsePoolObjectEmissionMargin() const SWANSTATION_VIXL_OVERRIDE {
     return true;
   }
-  virtual int32_t GetPoolObjectEmissionMargin() const VIXL_OVERRIDE {
-    VIXL_ASSERT(UsePoolObjectEmissionMargin() == true);
+  virtual int32_t GetPoolObjectEmissionMargin() const SWANSTATION_VIXL_OVERRIDE {
+    SWANSTATION_VIXL_ASSERT(UsePoolObjectEmissionMargin() == true);
     return 1 * KBytes;
   }
 };
@@ -308,7 +308,7 @@ class RawLiteral : public Location {
         manually_placed_(placement_policy == kManuallyPlaced),
         deletion_policy_(deletion_policy) {
     // We can't have manually placed literals that are not manually deleted.
-    VIXL_ASSERT(!IsManuallyPlaced() ||
+    SWANSTATION_VIXL_ASSERT(!IsManuallyPlaced() ||
                 (GetDeletionPolicy() == kManuallyDeleted));
   }
   RawLiteral(const void* addr, int size, DeletionPolicy deletion_policy)
@@ -326,13 +326,13 @@ class RawLiteral : public Location {
  private:
   DeletionPolicy GetDeletionPolicy() const { return deletion_policy_; }
 
-  virtual bool ShouldBeDeletedOnPlacementByPoolManager() const VIXL_OVERRIDE {
+  virtual bool ShouldBeDeletedOnPlacementByPoolManager() const SWANSTATION_VIXL_OVERRIDE {
     return GetDeletionPolicy() == kDeletedOnPlacementByPool;
   }
-  virtual bool ShouldBeDeletedOnPoolManagerDestruction() const VIXL_OVERRIDE {
+  virtual bool ShouldBeDeletedOnPoolManagerDestruction() const SWANSTATION_VIXL_OVERRIDE {
     return GetDeletionPolicy() == kDeletedOnPoolDestruction;
   }
-  virtual void EmitPoolObject(MacroAssemblerInterface* masm) VIXL_OVERRIDE;
+  virtual void EmitPoolObject(MacroAssemblerInterface* masm) SWANSTATION_VIXL_OVERRIDE;
 
   // Data address before it's moved into the code buffer.
   const void* const addr_;
@@ -378,11 +378,11 @@ class StringLiteral : public RawLiteral {
                    static_cast<int>(strlen(str) + 1),
                    placement_policy,
                    deletion_policy) {
-    VIXL_ASSERT((strlen(str) + 1) <= kMaxObjectSize);
+    SWANSTATION_VIXL_ASSERT((strlen(str) + 1) <= kMaxObjectSize);
   }
   explicit StringLiteral(const char* str, DeletionPolicy deletion_policy)
       : RawLiteral(str, static_cast<int>(strlen(str) + 1), deletion_policy) {
-    VIXL_ASSERT((strlen(str) + 1) <= kMaxObjectSize);
+    SWANSTATION_VIXL_ASSERT((strlen(str) + 1) <= kMaxObjectSize);
   }
 };
 
@@ -406,6 +406,6 @@ inline void InvalSet<INVAL_SET_TEMPLATE_PARAMETERS>::SetKey(
 }
 #undef INVAL_SET_TEMPLATE_PARAMETERS
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH32_LABEL_AARCH32_H_
+#endif  // SWANSTATION_VIXL_AARCH32_LABEL_AARCH32_H_

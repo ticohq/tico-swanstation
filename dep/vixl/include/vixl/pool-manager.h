@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_POOL_MANAGER_H_
-#define VIXL_POOL_MANAGER_H_
+#ifndef SWANSTATION_VIXL_POOL_MANAGER_H_
+#define SWANSTATION_VIXL_POOL_MANAGER_H_
 
 #include <stdint.h>
 
@@ -38,7 +38,7 @@
 #include "macro-assembler-interface.h"
 #include "utils-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 class TestPoolManager;
 
@@ -116,9 +116,9 @@ class LocationBase {
         pool_object_type_(type),
         is_bound_(false),
         location_(0) {
-    VIXL_ASSERT(size > 0);
-    VIXL_ASSERT(size <= kMaxObjectSize);
-    VIXL_ASSERT(IsPowerOf2(size));
+    SWANSTATION_VIXL_ASSERT(size > 0);
+    SWANSTATION_VIXL_ASSERT(size <= kMaxObjectSize);
+    SWANSTATION_VIXL_ASSERT(IsPowerOf2(size));
   }
 
   // Allow alignment to be specified, as long as it is smaller than the size.
@@ -128,10 +128,10 @@ class LocationBase {
         pool_object_type_(type),
         is_bound_(false),
         location_(0) {
-    VIXL_ASSERT(size > 0);
-    VIXL_ASSERT(size <= kMaxObjectSize);
-    VIXL_ASSERT(IsPowerOf2(alignment));
-    VIXL_ASSERT(alignment <= size);
+    SWANSTATION_VIXL_ASSERT(size > 0);
+    SWANSTATION_VIXL_ASSERT(size <= kMaxObjectSize);
+    SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment));
+    SWANSTATION_VIXL_ASSERT(alignment <= size);
   }
 
   // Constructor for locations that are already bound.
@@ -186,7 +186,7 @@ class LocationBase {
   // margin.
   virtual bool UsePoolObjectEmissionMargin() const { return false; }
   virtual T GetPoolObjectEmissionMargin() const {
-    VIXL_ASSERT(UsePoolObjectEmissionMargin() == false);
+    SWANSTATION_VIXL_ASSERT(UsePoolObjectEmissionMargin() == false);
     return 0;
   }
 
@@ -203,24 +203,24 @@ class LocationBase {
   // we need to keep track of the location in order to resolve the references
   // to the object. Reusing the location_ field for this is convenient.
   void SetLocation(internal::AssemblerBase* assembler, T location) {
-    VIXL_ASSERT(!is_bound_);
+    SWANSTATION_VIXL_ASSERT(!is_bound_);
     location_ = location;
     ResolveReferences(assembler);
   }
 
   void MarkBound() {
-    VIXL_ASSERT(!is_bound_);
+    SWANSTATION_VIXL_ASSERT(!is_bound_);
     is_bound_ = true;
   }
 
   // The following two functions are used when an object is bound by a call to
   // PoolManager<T>::Bind().
   virtual int GetMaxAlignment() const {
-    VIXL_ASSERT(!ShouldDeletePoolObjectOnPlacement());
+    SWANSTATION_VIXL_ASSERT(!ShouldDeletePoolObjectOnPlacement());
     return 1;
   }
   virtual T GetMinLocation() const {
-    VIXL_ASSERT(!ShouldDeletePoolObjectOnPlacement());
+    SWANSTATION_VIXL_ASSERT(!ShouldDeletePoolObjectOnPlacement());
     return 0;
   }
 
@@ -252,7 +252,7 @@ class PoolObject {
         alignment_(parent->GetPoolObjectAlignment()),
         skip_until_location_hint_(0),
         type_(parent->GetPoolObjectType()) {
-    VIXL_ASSERT(IsPowerOf2(alignment_));
+    SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment_));
     UpdateLocationHint();
   }
 
@@ -271,16 +271,16 @@ class PoolObject {
 
  private:
   void RestrictRange(T min, T max) {
-    VIXL_ASSERT(min <= max_location_);
-    VIXL_ASSERT(max >= min_location_);
+    SWANSTATION_VIXL_ASSERT(min <= max_location_);
+    SWANSTATION_VIXL_ASSERT(max >= min_location_);
     min_location_ = std::max(min_location_, min);
     max_location_ = std::min(max_location_, max);
     UpdateLocationHint();
   }
 
   void RestrictAlignment(int alignment) {
-    VIXL_ASSERT(IsPowerOf2(alignment));
-    VIXL_ASSERT(IsPowerOf2(alignment_));
+    SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment));
+    SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment_));
     alignment_ = std::max(alignment_, alignment);
   }
 
@@ -337,7 +337,7 @@ class ForwardReference {
         object_alignment_(object_alignment),
         min_object_location_(min_object_location),
         max_object_location_(max_object_location) {
-    VIXL_ASSERT(AlignDown(max_object_location, object_alignment) >=
+    SWANSTATION_VIXL_ASSERT(AlignDown(max_object_location, object_alignment) >=
                 min_object_location);
   }
 
@@ -546,10 +546,10 @@ class PoolManager {
   // Indicates whether the emission of this pool is blocked.
   int monitor_;
 
-  friend class vixl::TestPoolManager;
+  friend class swanstation_vixl::TestPoolManager;
 };
 
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_POOL_MANAGER_H_
+#endif  // SWANSTATION_VIXL_POOL_MANAGER_H_

@@ -2,9 +2,12 @@
 #include "align.h"
 #include "platform.h"
 #include <algorithm>
+#include <cstdio>
 
 #if defined(_WIN32)
 #include "windows_headers.h"
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+#include <switch.h>
 #else
 #include <errno.h>
 #include <sys/mman.h>
@@ -42,6 +45,33 @@ bool JitCodeBuffer::Allocate(u32 size /* = 64 * 1024 * 1024 */, u32 far_code_siz
   m_code_ptr = static_cast<u8*>(VirtualAlloc(nullptr, m_total_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
   if (!m_code_ptr)
     return false;
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  if (R_FAILED(jitCreate(&m_jit, m_total_size)))
+    return false;
+
+  if (R_FAILED(jitTransitionToWritable(&m_jit)))
+  {
+    jitClose(&m_jit);
+    return false;
+  }
+
+  m_code_ptr = static_cast<u8*>(jitGetRwAddr(&m_jit));
+  m_rx_ptr = static_cast<u8*>(jitGetRxAddr(&m_jit));
+
+  if (!m_code_ptr || !m_rx_ptr)
+  {
+    jitClose(&m_jit);
+    return false;
+  }
+
+/*
+  FILE* fp = fopen("sdmc:/tiicu/debug/debug_jit.txt", "a");
+  if (fp)
+  {
+    fprintf(fp, "JitAllocate: RW=%p RX=%p Size=%u\n", m_code_ptr, m_rx_ptr, size);
+    fclose(fp);
+  }
+*/
 #elif defined(__linux__) || defined(__ANDROID__) || defined(__APPLE__) || defined(__HAIKU__) || defined(__FreeBSD__)
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #if defined(__APPLE__) && defined(__aarch64__)
@@ -107,6 +137,8 @@ bool JitCodeBuffer::Initialize(void* buffer, u32 size, u32 far_code_size /* = 0 
   // reasonable default?
   m_code_ptr = static_cast<u8*>(buffer);
   m_old_protection = PROT_READ | PROT_WRITE;
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  m_code_ptr = nullptr;
 #else
   m_code_ptr = nullptr;
 #endif
@@ -135,6 +167,10 @@ void JitCodeBuffer::Destroy()
   {
 #if defined(_WIN32)
     VirtualFree(m_code_ptr, 0, MEM_RELEASE);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+    jitClose(&m_jit);
+    std::memset(&m_jit, 0, sizeof(m_jit));
+    m_rx_ptr = nullptr;
 #elif defined(__linux__) || defined(__ANDROID__) || defined(__APPLE__) || defined(__HAIKU__) || defined(__FreeBSD__)
     munmap(m_code_ptr, m_total_size);
 #endif
@@ -144,7 +180,7 @@ void JitCodeBuffer::Destroy()
 #if defined(_WIN32)
     DWORD old_protect = 0;
     VirtualProtect(m_code_ptr, m_total_size, m_old_protection, &old_protect);
-#else
+#elif !defined(__SWITCH__) && !defined(HAVE_LIBNX)
     mprotect(m_code_ptr, m_total_size, m_old_protection);
 #endif
   }
@@ -178,7 +214,12 @@ void JitCodeBuffer::CommitCode(u32 length)
 
 #if defined(CPU_AARCH32) || defined(CPU_AARCH64)
   // ARM instruction and data caches are not coherent, we need to flush after every block.
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  armDCacheFlush(m_free_code_ptr, length);
+  armICacheInvalidate(m_rx_ptr + (m_free_code_ptr - m_code_ptr), length);
+#else
   FlushInstructionCache(m_free_code_ptr, length);
+#endif
 #endif
 
   m_free_code_ptr += length;
@@ -192,7 +233,12 @@ void JitCodeBuffer::CommitFarCode(u32 length)
 
 #if defined(CPU_AARCH32) || defined(CPU_AARCH64)
   // ARM instruction and data caches are not coherent, we need to flush after every block.
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  armDCacheFlush(m_free_far_code_ptr, length);
+  armICacheInvalidate(m_rx_ptr + (m_free_far_code_ptr - m_code_ptr), length);
+#else
   FlushInstructionCache(m_free_far_code_ptr, length);
+#endif
 #endif
 
   m_free_far_code_ptr += length;
@@ -201,19 +247,32 @@ void JitCodeBuffer::CommitFarCode(u32 length)
 
 void JitCodeBuffer::Reset()
 {
+  if (!m_code_ptr)
+    return;
+
   WriteProtect(false);
 
   m_free_code_ptr = m_code_ptr + m_guard_size + m_code_reserve_size;
   m_code_used = 0;
   std::memset(m_free_code_ptr, 0, m_code_size);
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  armDCacheFlush(m_free_code_ptr, m_code_size);
+  armICacheInvalidate(m_rx_ptr + (m_free_code_ptr - m_code_ptr), m_code_size);
+#else
   FlushInstructionCache(m_free_code_ptr, m_code_size);
+#endif
 
   if (m_far_code_size > 0)
   {
     m_free_far_code_ptr = m_far_code_ptr;
     m_far_code_used = 0;
     std::memset(m_free_far_code_ptr, 0, m_far_code_size);
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+    armDCacheFlush(m_free_far_code_ptr, m_far_code_size);
+    armICacheInvalidate(m_rx_ptr + (m_free_far_code_ptr - m_code_ptr), m_far_code_size);
+#else
     FlushInstructionCache(m_free_far_code_ptr, m_far_code_size);
+#endif
   }
 
   WriteProtect(true);
@@ -236,6 +295,11 @@ void JitCodeBuffer::FlushInstructionCache(void* address, u32 size)
   ::FlushInstructionCache(GetCurrentProcess(), address, size);
 #elif defined(__GNUC__) || defined(__clang__)
   __builtin___clear_cache(reinterpret_cast<char*>(address), reinterpret_cast<char*>(address) + size);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // Static method cannot access m_rx_ptr for I-cache invalidation.
+  // We rely on CommitCode/Reset handling I-cache.
+  // Just flush D-cache to be safe.
+  armDCacheFlush(address, size);
 #else
 #error Unknown platform.
 #endif
@@ -256,5 +320,22 @@ void JitCodeBuffer::WriteProtect(bool enabled)
 
   if (needs_write_protect)
     pthread_jit_write_protect_np(enabled ? 1 : 0);
+}
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+void JitCodeBuffer::WriteProtect(bool enabled)
+{
+  if (!m_jit.type)
+    return;
+
+  // On Switch with JitType_CodeMemory, RW and RX are always mapped.
+  // jitTransitionToExecutable flushes handling the ENTIRE buffer, which is too slow (64MB+ flush per backpatch).
+  // We handle cache maintenance manually in CommitCode/backpatching using range-based flushes.
+  if (m_jit.type == JitType_CodeMemory)
+    return;
+
+  if (enabled)
+    jitTransitionToExecutable(&m_jit);
+  else
+    jitTransitionToWritable(&m_jit);
 }
 #endif

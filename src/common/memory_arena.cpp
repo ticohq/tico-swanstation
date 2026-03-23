@@ -17,6 +17,9 @@ Log_SetChannel(Common::MemoryArena);
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+#include <malloc.h>
+#include <switch.h>
 #endif
 
 namespace Common {
@@ -80,6 +83,9 @@ void* MemoryArena::FindBaseAddressForMapping(size_t size)
   base_address = mmap(nullptr, size, PROT_NONE, MAP_ANON | MAP_SHARED, -1, 0);
   if (base_address)
     munmap(base_address, size);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // Just try to allocate to assume it works, or return nullptr to disable fastmem?
+  base_address = nullptr;
 #else
   base_address = nullptr;
 #endif
@@ -97,6 +103,8 @@ bool MemoryArena::IsValid() const
 {
 #if defined(_WIN32)
   return m_file_handle != nullptr;
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  return m_buffer != nullptr;
 #else
   return m_shmem_fd >= 0;
 #endif
@@ -108,6 +116,8 @@ static std::string GetFileMappingName()
   const unsigned pid = GetCurrentProcessId();
 #elif defined(__ANDROID__) || defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
   const unsigned pid = static_cast<unsigned>(getpid());
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  const unsigned pid = 0;
 #else
 #error Unknown platform.
 #endif
@@ -202,6 +212,19 @@ bool MemoryArena::Create(size_t size, bool writable, bool executable)
   m_writable = writable;
   m_executable = executable;
   return true;
+
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  m_buffer = memalign(0x1000, size);
+  if (!m_buffer)
+  {
+    Log_ErrorPrintf("memalign(%zu) failed", size);
+    return false;
+  }
+  std::memset(m_buffer, 0, size);
+  m_size = size;
+  m_writable = writable;
+  m_executable = executable;
+  return true;
 #else
   return false;
 #endif
@@ -220,6 +243,12 @@ void MemoryArena::Destroy()
   {
     close(m_shmem_fd);
     m_shmem_fd = -1;
+  }
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  if (m_buffer)
+  {
+    free(m_buffer);
+    m_buffer = nullptr;
   }
 #endif
 }
@@ -259,6 +288,11 @@ void* MemoryArena::CreateViewPtr(size_t offset, size_t size, bool writable, bool
   base_pointer = mmap(fixed_address, size, prot, flags, m_shmem_fd, static_cast<off_t>(offset));
   if (base_pointer == reinterpret_cast<void*>(-1))
     return nullptr;
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // Ignoring fixed_address for now.
+  if (offset + size > m_size)
+    return nullptr;
+  base_pointer = static_cast<u8*>(m_buffer) + offset;
 #else
   return nullptr;
 #endif
@@ -273,6 +307,9 @@ bool MemoryArena::FlushViewPtr(void* address, size_t size)
   return FlushViewOfFile(address, size);
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
   return (msync(address, size, 0) >= 0);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // No OS flush needed for simple RAM.
+  return true;
 #else
   return false;
 #endif
@@ -285,6 +322,8 @@ bool MemoryArena::ReleaseViewPtr(void* address, size_t size)
   result = static_cast<bool>(UnmapViewOfFile(address));
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
   result = (munmap(address, size) >= 0);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  result = true;
 #else
   result = false;
 #endif
@@ -310,6 +349,8 @@ void* MemoryArena::CreateReservedPtr(size_t size, void* fixed_address /*= nullpt
   base_pointer = mmap(fixed_address, size, PROT_NONE, flags, -1, 0);
   if (base_pointer == reinterpret_cast<void*>(-1))
     return nullptr;
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  base_pointer = memalign(0x1000, size);
 #else
   return nullptr;
 #endif
@@ -325,6 +366,9 @@ bool MemoryArena::ReleaseReservedPtr(void* address, size_t size)
   result = static_cast<bool>(VirtualFree(address, 0, MEM_RELEASE));
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
   result = (munmap(address, size) >= 0);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  free(address);
+  result = true;
 #else
   result = false;
 #endif
@@ -352,6 +396,8 @@ bool MemoryArena::SetPageProtection(void* address, size_t length, bool readable,
 #elif defined(__linux__) || defined(__ANDROID__) || defined(__APPLE__) || defined(__FreeBSD__)
   const int prot = (readable ? PROT_READ : 0) | (writable ? PROT_WRITE : 0) | (executable ? PROT_EXEC : 0);
   return (mprotect(address, length, prot) >= 0);
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  return true;
 #else
   return false;
 #endif

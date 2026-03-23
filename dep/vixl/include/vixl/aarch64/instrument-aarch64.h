@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_INSTRUMENT_AARCH64_H_
-#define VIXL_AARCH64_INSTRUMENT_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_INSTRUMENT_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_INSTRUMENT_AARCH64_H_
 
 #include "../globals-vixl.h"
 #include "../utils-vixl.h"
@@ -34,7 +34,7 @@
 #include "decoder-aarch64.h"
 #include "instrument-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 const int kCounterNameMaxLength = 256;
@@ -59,13 +59,13 @@ class Counter {
   void Disable();
   bool IsEnabled();
   uint64_t GetCount();
-  VIXL_DEPRECATED("GetCount", uint64_t count()) { return GetCount(); }
+  SWANSTATION_VIXL_DEPRECATED("GetCount", uint64_t count()) { return GetCount(); }
 
   const char* GetName();
-  VIXL_DEPRECATED("GetName", const char* name()) { return GetName(); }
+  SWANSTATION_VIXL_DEPRECATED("GetName", const char* name()) { return GetName(); }
 
   CounterType GetType();
-  VIXL_DEPRECATED("GetType", CounterType type()) { return GetType(); }
+  SWANSTATION_VIXL_DEPRECATED("GetType", CounterType type()) { return GetType(); }
 
  private:
   char name_[kCounterNameMaxLength];
@@ -86,7 +86,7 @@ class Instrument : public DecoderVisitor {
   void Disable();
 
 // Declare all Visitor functions.
-#define DECLARE(A) void Visit##A(const Instruction* instr) VIXL_OVERRIDE;
+#define DECLARE(A) void Visit##A(const Instruction* instr) SWANSTATION_VIXL_OVERRIDE;
   VISITOR_LIST(DECLARE)
 #undef DECLARE
 
@@ -112,6 +112,6 @@ class Instrument : public DecoderVisitor {
 };
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_INSTRUMENT_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_INSTRUMENT_AARCH64_H_

@@ -24,12 +24,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_SIMULATOR_CONSTANTS_AARCH64_H_
-#define VIXL_AARCH64_SIMULATOR_CONSTANTS_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_SIMULATOR_CONSTANTS_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_SIMULATOR_CONSTANTS_AARCH64_H_
 
 #include "instructions-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Debug instructions.
@@ -60,7 +60,7 @@ enum DebugHltOpcode {
   kDebugHltFirstOpcode = kUnreachableOpcode,
   kDebugHltLastOpcode = kLogOpcode
 };
-VIXL_DEPRECATED("DebugHltOpcode", typedef DebugHltOpcode DebugHltOpcodes);
+SWANSTATION_VIXL_DEPRECATED("DebugHltOpcode", typedef DebugHltOpcode DebugHltOpcodes);
 
 // Each pseudo instruction uses a custom encoding for additional arguments, as
 // described below.
@@ -187,6 +187,6 @@ const unsigned kConfigureCPUFeaturesListOffset = 1 * kInstructionSize;
 // CPUFeaturesAuditor::HasSeen(...)).
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_SIMULATOR_CONSTANTS_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_SIMULATOR_CONSTANTS_AARCH64_H_

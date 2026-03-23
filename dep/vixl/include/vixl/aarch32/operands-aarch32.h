@@ -25,12 +25,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH32_OPERANDS_AARCH32_H_
-#define VIXL_AARCH32_OPERANDS_AARCH32_H_
+#ifndef SWANSTATION_VIXL_AARCH32_OPERANDS_AARCH32_H_
+#define SWANSTATION_VIXL_AARCH32_OPERANDS_AARCH32_H_
 
 #include "instructions-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 // Operand represents generic set of arguments to pass to an instruction.
@@ -76,7 +76,7 @@ class Operand {
         shift_(LSL),
         amount_(0),
         rs_(NoReg) {
-    VIXL_ASSERT(rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rm_.IsValid());
   }
 
   // rm, <shift>
@@ -84,8 +84,8 @@ class Operand {
   //       <shift> is RRX
   Operand(Register rm, Shift shift)
       : imm_(0), rm_(rm), shift_(shift), amount_(0), rs_(NoReg) {
-    VIXL_ASSERT(rm_.IsValid());
-    VIXL_ASSERT(shift_.IsRRX());
+    SWANSTATION_VIXL_ASSERT(rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(shift_.IsRRX());
   }
 
   // rm, <shift> #<amount>
@@ -94,23 +94,23 @@ class Operand {
   //       <amount> is uint6_t.
   Operand(Register rm, Shift shift, uint32_t amount)
       : imm_(0), rm_(rm), shift_(shift), amount_(amount), rs_(NoReg) {
-    VIXL_ASSERT(rm_.IsValid());
-    VIXL_ASSERT(!shift_.IsRRX());
-#ifdef VIXL_DEBUG
+    SWANSTATION_VIXL_ASSERT(rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(!shift_.IsRRX());
+#ifdef SWANSTATION_VIXL_DEBUG
     switch (shift_.GetType()) {
       case LSL:
-        VIXL_ASSERT(amount_ <= 31);
+        SWANSTATION_VIXL_ASSERT(amount_ <= 31);
         break;
       case ROR:
-        VIXL_ASSERT(amount_ <= 31);
+        SWANSTATION_VIXL_ASSERT(amount_ <= 31);
         break;
       case LSR:
       case ASR:
-        VIXL_ASSERT(amount_ <= 32);
+        SWANSTATION_VIXL_ASSERT(amount_ <= 32);
         break;
       case RRX:
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         break;
     }
 #endif
@@ -122,8 +122,8 @@ class Operand {
   //       rs is the shifted register
   Operand(Register rm, Shift shift, Register rs)
       : imm_(0), rm_(rm), shift_(shift), amount_(0), rs_(rs) {
-    VIXL_ASSERT(rm_.IsValid() && rs_.IsValid());
-    VIXL_ASSERT(!shift_.IsRRX());
+    SWANSTATION_VIXL_ASSERT(rm_.IsValid() && rs_.IsValid());
+    SWANSTATION_VIXL_ASSERT(!shift_.IsRRX());
   }
 
   // Factory methods creating operands from any integral or pointer type. The
@@ -131,7 +131,7 @@ class Operand {
   template <typename T>
   static Operand From(T immediate) {
 #if __cplusplus >= 201103L
-    VIXL_STATIC_ASSERT_MESSAGE(std::is_integral<T>::value,
+    SWANSTATION_VIXL_STATIC_ASSERT_MESSAGE(std::is_integral<T>::value,
                                "An integral type is required to build an "
                                "immediate operand.");
 #endif
@@ -140,14 +140,14 @@ class Operand {
     // static_cast to make sure the compiler does not complain about implicit 64
     // to 32 narrowing. It's perfectly acceptable for the user to pass a 64-bit
     // value, as long as it can be encoded in 32 bits.
-    VIXL_ASSERT(IsInt32(immediate) || IsUint32(immediate));
+    SWANSTATION_VIXL_ASSERT(IsInt32(immediate) || IsUint32(immediate));
     return Operand(static_cast<uint32_t>(immediate));
   }
 
   template <typename T>
   static Operand From(T* address) {
     uintptr_t address_as_integral = reinterpret_cast<uintptr_t>(address);
-    VIXL_ASSERT(IsUint32(address_as_integral));
+    SWANSTATION_VIXL_ASSERT(IsUint32(address_as_integral));
     return Operand(static_cast<uint32_t>(address_as_integral));
   }
 
@@ -166,34 +166,34 @@ class Operand {
   }
 
   uint32_t GetImmediate() const {
-    VIXL_ASSERT(IsImmediate());
+    SWANSTATION_VIXL_ASSERT(IsImmediate());
     return imm_;
   }
 
   int32_t GetSignedImmediate() const {
-    VIXL_ASSERT(IsImmediate());
+    SWANSTATION_VIXL_ASSERT(IsImmediate());
     int32_t result;
     memcpy(&result, &imm_, sizeof(result));
     return result;
   }
 
   Register GetBaseRegister() const {
-    VIXL_ASSERT(IsImmediateShiftedRegister() || IsRegisterShiftedRegister());
+    SWANSTATION_VIXL_ASSERT(IsImmediateShiftedRegister() || IsRegisterShiftedRegister());
     return rm_;
   }
 
   Shift GetShift() const {
-    VIXL_ASSERT(IsImmediateShiftedRegister() || IsRegisterShiftedRegister());
+    SWANSTATION_VIXL_ASSERT(IsImmediateShiftedRegister() || IsRegisterShiftedRegister());
     return shift_;
   }
 
   uint32_t GetShiftAmount() const {
-    VIXL_ASSERT(IsImmediateShiftedRegister());
+    SWANSTATION_VIXL_ASSERT(IsImmediateShiftedRegister());
     return amount_;
   }
 
   Register GetShiftRegister() const {
-    VIXL_ASSERT(IsRegisterShiftedRegister());
+    SWANSTATION_VIXL_ASSERT(IsRegisterShiftedRegister());
     return rs_;
   }
 
@@ -210,17 +210,17 @@ class Operand {
   Operand(float) = delete;     // NOLINT(runtime/explicit)
   Operand(double) = delete;    // NOLINT(runtime/explicit)
 #else
-  VIXL_NO_RETURN_IN_DEBUG_MODE Operand(int64_t) {  // NOLINT(runtime/explicit)
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE Operand(int64_t) {  // NOLINT(runtime/explicit)
+    SWANSTATION_VIXL_UNREACHABLE();
   }
-  VIXL_NO_RETURN_IN_DEBUG_MODE Operand(uint64_t) {  // NOLINT(runtime/explicit)
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE Operand(uint64_t) {  // NOLINT(runtime/explicit)
+    SWANSTATION_VIXL_UNREACHABLE();
   }
-  VIXL_NO_RETURN_IN_DEBUG_MODE Operand(float) {  // NOLINT
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE Operand(float) {  // NOLINT
+    SWANSTATION_VIXL_UNREACHABLE();
   }
-  VIXL_NO_RETURN_IN_DEBUG_MODE Operand(double) {  // NOLINT
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE Operand(double) {  // NOLINT
+    SWANSTATION_VIXL_UNREACHABLE();
   }
 #endif
 
@@ -284,8 +284,8 @@ class NeonImmediate {
 
   template <typename T>
   T GetImmediate(const DataTypeIdentity<T>&) const {
-    VIXL_ASSERT(sizeof(T) <= sizeof(uint32_t));
-    VIXL_ASSERT(CanConvert<T>());
+    SWANSTATION_VIXL_ASSERT(sizeof(T) <= sizeof(uint32_t));
+    SWANSTATION_VIXL_ASSERT(CanConvert<T>());
     if (immediate_type_.Is(I64))
       return static_cast<T>(imm_.u64_ & static_cast<T>(-1));
     if (immediate_type_.Is(F64) || immediate_type_.Is(F32)) return 0;
@@ -293,18 +293,18 @@ class NeonImmediate {
   }
 
   uint64_t GetImmediate(const DataTypeIdentity<uint64_t>&) const {
-    VIXL_ASSERT(CanConvert<uint64_t>());
+    SWANSTATION_VIXL_ASSERT(CanConvert<uint64_t>());
     if (immediate_type_.Is(I32)) return imm_.u32_;
     if (immediate_type_.Is(F64) || immediate_type_.Is(F32)) return 0;
     return imm_.u64_;
   }
   float GetImmediate(const DataTypeIdentity<float>&) const {
-    VIXL_ASSERT(CanConvert<float>());
+    SWANSTATION_VIXL_ASSERT(CanConvert<float>());
     if (immediate_type_.Is(F64)) return static_cast<float>(imm_.d_);
     return imm_.f_;
   }
   double GetImmediate(const DataTypeIdentity<double>&) const {
-    VIXL_ASSERT(CanConvert<double>());
+    SWANSTATION_VIXL_ASSERT(CanConvert<double>());
     if (immediate_type_.Is(F32)) return static_cast<double>(imm_.f_);
     return imm_.d_;
   }
@@ -327,7 +327,7 @@ class NeonImmediate {
 
   template <typename T>
   bool CanConvert(const DataTypeIdentity<T>&) const {
-    VIXL_ASSERT(sizeof(T) < sizeof(uint32_t));
+    SWANSTATION_VIXL_ASSERT(sizeof(T) < sizeof(uint32_t));
     return (immediate_type_.Is(I32) && ((imm_.u32_ >> (8 * sizeof(T))) == 0)) ||
            (immediate_type_.Is(I64) && ((imm_.u64_ >> (8 * sizeof(T))) == 0)) ||
            (immediate_type_.Is(F32) && (imm_.f_ == 0.0f)) ||
@@ -397,20 +397,20 @@ class NeonOperand {
   NeonOperand(const VRegister& rm)  // NOLINT(runtime/explicit)
       : imm_(0),
         rm_(rm) {
-    VIXL_ASSERT(rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rm_.IsValid());
   }
 
   bool IsImmediate() const { return !rm_.IsValid(); }
   bool IsRegister() const { return rm_.IsValid(); }
   bool IsFloatZero() const {
-    VIXL_ASSERT(IsImmediate());
+    SWANSTATION_VIXL_ASSERT(IsImmediate());
     return imm_.IsFloatZero();
   }
 
   const NeonImmediate& GetNeonImmediate() const { return imm_; }
 
   VRegister GetRegister() const {
-    VIXL_ASSERT(IsRegister());
+    SWANSTATION_VIXL_ASSERT(IsRegister());
     return rm_;
   }
 
@@ -449,7 +449,7 @@ class SOperand : public NeonOperand {
   SOperand(SRegister rm)  // NOLINT(runtime/explicit)
       : NeonOperand(rm) {}
   SRegister GetRegister() const {
-    VIXL_ASSERT(IsRegister() && (rm_.GetType() == CPURegister::kSRegister));
+    SWANSTATION_VIXL_ASSERT(IsRegister() && (rm_.GetType() == CPURegister::kSRegister));
     return SRegister(rm_.GetCode());
   }
 };
@@ -491,7 +491,7 @@ class DOperand : public NeonOperand {
       : NeonOperand(rm) {}
 
   DRegister GetRegister() const {
-    VIXL_ASSERT(IsRegister() && (rm_.GetType() == CPURegister::kDRegister));
+    SWANSTATION_VIXL_ASSERT(IsRegister() && (rm_.GetType() == CPURegister::kDRegister));
     return DRegister(rm_.GetCode());
   }
 };
@@ -526,11 +526,11 @@ class QOperand : public NeonOperand {
   // a wrapper class that doesn't normally perform any type conversion.
   QOperand(QRegister rm)  // NOLINT(runtime/explicit)
       : NeonOperand(rm) {
-    VIXL_ASSERT(rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rm_.IsValid());
   }
 
   QRegister GetRegister() const {
-    VIXL_ASSERT(IsRegister() && (rm_.GetType() == CPURegister::kQRegister));
+    SWANSTATION_VIXL_ASSERT(IsRegister() && (rm_.GetType() == CPURegister::kQRegister));
     return QRegister(rm_.GetCode());
   }
 };
@@ -668,7 +668,7 @@ class MemOperand {
         shift_(LSL),
         shift_amount_(0),
         addrmode_(addrmode | kMemOperandRegisterOnly) {
-    VIXL_ASSERT(rn_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid());
   }
 
   // rn, #<imm>
@@ -685,7 +685,7 @@ class MemOperand {
         shift_(LSL),
         shift_amount_(0),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid());
   }
   MemOperand(Register rn, Sign sign, int32_t offset, AddrMode addrmode = Offset)
       : rn_(rn),
@@ -695,9 +695,9 @@ class MemOperand {
         shift_(LSL),
         shift_amount_(0),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid());
     // With this constructor, the sign must only be specified by "sign".
-    VIXL_ASSERT(offset >= 0);
+    SWANSTATION_VIXL_ASSERT(offset >= 0);
   }
 
   // rn, {+/-}rm
@@ -712,7 +712,7 @@ class MemOperand {
         shift_(LSL),
         shift_amount_(0),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
   }
 
   // rn, rm
@@ -726,7 +726,7 @@ class MemOperand {
         shift_(LSL),
         shift_amount_(0),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
   }
 
   // rn, {+/-}rm, <shift>
@@ -746,8 +746,8 @@ class MemOperand {
         shift_(shift),
         shift_amount_(0),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
-    VIXL_ASSERT(shift_.IsRRX());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(shift_.IsRRX());
   }
 
   // rn, rm, <shift>
@@ -762,8 +762,8 @@ class MemOperand {
         shift_(shift),
         shift_amount_(0),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
-    VIXL_ASSERT(shift_.IsRRX());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(shift_.IsRRX());
   }
 
   // rn, {+/-}rm, <shift> #<amount>
@@ -785,7 +785,7 @@ class MemOperand {
         shift_(shift),
         shift_amount_(shift_amount),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
     CheckShift();
   }
 
@@ -806,7 +806,7 @@ class MemOperand {
         shift_(shift),
         shift_amount_(shift_amount),
         addrmode_(addrmode) {
-    VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
+    SWANSTATION_VIXL_ASSERT(rn_.IsValid() && rm_.IsValid());
     CheckShift();
   }
 
@@ -860,29 +860,29 @@ class MemOperand {
   static const int kMemOperandRegisterOnly = 0x1000;
   static const int kMemOperandAddrModeMask = 0xfff;
   void CheckShift() {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     // Disallow any zero shift other than RRX #0 and LSL #0 .
     if ((shift_amount_ == 0) && shift_.IsRRX()) return;
     if ((shift_amount_ == 0) && !shift_.IsLSL()) {
-      VIXL_ABORT_WITH_MSG(
+      SWANSTATION_VIXL_ABORT_WITH_MSG(
           "A shift by 0 is only accepted in "
           "the case of lsl and will be treated as "
           "no shift.\n");
     }
     switch (shift_.GetType()) {
       case LSL:
-        VIXL_ASSERT(shift_amount_ <= 31);
+        SWANSTATION_VIXL_ASSERT(shift_amount_ <= 31);
         break;
       case ROR:
-        VIXL_ASSERT(shift_amount_ <= 31);
+        SWANSTATION_VIXL_ASSERT(shift_amount_ <= 31);
         break;
       case LSR:
       case ASR:
-        VIXL_ASSERT(shift_amount_ <= 32);
+        SWANSTATION_VIXL_ASSERT(shift_amount_ <= 32);
         break;
       case RRX:
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         break;
     }
 #endif
@@ -902,7 +902,7 @@ class AlignedMemOperand : public MemOperand {
  public:
   AlignedMemOperand(Register rn, Alignment align, AddrMode addrmode = Offset)
       : MemOperand(rn, addrmode), align_(align) {
-    VIXL_ASSERT(addrmode != PreIndex);
+    SWANSTATION_VIXL_ASSERT(addrmode != PreIndex);
   }
 
   AlignedMemOperand(Register rn,
@@ -910,7 +910,7 @@ class AlignedMemOperand : public MemOperand {
                     Register rm,
                     AddrMode addrmode)
       : MemOperand(rn, rm, addrmode), align_(align) {
-    VIXL_ASSERT(addrmode != PreIndex);
+    SWANSTATION_VIXL_ASSERT(addrmode != PreIndex);
   }
 
   Alignment GetAlignment() const { return align_; }
@@ -922,6 +922,6 @@ class AlignedMemOperand : public MemOperand {
 std::ostream& operator<<(std::ostream& os, const AlignedMemOperand& operand);
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH32_OPERANDS_AARCH32_H_
+#endif  // SWANSTATION_VIXL_AARCH32_OPERANDS_AARCH32_H_

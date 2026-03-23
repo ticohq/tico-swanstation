@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_DISASM_AARCH64_H
-#define VIXL_AARCH64_DISASM_AARCH64_H
+#ifndef SWANSTATION_VIXL_AARCH64_DISASM_AARCH64_H
+#define SWANSTATION_VIXL_AARCH64_DISASM_AARCH64_H
 
 #include "../globals-vixl.h"
 #include "../utils-vixl.h"
@@ -35,7 +35,7 @@
 #include "instructions-aarch64.h"
 #include "operands-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 class Disassembler : public DecoderVisitor {
@@ -47,7 +47,7 @@ class Disassembler : public DecoderVisitor {
 
 // Declare all Visitor functions.
 #define DECLARE(A) \
-  virtual void Visit##A(const Instruction* instr) VIXL_OVERRIDE;
+  virtual void Visit##A(const Instruction* instr) SWANSTATION_VIXL_OVERRIDE;
   VISITOR_LIST(DECLARE)
 #undef DECLARE
 
@@ -191,18 +191,18 @@ class PrintDisassembler : public Disassembler {
 
   // Set the prefix to appear before the CPU features annotations.
   void SetCPUFeaturesPrefix(const char* prefix) {
-    VIXL_ASSERT(prefix != NULL);
+    SWANSTATION_VIXL_ASSERT(prefix != NULL);
     cpu_features_prefix_ = prefix;
   }
 
   // Set the suffix to appear after the CPU features annotations.
   void SetCPUFeaturesSuffix(const char* suffix) {
-    VIXL_ASSERT(suffix != NULL);
+    SWANSTATION_VIXL_ASSERT(suffix != NULL);
     cpu_features_suffix_ = suffix;
   }
 
  protected:
-  virtual void ProcessOutput(const Instruction* instr) VIXL_OVERRIDE;
+  virtual void ProcessOutput(const Instruction* instr) SWANSTATION_VIXL_OVERRIDE;
 
   CPUFeaturesAuditor* cpu_features_auditor_;
   const char* cpu_features_prefix_;
@@ -212,6 +212,6 @@ class PrintDisassembler : public Disassembler {
   FILE* stream_;
 };
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_DISASM_AARCH64_H
+#endif  // SWANSTATION_VIXL_AARCH64_DISASM_AARCH64_H

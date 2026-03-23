@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_CONSTANTS_AARCH32_H_
-#define VIXL_CONSTANTS_AARCH32_H_
+#ifndef SWANSTATION_VIXL_CONSTANTS_AARCH32_H_
+#define SWANSTATION_VIXL_CONSTANTS_AARCH32_H_
 
 extern "C" {
 #include <stdint.h>
@@ -35,11 +35,11 @@ extern "C" {
 #include "../globals-vixl.h"
 
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 enum InstructionSet { A32, T32 };
-#ifdef VIXL_INCLUDE_TARGET_T32_ONLY
+#ifdef SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY
 const InstructionSet kDefaultISA = T32;
 #else
 const InstructionSet kDefaultISA = A32;
@@ -536,6 +536,6 @@ inline InstructionAttribute operator|(InstructionAttribute left,
 }
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_CONSTANTS_AARCH32_H_
+#endif  // SWANSTATION_VIXL_CONSTANTS_AARCH32_H_

@@ -28,7 +28,7 @@
 
 #include "utils-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 // The default NaN values (for FPCR.DN=1).
 const double kFP64DefaultNaN = RawbitsToDouble(UINT64_C(0x7ff8000000000000));
@@ -189,7 +189,7 @@ int Float16Classify(Float16 value) {
 
 
 unsigned CountClearHalfWords(uint64_t imm, unsigned reg_size) {
-  VIXL_ASSERT((reg_size % 8) == 0);
+  SWANSTATION_VIXL_ASSERT((reg_size % 8) == 0);
   int count = 0;
   for (unsigned i = 0; i < (reg_size / 16); i++) {
     if ((imm & 0xffff) == 0) {
@@ -325,7 +325,7 @@ float FPToFloat(Float16 value, UseDefaultNaN DN, bool* exception) {
       break;
 
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   return RawbitsToFloat((sign << 31) | (exponent << kFloatMantissaBits) |
                         mantissa);
@@ -337,7 +337,7 @@ float FPToFloat(double value,
                 UseDefaultNaN DN,
                 bool* exception) {
   // Only the FPTieEven rounding mode is implemented.
-  VIXL_ASSERT((round_mode == FPTieEven) || (round_mode == FPRoundOdd));
+  SWANSTATION_VIXL_ASSERT((round_mode == FPTieEven) || (round_mode == FPRoundOdd));
   USE(round_mode);
 
   switch (std::fpclassify(value)) {
@@ -390,7 +390,7 @@ float FPToFloat(double value,
     }
   }
 
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return value;
 }
 
@@ -439,7 +439,7 @@ double FPToDouble(float value, UseDefaultNaN DN, bool* exception) {
     }
   }
 
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return static_cast<double>(value);
 }
 
@@ -449,7 +449,7 @@ Float16 FPToFloat16(float value,
                     UseDefaultNaN DN,
                     bool* exception) {
   // Only the FPTieEven rounding mode is implemented.
-  VIXL_ASSERT(round_mode == FPTieEven);
+  SWANSTATION_VIXL_ASSERT(round_mode == FPTieEven);
   USE(round_mode);
 
   uint32_t raw = FloatToRawbits(value);
@@ -494,7 +494,7 @@ Float16 FPToFloat16(float value,
     }
   }
 
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return kFP16PositiveZero;
 }
 
@@ -504,7 +504,7 @@ Float16 FPToFloat16(double value,
                     UseDefaultNaN DN,
                     bool* exception) {
   // Only the FPTieEven rounding mode is implemented.
-  VIXL_ASSERT(round_mode == FPTieEven);
+  SWANSTATION_VIXL_ASSERT(round_mode == FPTieEven);
   USE(round_mode);
 
   uint64_t raw = DoubleToRawbits(value);
@@ -548,8 +548,8 @@ Float16 FPToFloat16(double value,
     }
   }
 
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return kFP16PositiveZero;
 }
 
-}  // namespace vixl
+}  // namespace swanstation_vixl

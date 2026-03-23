@@ -24,15 +24,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_INSTRUCTIONS_AARCH64_H_
-#define VIXL_AARCH64_INSTRUCTIONS_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_INSTRUCTIONS_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_INSTRUCTIONS_AARCH64_H_
 
 #include "../globals-vixl.h"
 #include "../utils-vixl.h"
 
 #include "constants-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 // ISA constants. --------------------------------------------------------------
 
@@ -110,29 +110,29 @@ const unsigned kAddressTagOffset = 56;
 const unsigned kAddressTagWidth = 8;
 const uint64_t kAddressTagMask = ((UINT64_C(1) << kAddressTagWidth) - 1)
                                  << kAddressTagOffset;
-VIXL_STATIC_ASSERT(kAddressTagMask == UINT64_C(0xff00000000000000));
+SWANSTATION_VIXL_STATIC_ASSERT(kAddressTagMask == UINT64_C(0xff00000000000000));
 
 const uint64_t kTTBRMask = UINT64_C(1) << 55;
 
 // Make these moved float constants backwards compatible
-// with explicit vixl::aarch64:: namespace references.
-using vixl::kDoubleMantissaBits;
-using vixl::kDoubleExponentBits;
-using vixl::kFloatMantissaBits;
-using vixl::kFloatExponentBits;
-using vixl::kFloat16MantissaBits;
-using vixl::kFloat16ExponentBits;
+// with explicit swanstation_vixl::aarch64:: namespace references.
+using swanstation_vixl::kDoubleMantissaBits;
+using swanstation_vixl::kDoubleExponentBits;
+using swanstation_vixl::kFloatMantissaBits;
+using swanstation_vixl::kFloatExponentBits;
+using swanstation_vixl::kFloat16MantissaBits;
+using swanstation_vixl::kFloat16ExponentBits;
 
-using vixl::kFP16PositiveInfinity;
-using vixl::kFP16NegativeInfinity;
-using vixl::kFP32PositiveInfinity;
-using vixl::kFP32NegativeInfinity;
-using vixl::kFP64PositiveInfinity;
-using vixl::kFP64NegativeInfinity;
+using swanstation_vixl::kFP16PositiveInfinity;
+using swanstation_vixl::kFP16NegativeInfinity;
+using swanstation_vixl::kFP32PositiveInfinity;
+using swanstation_vixl::kFP32NegativeInfinity;
+using swanstation_vixl::kFP64PositiveInfinity;
+using swanstation_vixl::kFP64NegativeInfinity;
 
-using vixl::kFP16DefaultNaN;
-using vixl::kFP32DefaultNaN;
-using vixl::kFP64DefaultNaN;
+using swanstation_vixl::kFP16DefaultNaN;
+using swanstation_vixl::kFP32DefaultNaN;
+using swanstation_vixl::kFP64DefaultNaN;
 
 unsigned CalcLSDataSize(LoadStoreOp op);
 unsigned CalcLSPairDataSize(LoadStorePairOp op);
@@ -156,7 +156,7 @@ class Instruction {
   Instr GetInstructionBits() const {
     return *(reinterpret_cast<const Instr*>(this));
   }
-  VIXL_DEPRECATED("GetInstructionBits", Instr InstructionBits() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetInstructionBits", Instr InstructionBits() const) {
     return GetInstructionBits();
   }
 
@@ -165,14 +165,14 @@ class Instruction {
   }
 
   int ExtractBit(int pos) const { return (GetInstructionBits() >> pos) & 1; }
-  VIXL_DEPRECATED("ExtractBit", int Bit(int pos) const) {
+  SWANSTATION_VIXL_DEPRECATED("ExtractBit", int Bit(int pos) const) {
     return ExtractBit(pos);
   }
 
   uint32_t ExtractBits(int msb, int lsb) const {
     return ExtractUnsignedBitfield32(msb, lsb, GetInstructionBits());
   }
-  VIXL_DEPRECATED("ExtractBits", uint32_t Bits(int msb, int lsb) const) {
+  SWANSTATION_VIXL_DEPRECATED("ExtractBits", uint32_t Bits(int msb, int lsb) const) {
     return ExtractBits(msb, lsb);
   }
 
@@ -180,19 +180,19 @@ class Instruction {
     int32_t bits = *(reinterpret_cast<const int32_t*>(this));
     return ExtractSignedBitfield32(msb, lsb, bits);
   }
-  VIXL_DEPRECATED("ExtractSignedBits",
+  SWANSTATION_VIXL_DEPRECATED("ExtractSignedBits",
                   int32_t SignedBits(int msb, int lsb) const) {
     return ExtractSignedBits(msb, lsb);
   }
 
   Instr Mask(uint32_t mask) const {
-    VIXL_ASSERT(mask != 0);
+    SWANSTATION_VIXL_ASSERT(mask != 0);
     return GetInstructionBits() & mask;
   }
 
 #define DEFINE_GETTER(Name, HighBit, LowBit, Func)                  \
   int32_t Get##Name() const { return this->Func(HighBit, LowBit); } \
-  VIXL_DEPRECATED("Get" #Name, int32_t Name() const) { return Get##Name(); }
+  SWANSTATION_VIXL_DEPRECATED("Get" #Name, int32_t Name() const) { return Get##Name(); }
   INSTRUCTION_FIELDS_LIST(DEFINE_GETTER)
 #undef DEFINE_GETTER
 
@@ -205,48 +205,48 @@ class Instruction {
     int width = ImmPCRelLo_width + ImmPCRelHi_width;
     return ExtractSignedBitfield32(width - 1, 0, offset);
   }
-  VIXL_DEPRECATED("GetImmPCRel", int ImmPCRel() const) { return GetImmPCRel(); }
+  SWANSTATION_VIXL_DEPRECATED("GetImmPCRel", int ImmPCRel() const) { return GetImmPCRel(); }
 
   uint64_t GetImmLogical() const;
-  VIXL_DEPRECATED("GetImmLogical", uint64_t ImmLogical() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetImmLogical", uint64_t ImmLogical() const) {
     return GetImmLogical();
   }
 
   unsigned GetImmNEONabcdefgh() const;
-  VIXL_DEPRECATED("GetImmNEONabcdefgh", unsigned ImmNEONabcdefgh() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetImmNEONabcdefgh", unsigned ImmNEONabcdefgh() const) {
     return GetImmNEONabcdefgh();
   }
 
   Float16 GetImmFP16() const;
 
   float GetImmFP32() const;
-  VIXL_DEPRECATED("GetImmFP32", float ImmFP32() const) { return GetImmFP32(); }
+  SWANSTATION_VIXL_DEPRECATED("GetImmFP32", float ImmFP32() const) { return GetImmFP32(); }
 
   double GetImmFP64() const;
-  VIXL_DEPRECATED("GetImmFP64", double ImmFP64() const) { return GetImmFP64(); }
+  SWANSTATION_VIXL_DEPRECATED("GetImmFP64", double ImmFP64() const) { return GetImmFP64(); }
 
   Float16 GetImmNEONFP16() const;
 
   float GetImmNEONFP32() const;
-  VIXL_DEPRECATED("GetImmNEONFP32", float ImmNEONFP32() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetImmNEONFP32", float ImmNEONFP32() const) {
     return GetImmNEONFP32();
   }
 
   double GetImmNEONFP64() const;
-  VIXL_DEPRECATED("GetImmNEONFP64", double ImmNEONFP64() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetImmNEONFP64", double ImmNEONFP64() const) {
     return GetImmNEONFP64();
   }
 
   unsigned GetSizeLS() const {
     return CalcLSDataSize(static_cast<LoadStoreOp>(Mask(LoadStoreMask)));
   }
-  VIXL_DEPRECATED("GetSizeLS", unsigned SizeLS() const) { return GetSizeLS(); }
+  SWANSTATION_VIXL_DEPRECATED("GetSizeLS", unsigned SizeLS() const) { return GetSizeLS(); }
 
   unsigned GetSizeLSPair() const {
     return CalcLSPairDataSize(
         static_cast<LoadStorePairOp>(Mask(LoadStorePairMask)));
   }
-  VIXL_DEPRECATED("GetSizeLSPair", unsigned SizeLSPair() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetSizeLSPair", unsigned SizeLSPair() const) {
     return GetSizeLSPair();
   }
 
@@ -257,7 +257,7 @@ class Instruction {
     int64_t index = (q << 3) | (s << 2) | size;
     return static_cast<int>(index >> access_size_shift);
   }
-  VIXL_DEPRECATED("GetNEONLSIndex",
+  SWANSTATION_VIXL_DEPRECATED("GetNEONLSIndex",
                   int NEONLSIndex(int access_size_shift) const) {
     return GetNEONLSIndex(access_size_shift);
   }
@@ -313,14 +313,14 @@ class Instruction {
   }
 
   static int GetImmBranchRangeBitwidth(ImmBranchType branch_type);
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "GetImmBranchRangeBitwidth",
       static int ImmBranchRangeBitwidth(ImmBranchType branch_type)) {
     return GetImmBranchRangeBitwidth(branch_type);
   }
 
   static int32_t GetImmBranchForwardRange(ImmBranchType branch_type);
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "GetImmBranchForwardRange",
       static int32_t ImmBranchForwardRange(ImmBranchType branch_type)) {
     return GetImmBranchForwardRange(branch_type);
@@ -356,7 +356,7 @@ class Instruction {
     }
     return Reg31IsZeroRegister;
   }
-  VIXL_DEPRECATED("GetRdMode", Reg31Mode RdMode() const) { return GetRdMode(); }
+  SWANSTATION_VIXL_DEPRECATED("GetRdMode", Reg31Mode RdMode() const) { return GetRdMode(); }
 
   // Indicate whether Rn can be the stack pointer or the zero register. This
   // does not check that the instruction actually has an Rn field.
@@ -371,7 +371,7 @@ class Instruction {
     }
     return Reg31IsZeroRegister;
   }
-  VIXL_DEPRECATED("GetRnMode", Reg31Mode RnMode() const) { return GetRnMode(); }
+  SWANSTATION_VIXL_DEPRECATED("GetRnMode", Reg31Mode RnMode() const) { return GetRnMode(); }
 
   ImmBranchType GetBranchType() const {
     if (IsCondBranchImm()) {
@@ -386,14 +386,14 @@ class Instruction {
       return UnknownBranchType;
     }
   }
-  VIXL_DEPRECATED("GetBranchType", ImmBranchType BranchType() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetBranchType", ImmBranchType BranchType() const) {
     return GetBranchType();
   }
 
   // Find the target of this instruction. 'this' may be a branch or a
   // PC-relative addressing instruction.
   const Instruction* GetImmPCOffsetTarget() const;
-  VIXL_DEPRECATED("GetImmPCOffsetTarget",
+  SWANSTATION_VIXL_DEPRECATED("GetImmPCOffsetTarget",
                   const Instruction* ImmPCOffsetTarget() const) {
     return GetImmPCOffsetTarget();
   }
@@ -427,12 +427,12 @@ class Instruction {
     T address = (T)(address_raw);
 
     // Assert that the address can be represented by the specified type.
-    VIXL_ASSERT((uint64_t)(address) == address_raw);
+    SWANSTATION_VIXL_ASSERT((uint64_t)(address) == address_raw);
 
     return address;
   }
   template <typename T>
-  VIXL_DEPRECATED("GetLiteralAddress", T LiteralAddress() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteralAddress", T LiteralAddress() const) {
     return GetLiteralAddress<T>();
   }
 
@@ -441,7 +441,7 @@ class Instruction {
     memcpy(&literal, GetLiteralAddress<const void*>(), sizeof(literal));
     return literal;
   }
-  VIXL_DEPRECATED("GetLiteral32", uint32_t Literal32() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteral32", uint32_t Literal32() const) {
     return GetLiteral32();
   }
 
@@ -450,17 +450,17 @@ class Instruction {
     memcpy(&literal, GetLiteralAddress<const void*>(), sizeof(literal));
     return literal;
   }
-  VIXL_DEPRECATED("GetLiteral64", uint64_t Literal64() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteral64", uint64_t Literal64() const) {
     return GetLiteral64();
   }
 
   float GetLiteralFP32() const { return RawbitsToFloat(GetLiteral32()); }
-  VIXL_DEPRECATED("GetLiteralFP32", float LiteralFP32() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteralFP32", float LiteralFP32() const) {
     return GetLiteralFP32();
   }
 
   double GetLiteralFP64() const { return RawbitsToDouble(GetLiteral64()); }
-  VIXL_DEPRECATED("GetLiteralFP64", double LiteralFP64() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteralFP64", double LiteralFP64() const) {
     return GetLiteralFP64();
   }
 
@@ -468,16 +468,16 @@ class Instruction {
   const Instruction* GetNextInstruction() const {
     return this + kInstructionSize;
   }
-  VIXL_DEPRECATED("GetNextInstruction",
+  SWANSTATION_VIXL_DEPRECATED("GetNextInstruction",
                   const Instruction* NextInstruction() const) {
     return GetNextInstruction();
   }
 
   const Instruction* GetInstructionAtOffset(int64_t offset) const {
-    VIXL_ASSERT(IsWordAligned(this + offset));
+    SWANSTATION_VIXL_ASSERT(IsWordAligned(this + offset));
     return this + offset;
   }
-  VIXL_DEPRECATED("GetInstructionAtOffset",
+  SWANSTATION_VIXL_DEPRECATED("GetInstructionAtOffset",
                   const Instruction* InstructionAtOffset(int64_t offset)
                       const) {
     return GetInstructionAtOffset(offset);
@@ -616,14 +616,14 @@ class NEONFormatDecoder {
   void SetFormatMaps(const NEONFormatMap* format0,
                      const NEONFormatMap* format1 = NULL,
                      const NEONFormatMap* format2 = NULL) {
-    VIXL_ASSERT(format0 != NULL);
+    SWANSTATION_VIXL_ASSERT(format0 != NULL);
     formats_[0] = format0;
     formats_[1] = (format1 == NULL) ? formats_[0] : format1;
     formats_[2] = (format2 == NULL) ? formats_[1] : format2;
   }
   void SetFormatMap(unsigned index, const NEONFormatMap* format) {
-    VIXL_ASSERT(index <= ArrayLength(formats_));
-    VIXL_ASSERT(format != NULL);
+    SWANSTATION_VIXL_ASSERT(index <= ArrayLength(formats_));
+    SWANSTATION_VIXL_ASSERT(format != NULL);
     formats_[index] = format;
   }
 
@@ -675,7 +675,7 @@ class NEONFormatDecoder {
                                          kFormatH,
                                          kFormatS,
                                          kFormatD};
-    VIXL_ASSERT(GetNEONFormat(format_map) < ArrayLength(vform));
+    SWANSTATION_VIXL_ASSERT(GetNEONFormat(format_map) < ArrayLength(vform));
     return vform[GetNEONFormat(format_map)];
   }
 
@@ -804,7 +804,7 @@ class NEONFormatDecoder {
     if (mode == kFormat) {
       return NEONFormatAsString(GetNEONFormat(formats_[index]));
     }
-    VIXL_ASSERT(mode == kPlaceholder);
+    SWANSTATION_VIXL_ASSERT(mode == kPlaceholder);
     return NEONFormatAsPlaceholder(GetNEONFormat(formats_[index]));
   }
 
@@ -823,13 +823,13 @@ class NEONFormatDecoder {
       "b", "h", "s", "d"
     };
     // clang-format on
-    VIXL_ASSERT(format < ArrayLength(formats));
+    SWANSTATION_VIXL_ASSERT(format < ArrayLength(formats));
     return formats[format];
   }
 
   // Convert a NEONFormat into a register placeholder string.
   static const char* NEONFormatAsPlaceholder(NEONFormat format) {
-    VIXL_ASSERT((format == NF_B) || (format == NF_H) || (format == NF_S) ||
+    SWANSTATION_VIXL_ASSERT((format == NF_B) || (format == NF_H) || (format == NF_S) ||
                 (format == NF_D) || (format == NF_UNDEF));
     // clang-format off
     static const char* formats[] = {
@@ -860,6 +860,6 @@ class NEONFormatDecoder {
   char mne_buffer_[16];
 };
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_INSTRUCTIONS_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_INSTRUCTIONS_AARCH64_H_

@@ -25,15 +25,15 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#ifndef VIXL_CODE_GENERATION_SCOPES_H_
-#define VIXL_CODE_GENERATION_SCOPES_H_
+#ifndef SWANSTATION_VIXL_CODE_GENERATION_SCOPES_H_
+#define SWANSTATION_VIXL_CODE_GENERATION_SCOPES_H_
 
 
 #include "assembler-base-vixl.h"
 #include "macro-assembler-interface.h"
 
 
-namespace vixl {
+namespace swanstation_vixl {
 
 // This scope will:
 // - Allow code emission from the specified `Assembler`.
@@ -86,13 +86,13 @@ class CodeBufferCheckScope {
             size_t size,
             BufferSpacePolicy check_policy = kReserveBufferSpace,
             SizePolicy size_policy = kMaximumSize) {
-    VIXL_ASSERT(!initialised_);
-    VIXL_ASSERT(assembler != NULL);
+    SWANSTATION_VIXL_ASSERT(!initialised_);
+    SWANSTATION_VIXL_ASSERT(assembler != NULL);
     assembler_ = assembler;
     if (check_policy == kReserveBufferSpace) {
       assembler->GetBuffer()->EnsureSpaceFor(size);
     }
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     limit_ = assembler_->GetSizeOfCodeGenerated() + size;
     assert_policy_ = size_policy;
     previous_allow_assembler_ = assembler_->AllowAssembler();
@@ -106,7 +106,7 @@ class CodeBufferCheckScope {
   // This function performs the cleaning-up work. It must succeed even if the
   // scope has not been opened. It is safe to call multiple times.
   void Close() {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     if (!initialised_) {
       return;
     }
@@ -115,13 +115,13 @@ class CodeBufferCheckScope {
       case kNoAssert:
         break;
       case kExactSize:
-        VIXL_ASSERT(assembler_->GetSizeOfCodeGenerated() == limit_);
+        SWANSTATION_VIXL_ASSERT(assembler_->GetSizeOfCodeGenerated() == limit_);
         break;
       case kMaximumSize:
-        VIXL_ASSERT(assembler_->GetSizeOfCodeGenerated() <= limit_);
+        SWANSTATION_VIXL_ASSERT(assembler_->GetSizeOfCodeGenerated() <= limit_);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
     }
 #endif
     initialised_ = false;
@@ -195,7 +195,7 @@ class EmissionCheckScope : public CodeBufferCheckScope {
     if (pool_policy_ == kBlockPools) {
       masm_->ReleasePools();
     }
-    VIXL_ASSERT(!initialised_);
+    SWANSTATION_VIXL_ASSERT(!initialised_);
   }
 
  protected:
@@ -223,7 +223,7 @@ class EmissionCheckScope : public CodeBufferCheckScope {
                                size,
                                kReserveBufferSpace,
                                size_policy);
-    VIXL_ASSERT(initialised_);
+    SWANSTATION_VIXL_ASSERT(initialised_);
   }
 
   // This constructor should only be used from code that is *currently
@@ -275,7 +275,7 @@ class ExactAssemblyScope : public EmissionCheckScope {
       // Nothing to do.
       return;
     }
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     masm_->SetAllowMacroInstructions(previous_allow_macro_assembler_);
 #else
     USE(previous_allow_macro_assembler_);
@@ -298,7 +298,7 @@ class ExactAssemblyScope : public EmissionCheckScope {
             size_t size,
             SizePolicy size_policy,
             PoolPolicy pool_policy) {
-    VIXL_ASSERT(size_policy != kNoAssert);
+    SWANSTATION_VIXL_ASSERT(size_policy != kNoAssert);
     if (masm == NULL) {
       // Nothing to do.
       return;
@@ -306,7 +306,7 @@ class ExactAssemblyScope : public EmissionCheckScope {
     // Rely on EmissionCheckScope::Open to initialise `masm_` and
     // `pool_policy_`.
     EmissionCheckScope::Open(masm, size, size_policy, pool_policy);
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     previous_allow_macro_assembler_ = masm->AllowMacroInstructions();
     masm->SetAllowMacroInstructions(false);
 #endif
@@ -317,6 +317,6 @@ class ExactAssemblyScope : public EmissionCheckScope {
 };
 
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_CODE_GENERATION_SCOPES_H_
+#endif  // SWANSTATION_VIXL_CODE_GENERATION_SCOPES_H_

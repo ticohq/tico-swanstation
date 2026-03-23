@@ -5,7 +5,7 @@
 #include "settings.h"
 #include "timing_event.h"
 
-namespace a32 = vixl::aarch32;
+namespace a32 = swanstation_vixl::aarch32;
 
 namespace CPU::Recompiler {
 
@@ -72,9 +72,9 @@ static const a32::Register GetCPUPtrReg()
 
 CodeGenerator::CodeGenerator(JitCodeBuffer* code_buffer)
   : m_code_buffer(code_buffer), m_register_cache(*this),
-    m_near_emitter(static_cast<vixl::byte*>(code_buffer->GetFreeCodePointer()), code_buffer->GetFreeCodeSpace(),
+    m_near_emitter(static_cast<swanstation_vixl::byte*>(code_buffer->GetFreeCodePointer()), code_buffer->GetFreeCodeSpace(),
                    a32::A32),
-    m_far_emitter(static_cast<vixl::byte*>(code_buffer->GetFreeFarCodePointer()), code_buffer->GetFreeFarCodeSpace(),
+    m_far_emitter(static_cast<swanstation_vixl::byte*>(code_buffer->GetFreeFarCodePointer()), code_buffer->GetFreeFarCodeSpace(),
                   a32::A32),
     m_emit(&m_near_emitter)
 {
@@ -216,9 +216,9 @@ void CodeGenerator::FinalizeBlock(CodeBlock::HostCodePointer* out_host_code, u32
   m_code_buffer->CommitCode(static_cast<u32>(m_near_emitter.GetSizeOfCodeGenerated()));
   m_code_buffer->CommitFarCode(static_cast<u32>(m_far_emitter.GetSizeOfCodeGenerated()));
 
-  m_near_emitter = CodeEmitter(static_cast<vixl::byte*>(m_code_buffer->GetFreeCodePointer()),
+  m_near_emitter = CodeEmitter(static_cast<swanstation_vixl::byte*>(m_code_buffer->GetFreeCodePointer()),
                                m_code_buffer->GetFreeCodeSpace(), a32::A32);
-  m_far_emitter = CodeEmitter(static_cast<vixl::byte*>(m_code_buffer->GetFreeFarCodePointer()),
+  m_far_emitter = CodeEmitter(static_cast<swanstation_vixl::byte*>(m_code_buffer->GetFreeFarCodePointer()),
                               m_code_buffer->GetFreeFarCodeSpace(), a32::A32);
 }
 
@@ -1433,7 +1433,7 @@ void CodeGenerator::EmitStoreGuestMemorySlowmem(const CodeBlockInstruction& cbi,
 bool CodeGenerator::BackpatchLoadStore(const LoadStoreBackpatchInfo& lbi)
 {
   // turn it into a jump to the slowmem handler
-  vixl::aarch32::MacroAssembler emit(static_cast<vixl::byte*>(lbi.host_pc), lbi.host_code_size, a32::A32);
+  swanstation_vixl::aarch32::MacroAssembler emit(static_cast<swanstation_vixl::byte*>(lbi.host_pc), lbi.host_code_size, a32::A32);
 
   // check jump distance
   const s32 displacement = GetPCDisplacement(lbi.host_pc, lbi.host_slowmem_pc);
@@ -1458,7 +1458,7 @@ bool CodeGenerator::BackpatchLoadStore(const LoadStoreBackpatchInfo& lbi)
 
 void CodeGenerator::BackpatchReturn(void* pc, u32 pc_size)
 {
-  vixl::aarch32::MacroAssembler emit(static_cast<vixl::byte*>(pc), pc_size, a32::A32);
+  swanstation_vixl::aarch32::MacroAssembler emit(static_cast<swanstation_vixl::byte*>(pc), pc_size, a32::A32);
   emit.bx(a32::lr);
 
   const s32 nops = (static_cast<s32>(pc_size) - static_cast<s32>(emit.GetCursorOffset())) / 4;
@@ -1470,7 +1470,7 @@ void CodeGenerator::BackpatchReturn(void* pc, u32 pc_size)
 
 void CodeGenerator::BackpatchBranch(void* pc, u32 pc_size, void* target)
 {
-  vixl::aarch32::MacroAssembler emit(static_cast<vixl::byte*>(pc), pc_size, a32::A32);
+  swanstation_vixl::aarch32::MacroAssembler emit(static_cast<swanstation_vixl::byte*>(pc), pc_size, a32::A32);
 
   // check jump distance
   const s32 displacement = GetPCDisplacement(pc, target);
