@@ -38,7 +38,7 @@ extern "C" {
 #include "aarch32/constants-aarch32.h"
 #include "aarch32/instructions-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 
@@ -54,7 +54,7 @@ bool Shift::IsValidAmount(uint32_t amount) const {
     case RRX:
       return amount == 0;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return false;
   }
 }
@@ -77,19 +77,19 @@ std::ostream& operator<<(std::ostream& os, const Register reg) {
 
 
 SRegister VRegister::S() const {
-  VIXL_ASSERT(GetType() == kSRegister);
+  SWANSTATION_VIXL_ASSERT(GetType() == kSRegister);
   return SRegister(GetCode());
 }
 
 
 DRegister VRegister::D() const {
-  VIXL_ASSERT(GetType() == kDRegister);
+  SWANSTATION_VIXL_ASSERT(GetType() == kDRegister);
   return DRegister(GetCode());
 }
 
 
 QRegister VRegister::Q() const {
-  VIXL_ASSERT(GetType() == kQRegister);
+  SWANSTATION_VIXL_ASSERT(GetType() == kQRegister);
   return QRegister(GetCode());
 }
 
@@ -212,7 +212,7 @@ const char* SpecialRegister::GetName() const {
     case SPSR:
       return "SPSR";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -280,7 +280,7 @@ const char* MaskedSpecialRegister::GetName() const {
     case SPSR_fsxc:
       return "SPSR_fsxc";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -354,7 +354,7 @@ const char* BankedRegister::GetName() const {
     case SPSR_hyp:
       return "SPSR_hyp";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -373,7 +373,7 @@ const char* SpecialFPRegister::GetName() const {
     case FPEXC:
       return "FPEXC";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -430,7 +430,7 @@ const char* Shift::GetName() const {
     case RRX:
       return "rrx";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -443,7 +443,7 @@ const char* EncodingSize::GetName() const {
     case Wide:
       return ".w";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -497,7 +497,7 @@ const char* DataType::GetName() const {
     case Untyped64:
       return ".64";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return ".??";
 }
 
@@ -539,7 +539,7 @@ const char* MemoryBarrier::GetName() const {
     case 0xc:
       return "#0xc";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -561,7 +561,7 @@ const char* InterruptFlags::GetName() const {
     case AIF:
       return "aif";
   }
-  VIXL_ASSERT(type_ == 0);
+  SWANSTATION_VIXL_ASSERT(type_ == 0);
   return "";
 }
 
@@ -573,7 +573,7 @@ const char* Endianness::GetName() const {
     case BE:
       return "be";
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return "??";
 }
 
@@ -594,7 +594,7 @@ ImmediateShiftOperand::ImmediateShiftOperand(int shift_value, int amount_value)
       if (amount_value == 0) SetType(RRX);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       SetType(LSL);
       amount_ = 0;
       break;
@@ -637,7 +637,7 @@ ImmediateT32::ImmediateT32(uint32_t imm) {
 
 
 static inline uint32_t ror(uint32_t x, int i) {
-  VIXL_ASSERT((0 < i) && (i < 32));
+  SWANSTATION_VIXL_ASSERT((0 < i) && (i < 32));
   return (x >> i) | (x << (32 - i));
 }
 
@@ -711,8 +711,8 @@ bool ImmediateA32::IsImmediateA32(uint32_t imm) {
 
 uint32_t ImmediateA32::Decode(uint32_t value) {
   int rotation = (value >> 8) * 2;
-  VIXL_ASSERT(rotation >= 0);
-  VIXL_ASSERT(rotation <= 30);
+  SWANSTATION_VIXL_ASSERT(rotation >= 0);
+  SWANSTATION_VIXL_ASSERT(rotation <= 30);
   value &= 0xff;
   if (rotation == 0) return value;
   return (value >> rotation) | (value << (32 - rotation));
@@ -739,4 +739,4 @@ uint32_t AmountEncodingValue(Shift shift, uint32_t amount) {
 }
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl

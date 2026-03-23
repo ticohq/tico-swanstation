@@ -31,7 +31,7 @@
 
 #include "cpu-features-auditor-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Every instruction must update last_instruction_, even if only to clear it,
@@ -708,7 +708,7 @@ void CPUFeaturesAuditor::VisitNEONByIndexedElement(const Instruction* instr) {
     case NEON_FMUL_H_byelement:
     case NEON_FMULX_H_byelement:
       scope.Record(CPUFeatures::kNEONHalf);
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FMLA_byelement:
     case NEON_FMLS_byelement:
     case NEON_FMUL_byelement:
@@ -880,7 +880,7 @@ void CPUFeaturesAuditor::VisitNEONScalarByIndexedElement(
         case NEON_FMUL_H_byelement_scalar:
         case NEON_FMULX_H_byelement_scalar:
           scope.Record(CPUFeatures::kNEONHalf);
-          VIXL_FALLTHROUGH();
+          SWANSTATION_VIXL_FALLTHROUGH();
         case NEON_FMLA_byelement_scalar:
         case NEON_FMLS_byelement_scalar:
         case NEON_FMUL_byelement_scalar:
@@ -911,7 +911,7 @@ void CPUFeaturesAuditor::VisitNEONScalarPairwise(const Instruction* instr) {
     case NEON_FMINNMP_h_scalar:
     case NEON_FMINP_h_scalar:
       scope.Record(CPUFeatures::kNEONHalf);
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FADDP_scalar:
     case NEON_FMAXP_scalar:
     case NEON_FMAXNMP_scalar:
@@ -1056,4 +1056,4 @@ void CPUFeaturesAuditor::VisitUnimplemented(const Instruction* instr) {
 
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl

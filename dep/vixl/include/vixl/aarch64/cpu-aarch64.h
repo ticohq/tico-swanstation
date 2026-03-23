@@ -24,14 +24,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_CPU_AARCH64_H
-#define VIXL_CPU_AARCH64_H
+#ifndef SWANSTATION_VIXL_CPU_AARCH64_H
+#define SWANSTATION_VIXL_CPU_AARCH64_H
 
 #include "../globals-vixl.h"
 
 #include "instructions-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 class CPU {
@@ -48,13 +48,13 @@ class CPU {
   // Handle tagged pointers.
   template <typename T>
   static T SetPointerTag(T pointer, uint64_t tag) {
-    VIXL_ASSERT(IsUintN(kAddressTagWidth, tag));
+    SWANSTATION_VIXL_ASSERT(IsUintN(kAddressTagWidth, tag));
 
     // Use C-style casts to get static_cast behaviour for integral types (T),
     // and reinterpret_cast behaviour for other types.
 
     uint64_t raw = (uint64_t)pointer;
-    VIXL_STATIC_ASSERT(sizeof(pointer) == sizeof(raw));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(pointer) == sizeof(raw));
 
     raw = (raw & ~kAddressTagMask) | (tag << kAddressTagOffset);
     return (T)raw;
@@ -66,7 +66,7 @@ class CPU {
     // and reinterpret_cast behaviour for other types.
 
     uint64_t raw = (uint64_t)pointer;
-    VIXL_STATIC_ASSERT(sizeof(pointer) == sizeof(raw));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(pointer) == sizeof(raw));
 
     return (raw & kAddressTagMask) >> kAddressTagOffset;
   }
@@ -81,6 +81,6 @@ class CPU {
 };
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_CPU_AARCH64_H
+#endif  // SWANSTATION_VIXL_CPU_AARCH64_H

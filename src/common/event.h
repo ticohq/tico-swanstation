@@ -9,6 +9,9 @@
 #elif defined(__linux__) || defined(__APPLE__) || defined(__HAIKU__)
 #include <atomic>
 #include <pthread.h>
+#elif defined(__SWITCH__)
+#include <switch.h>
+#include <atomic>
 #else
 #include <atomic>
 #include <condition_variable>
@@ -39,6 +42,12 @@ private:
 #elif defined(__linux__) || defined(__APPLE__) || defined(__HAIKU__)
   pthread_mutex_t m_mutex;
   pthread_cond_t m_cv;
+  std::atomic_uint32_t m_waiters{0};
+  std::atomic_bool m_signaled{false};
+  bool m_auto_reset = false;
+#elif defined(__SWITCH__)
+  Mutex m_mutex = INVALID_HANDLE;
+  CondVar m_cv = 0;
   std::atomic_uint32_t m_waiters{0};
   std::atomic_bool m_signaled{false};
   bool m_auto_reset = false;

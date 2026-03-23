@@ -484,8 +484,7 @@ const struct rglgen_sym_map rglgen_symbol_map[] = {
     SYM(MultiTexCoord4svARB),
     SYM(EGLImageTargetTexture2DOES),
     SYM(EGLImageTargetRenderbufferStorageOES),
-#endif
-
+#else
     SYM(DrawRangeElements),
     SYM(TexImage3D),
     SYM(TexSubImage3D),
@@ -1513,6 +1512,7 @@ const struct rglgen_sym_map rglgen_symbol_map[] = {
     SYM(GetImageTransformParameterfvHP),
 
     { NULL, NULL },
+#endif
 };
 RGLSYMGLDRAWRANGEELEMENTSPROC __rglgen_glDrawRangeElements;
 RGLSYMGLTEXIMAGE3DPROC __rglgen_glTexImage3D;

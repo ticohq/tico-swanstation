@@ -24,15 +24,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_POOL_MANAGER_IMPL_H_
-#define VIXL_POOL_MANAGER_IMPL_H_
+#ifndef SWANSTATION_VIXL_POOL_MANAGER_IMPL_H_
+#define SWANSTATION_VIXL_POOL_MANAGER_IMPL_H_
 
 #include "pool-manager.h"
 
 #include <algorithm>
 #include "assembler-base-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 
 template <typename T>
@@ -43,13 +43,13 @@ T PoolManager<T>::Emit(MacroAssemblerInterface* masm,
                        LocationBase<T>* new_object,
                        EmitOption option) {
   // Make sure that the buffer still has the alignment we think it does.
-  VIXL_ASSERT(IsAligned(masm->AsAssemblerBase()
+  SWANSTATION_VIXL_ASSERT(IsAligned(masm->AsAssemblerBase()
                             ->GetBuffer()
                             ->GetStartAddress<uintptr_t>(),
                         buffer_alignment_));
 
   // We should not call this method when the pools are blocked.
-  VIXL_ASSERT(!IsBlocked());
+  SWANSTATION_VIXL_ASSERT(!IsBlocked());
   if (objects_.empty()) return pc;
 
   // Emit header.
@@ -64,7 +64,7 @@ T PoolManager<T>::Emit(MacroAssemblerInterface* masm,
     // more conservative when we use T32. Uncomment the following assertion if
     // the AARCH32 MacroAssembler is modified to only support one ISA at the
     // time.
-    // VIXL_ASSERT(pc == AlignUp(pc, alignment_));
+    // SWANSTATION_VIXL_ASSERT(pc == AlignUp(pc, alignment_));
     pc += header_size_;
   } else {
     // If the header is optional, we might need to add some extra padding to
@@ -94,8 +94,8 @@ T PoolManager<T>::Emit(MacroAssemblerInterface* masm,
     T aligned_pc = AlignUp(pc, current.alignment_);
     masm->EmitPaddingBytes(aligned_pc - pc);
     pc = aligned_pc;
-    VIXL_ASSERT(pc >= current.min_location_);
-    VIXL_ASSERT(pc <= current.max_location_);
+    SWANSTATION_VIXL_ASSERT(pc >= current.min_location_);
+    SWANSTATION_VIXL_ASSERT(pc <= current.max_location_);
     // First call SetLocation, which will also resolve the references, and then
     // call EmitPoolObject, which might add a new reference.
     label_base->SetLocation(masm->AsAssemblerBase(), pc);
@@ -105,9 +105,9 @@ T PoolManager<T>::Emit(MacroAssemblerInterface* masm,
       label_base->MarkBound();
       iter = RemoveAndDelete(iter);
     } else {
-      VIXL_ASSERT(!current.label_base_->ShouldDeletePoolObjectOnPlacement());
+      SWANSTATION_VIXL_ASSERT(!current.label_base_->ShouldDeletePoolObjectOnPlacement());
       current.label_base_->UpdatePoolObject(&current);
-      VIXL_ASSERT(current.alignment_ >= label_base->GetPoolObjectAlignment());
+      SWANSTATION_VIXL_ASSERT(current.alignment_ >= label_base->GetPoolObjectAlignment());
       ++iter;
     }
     pc += object_size;
@@ -140,7 +140,7 @@ bool PoolManager<T>::ShouldSkipObject(PoolObject<T>* pool_object,
   if (new_reference != NULL) {
     // If we're adding a new object, also assume that it will have to be emitted
     // before the object we are considering to skip.
-    VIXL_ASSERT(new_object != NULL);
+    SWANSTATION_VIXL_ASSERT(new_object != NULL);
     T new_object_alignment = std::max(new_reference->object_alignment_,
                                       new_object->GetPoolObjectAlignment());
     if ((existing_object != NULL) &&
@@ -174,7 +174,7 @@ static T MaxCheckpoint() {
 
 template <typename T>
 static inline bool CheckCurrentPC(T pc, T checkpoint) {
-  VIXL_ASSERT(pc <= checkpoint);
+  SWANSTATION_VIXL_ASSERT(pc <= checkpoint);
   // We must emit the pools if we are at the checkpoint now.
   return pc == checkpoint;
 }
@@ -200,16 +200,16 @@ bool PoolManager<T>::MustEmit(T pc,
 
   // No new reference - nothing to do.
   if (reference == NULL) {
-    VIXL_ASSERT(label_base == NULL);
+    SWANSTATION_VIXL_ASSERT(label_base == NULL);
     return false;
   }
 
   if (objects_.empty()) {
     // Basic assertions that restrictions on the new (and only) reference are
     // possible to satisfy.
-    VIXL_ASSERT(AlignUp(pc + header_size_, alignment_) >=
+    SWANSTATION_VIXL_ASSERT(AlignUp(pc + header_size_, alignment_) >=
                 reference->min_object_location_);
-    VIXL_ASSERT(pc <= reference->max_object_location_);
+    SWANSTATION_VIXL_ASSERT(pc <= reference->max_object_location_);
     return false;
   }
 
@@ -322,7 +322,7 @@ void PoolManager<T>::RecalculateCheckpoint(SortOption sort_option) {
     // we need to bring it back more, then align.
     PoolObject<T>& current = objects_[i];
     checkpoint = UpdateCheckpointForObject(checkpoint, &current);
-    VIXL_ASSERT(checkpoint >= current.min_location_);
+    SWANSTATION_VIXL_ASSERT(checkpoint >= current.min_location_);
     max_pool_size_ += (current.alignment_ - 1 +
                        current.label_base_->GetPoolObjectSizeInBytes());
   }
@@ -362,8 +362,8 @@ bool PoolManager<T>::PoolObjectLessThan(const PoolObject<T>& a,
 template <typename T>
 void PoolManager<T>::AddObjectReference(const ForwardReference<T>* reference,
                                         LocationBase<T>* label_base) {
-  VIXL_ASSERT(reference->object_alignment_ <= buffer_alignment_);
-  VIXL_ASSERT(label_base->GetPoolObjectAlignment() <= buffer_alignment_);
+  SWANSTATION_VIXL_ASSERT(reference->object_alignment_ <= buffer_alignment_);
+  SWANSTATION_VIXL_ASSERT(label_base->GetPoolObjectAlignment() <= buffer_alignment_);
 
   PoolObject<T>* object = GetObjectIfTracked(label_base);
 
@@ -416,7 +416,7 @@ void PoolManager<T>::RemoveAndDelete(PoolObject<T>* object) {
       return;
     }
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
 }
 
 template <typename T>
@@ -430,7 +430,7 @@ typename PoolManager<T>::objects_iter PoolManager<T>::RemoveAndDelete(
     delete_on_destruction_.push_back(label_base);
   }
   if (label_base->ShouldBeDeletedOnPlacementByPoolManager()) {
-    VIXL_ASSERT(!label_base->ShouldBeDeletedOnPoolManagerDestruction());
+    SWANSTATION_VIXL_ASSERT(!label_base->ShouldBeDeletedOnPoolManagerDestruction());
     delete label_base;
   }
 
@@ -473,7 +473,7 @@ T PoolManager<T>::Bind(MacroAssemblerInterface* masm,
   // We assume that the maximum padding we can possibly add here is less
   // than the header alignment - hence that we're not going to go past our
   // checkpoint.
-  VIXL_ASSERT(!CheckFuturePC(location, checkpoint_));
+  SWANSTATION_VIXL_ASSERT(!CheckFuturePC(location, checkpoint_));
   return location;
 }
 
@@ -482,18 +482,18 @@ void PoolManager<T>::Release(T pc) {
   USE(pc);
   if (--monitor_ == 0) {
     // Ensure the pool has not been blocked for too long.
-    VIXL_ASSERT(pc <= checkpoint_);
+    SWANSTATION_VIXL_ASSERT(pc <= checkpoint_);
   }
 }
 
 template <typename T>
 PoolManager<T>::~PoolManager<T>() {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
   // Check for unbound objects.
   for (objects_iter iter = objects_.begin(); iter != objects_.end(); ++iter) {
     // There should not be any bound objects left in the pool. For unbound
     // objects, we will check in the destructor of the object itself.
-    VIXL_ASSERT(!(*iter).label_base_->IsBound());
+    SWANSTATION_VIXL_ASSERT(!(*iter).label_base_->IsBound());
   }
 #endif
   // Delete objects the pool manager owns.
@@ -519,4 +519,4 @@ int PoolManager<T>::GetPoolSizeForTest() const {
 }
 }
 
-#endif  // VIXL_POOL_MANAGER_IMPL_H_
+#endif  // SWANSTATION_VIXL_POOL_MANAGER_IMPL_H_

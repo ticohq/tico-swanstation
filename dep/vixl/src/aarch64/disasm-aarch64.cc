@@ -29,7 +29,7 @@
 
 #include "disasm-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 
@@ -104,7 +104,7 @@ void Disassembler::VisitAddSubImmediate(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -154,7 +154,7 @@ void Disassembler::VisitAddSubShifted(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -197,7 +197,7 @@ void Disassembler::VisitAddSubExtended(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -237,7 +237,7 @@ void Disassembler::VisitAddSubWithCarry(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -285,14 +285,14 @@ void Disassembler::VisitLogicalImmediate(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
 
 
 bool Disassembler::IsMovzMovnImm(unsigned reg_size, uint64_t value) {
-  VIXL_ASSERT((reg_size == kXRegSize) ||
+  SWANSTATION_VIXL_ASSERT((reg_size == kXRegSize) ||
               ((reg_size == kWRegSize) && (value <= 0xffffffff)));
 
   // Test for movz: 16 bits set at positions 0, 16, 32 or 48.
@@ -375,7 +375,7 @@ void Disassembler::VisitLogicalShifted(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   Format(instr, mnemonic, form);
@@ -396,7 +396,7 @@ void Disassembler::VisitConditionalCompareRegister(const Instruction *instr) {
       mnemonic = "ccmp";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -416,7 +416,7 @@ void Disassembler::VisitConditionalCompareImmediate(const Instruction *instr) {
       mnemonic = "ccmp";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -472,7 +472,7 @@ void Disassembler::VisitConditionalSelect(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -578,7 +578,7 @@ void Disassembler::VisitExtract(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -604,7 +604,7 @@ void Disassembler::VisitConditionalBranch(const Instruction *instr) {
       Format(instr, "b.'CBrn", "'TImmCond");
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
@@ -691,7 +691,7 @@ void Disassembler::VisitUnconditionalBranch(const Instruction *instr) {
       mnemonic = "bl";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -752,7 +752,7 @@ void Disassembler::VisitDataProcessing1Source(const Instruction *instr) {
       mnemonic = "rev32";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -886,7 +886,7 @@ void Disassembler::VisitDataProcessing3Source(const Instruction *instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -906,7 +906,7 @@ void Disassembler::VisitCompareBranch(const Instruction *instr) {
       mnemonic = "cbnz";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -928,7 +928,7 @@ void Disassembler::VisitTestBranch(const Instruction *instr) {
       mnemonic = "tbnz";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -969,7 +969,7 @@ void Disassembler::VisitMoveWideImmediate(const Instruction *instr) {
       form = "'Rd, 'IMoveLSL";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -1154,13 +1154,13 @@ void Disassembler::VisitLoadStoreUnscaledOffset(const Instruction *instr) {
       break;
     case LDURSB_x:
       form = form_x;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case LDURSB_w:
       mnemonic = "ldursb";
       break;
     case LDURSH_x:
       form = form_x;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case LDURSH_w:
       mnemonic = "ldursh";
       break;
@@ -1592,7 +1592,7 @@ void Disassembler::VisitFPCompare(const Instruction *instr) {
     case FCMP_s_zero:
     case FCMP_d_zero:
       form = form_zero;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_h:
     case FCMP_s:
     case FCMP_d:
@@ -1602,7 +1602,7 @@ void Disassembler::VisitFPCompare(const Instruction *instr) {
     case FCMPE_s_zero:
     case FCMPE_d_zero:
       form = form_zero;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMPE_h:
     case FCMPE_s:
     case FCMPE_d:
@@ -1648,7 +1648,7 @@ void Disassembler::VisitFPConditionalSelect(const Instruction *instr) {
       mnemonic = "fcsel";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -1730,7 +1730,7 @@ void Disassembler::VisitFPDataProcessing2Source(const Instruction *instr) {
     FORMAT(FNMUL, "fnmul");
 #undef FORMAT
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -1753,7 +1753,7 @@ void Disassembler::VisitFPDataProcessing3Source(const Instruction *instr) {
     FORMAT(FNMSUB, "fnmsub");
 #undef FORMAT
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -1776,7 +1776,7 @@ void Disassembler::VisitFPImmediate(const Instruction *instr) {
       form = "'Dd, 'IFPDouble";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -1969,7 +1969,7 @@ void Disassembler::VisitFPFixedPointConvert(const Instruction *instr) {
       form = form_fr;
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -2702,11 +2702,11 @@ void Disassembler::VisitNEON3Same(const Instruction *instr) {
     // size (23) and the U bit (29).
     unsigned index = (instr->ExtractBits(15, 11) << 2) |
                      (instr->ExtractBit(23) << 1) | instr->ExtractBit(29);
-    VIXL_ASSERT(index < ArrayLength(mnemonics));
+    SWANSTATION_VIXL_ASSERT(index < ArrayLength(mnemonics));
     mnemonic = mnemonics[index];
     // Assert that index is not one of the previously handled logical
     // instructions.
-    VIXL_ASSERT(mnemonic != NULL);
+    SWANSTATION_VIXL_ASSERT(mnemonic != NULL);
 
     if (instr->Mask(NEON3SameFPFMask) == NEON3SameFPFixed) {
       nfd.SetFormatMaps(nfd.FPFormatMap());
@@ -3300,8 +3300,8 @@ void Disassembler::VisitNEONLoadStoreMultiStruct(const Instruction *instr) {
       break;
   }
   if (allocated) {
-    VIXL_ASSERT(mnemonic != NULL);
-    VIXL_ASSERT(form != NULL);
+    SWANSTATION_VIXL_ASSERT(mnemonic != NULL);
+    SWANSTATION_VIXL_ASSERT(form != NULL);
   } else {
     mnemonic = "unallocated";
     form = "(NEONLoadStoreMultiStruct)";
@@ -3399,8 +3399,8 @@ void Disassembler::VisitNEONLoadStoreMultiStructPostIndex(
       break;
   }
   if (allocated) {
-    VIXL_ASSERT(mnemonic != NULL);
-    VIXL_ASSERT(form != NULL);
+    SWANSTATION_VIXL_ASSERT(mnemonic != NULL);
+    SWANSTATION_VIXL_ASSERT(form != NULL);
   } else {
     mnemonic = "unallocated";
     form = "(NEONLoadStoreMultiStructPostIndex)";
@@ -3431,7 +3431,7 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
       break;
     case NEON_LD1_s:
       mnemonic = "ld1";
-      VIXL_STATIC_ASSERT((NEON_LD1_s | (1 << NEONLSSize_offset)) == NEON_LD1_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_LD1_s | (1 << NEONLSSize_offset)) == NEON_LD1_d);
       form = ((instr->GetNEONLSSize() & 1) == 0) ? form_1s : form_1d;
       break;
     case NEON_ST1_b:
@@ -3444,7 +3444,7 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
       break;
     case NEON_ST1_s:
       mnemonic = "st1";
-      VIXL_STATIC_ASSERT((NEON_ST1_s | (1 << NEONLSSize_offset)) == NEON_ST1_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_ST1_s | (1 << NEONLSSize_offset)) == NEON_ST1_d);
       form = ((instr->GetNEONLSSize() & 1) == 0) ? form_1s : form_1d;
       break;
     case NEON_LD1R:
@@ -3463,8 +3463,8 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
       break;
     case NEON_LD2_s:
     case NEON_ST2_s:
-      VIXL_STATIC_ASSERT((NEON_ST2_s | (1 << NEONLSSize_offset)) == NEON_ST2_d);
-      VIXL_STATIC_ASSERT((NEON_LD2_s | (1 << NEONLSSize_offset)) == NEON_LD2_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_ST2_s | (1 << NEONLSSize_offset)) == NEON_ST2_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_LD2_s | (1 << NEONLSSize_offset)) == NEON_LD2_d);
       mnemonic = (instr->GetLdStXLoad() == 1) ? "ld2" : "st2";
       if ((instr->GetNEONLSSize() & 1) == 0) {
         form = "{'Vt.s, 'Vt2.s}['IVLSLane2], ['Xns]";
@@ -3511,8 +3511,8 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
       break;
     case NEON_LD4_s:
     case NEON_ST4_s:
-      VIXL_STATIC_ASSERT((NEON_LD4_s | (1 << NEONLSSize_offset)) == NEON_LD4_d);
-      VIXL_STATIC_ASSERT((NEON_ST4_s | (1 << NEONLSSize_offset)) == NEON_ST4_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_LD4_s | (1 << NEONLSSize_offset)) == NEON_LD4_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_ST4_s | (1 << NEONLSSize_offset)) == NEON_ST4_d);
       mnemonic = (instr->GetLdStXLoad() == 1) ? "ld4" : "st4";
       if ((instr->GetNEONLSSize() & 1) == 0) {
         form = "{'Vt.s, 'Vt2.s, 'Vt3.s, 'Vt4.s}['IVLSLane2], ['Xns]";
@@ -3539,7 +3539,7 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
     case NEON_ST2_h:
     case NEON_ST3_h:
     case NEON_ST4_h:
-      VIXL_ASSERT(allocated);
+      SWANSTATION_VIXL_ASSERT(allocated);
       allocated = ((instr->GetNEONLSSize() & 1) == 0);
       break;
     case NEON_LD1_s:
@@ -3550,7 +3550,7 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
     case NEON_ST2_s:
     case NEON_ST3_s:
     case NEON_ST4_s:
-      VIXL_ASSERT(allocated);
+      SWANSTATION_VIXL_ASSERT(allocated);
       allocated = (instr->GetNEONLSSize() <= 1) &&
                   ((instr->GetNEONLSSize() == 0) || (instr->GetNEONS() == 0));
       break;
@@ -3558,15 +3558,15 @@ void Disassembler::VisitNEONLoadStoreSingleStruct(const Instruction *instr) {
     case NEON_LD2R:
     case NEON_LD3R:
     case NEON_LD4R:
-      VIXL_ASSERT(allocated);
+      SWANSTATION_VIXL_ASSERT(allocated);
       allocated = (instr->GetNEONS() == 0);
       break;
     default:
       break;
   }
   if (allocated) {
-    VIXL_ASSERT(mnemonic != NULL);
-    VIXL_ASSERT(form != NULL);
+    SWANSTATION_VIXL_ASSERT(mnemonic != NULL);
+    SWANSTATION_VIXL_ASSERT(form != NULL);
   } else {
     mnemonic = "unallocated";
     form = "(NEONLoadStoreSingleStruct)";
@@ -3598,7 +3598,7 @@ void Disassembler::VisitNEONLoadStoreSingleStructPostIndex(
       break;
     case NEON_LD1_s_post:
       mnemonic = "ld1";
-      VIXL_STATIC_ASSERT((NEON_LD1_s | (1 << NEONLSSize_offset)) == NEON_LD1_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_LD1_s | (1 << NEONLSSize_offset)) == NEON_LD1_d);
       form = ((instr->GetNEONLSSize() & 1) == 0) ? form_1s : form_1d;
       break;
     case NEON_ST1_b_post:
@@ -3611,7 +3611,7 @@ void Disassembler::VisitNEONLoadStoreSingleStructPostIndex(
       break;
     case NEON_ST1_s_post:
       mnemonic = "st1";
-      VIXL_STATIC_ASSERT((NEON_ST1_s | (1 << NEONLSSize_offset)) == NEON_ST1_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_ST1_s | (1 << NEONLSSize_offset)) == NEON_ST1_d);
       form = ((instr->GetNEONLSSize() & 1) == 0) ? form_1s : form_1d;
       break;
     case NEON_LD1R_post:
@@ -3699,7 +3699,7 @@ void Disassembler::VisitNEONLoadStoreSingleStructPostIndex(
     case NEON_ST2_h_post:
     case NEON_ST3_h_post:
     case NEON_ST4_h_post:
-      VIXL_ASSERT(allocated);
+      SWANSTATION_VIXL_ASSERT(allocated);
       allocated = ((instr->GetNEONLSSize() & 1) == 0);
       break;
     case NEON_LD1_s_post:
@@ -3710,7 +3710,7 @@ void Disassembler::VisitNEONLoadStoreSingleStructPostIndex(
     case NEON_ST2_s_post:
     case NEON_ST3_s_post:
     case NEON_ST4_s_post:
-      VIXL_ASSERT(allocated);
+      SWANSTATION_VIXL_ASSERT(allocated);
       allocated = (instr->GetNEONLSSize() <= 1) &&
                   ((instr->GetNEONLSSize() == 0) || (instr->GetNEONS() == 0));
       break;
@@ -3718,15 +3718,15 @@ void Disassembler::VisitNEONLoadStoreSingleStructPostIndex(
     case NEON_LD2R_post:
     case NEON_LD3R_post:
     case NEON_LD4R_post:
-      VIXL_ASSERT(allocated);
+      SWANSTATION_VIXL_ASSERT(allocated);
       allocated = (instr->GetNEONS() == 0);
       break;
     default:
       break;
   }
   if (allocated) {
-    VIXL_ASSERT(mnemonic != NULL);
-    VIXL_ASSERT(form != NULL);
+    SWANSTATION_VIXL_ASSERT(mnemonic != NULL);
+    SWANSTATION_VIXL_ASSERT(form != NULL);
   } else {
     mnemonic = "unallocated";
     form = "(NEONLoadStoreSingleStructPostIndex)";
@@ -3994,7 +3994,7 @@ void Disassembler::VisitNEONScalar2RegMiscFP16(const Instruction *instr) {
 #undef FORMAT
 
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -4170,7 +4170,7 @@ void Disassembler::VisitNEONScalar3SameFP16(const Instruction *instr) {
       mnemonic = "frsqrts";
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   Format(instr, mnemonic, form);
 }
@@ -4304,31 +4304,31 @@ void Disassembler::VisitNEONScalarPairwise(const Instruction *instr) {
       break;
     case NEON_FADDP_h_scalar:
       form = "%sd, 'Vn.2h";
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FADDP_scalar:
       mnemonic = "faddp";
       break;
     case NEON_FMAXP_h_scalar:
       form = "%sd, 'Vn.2h";
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FMAXP_scalar:
       mnemonic = "fmaxp";
       break;
     case NEON_FMAXNMP_h_scalar:
       form = "%sd, 'Vn.2h";
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FMAXNMP_scalar:
       mnemonic = "fmaxnmp";
       break;
     case NEON_FMINP_h_scalar:
       form = "%sd, 'Vn.2h";
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FMINP_scalar:
       mnemonic = "fminp";
       break;
     case NEON_FMINNMP_h_scalar:
       form = "%sd, 'Vn.2h";
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_FMINNMP_scalar:
       mnemonic = "fminnmp";
       break;
@@ -4722,13 +4722,13 @@ void Disassembler::ProcessOutput(const Instruction * /*instr*/) {
 void Disassembler::AppendRegisterNameToOutput(const Instruction *instr,
                                               const CPURegister &reg) {
   USE(instr);
-  VIXL_ASSERT(reg.IsValid());
+  SWANSTATION_VIXL_ASSERT(reg.IsValid());
   char reg_char;
 
   if (reg.IsRegister()) {
     reg_char = reg.Is64Bits() ? 'x' : 'w';
   } else {
-    VIXL_ASSERT(reg.IsVRegister());
+    SWANSTATION_VIXL_ASSERT(reg.IsVRegister());
     switch (reg.GetSizeInBits()) {
       case kBRegSize:
         reg_char = 'b';
@@ -4743,7 +4743,7 @@ void Disassembler::AppendRegisterNameToOutput(const Instruction *instr,
         reg_char = 'd';
         break;
       default:
-        VIXL_ASSERT(reg.Is128Bits());
+        SWANSTATION_VIXL_ASSERT(reg.Is128Bits());
         reg_char = 'q';
     }
   }
@@ -4830,15 +4830,15 @@ int64_t Disassembler::CodeRelativeAddress(const void *addr) {
 void Disassembler::Format(const Instruction *instr,
                           const char *mnemonic,
                           const char *format) {
-  VIXL_ASSERT(mnemonic != NULL);
+  SWANSTATION_VIXL_ASSERT(mnemonic != NULL);
   ResetOutput();
   Substitute(instr, mnemonic);
   if (format != NULL) {
-    VIXL_ASSERT(buffer_pos_ < buffer_size_);
+    SWANSTATION_VIXL_ASSERT(buffer_pos_ < buffer_size_);
     buffer_[buffer_pos_++] = ' ';
     Substitute(instr, format);
   }
-  VIXL_ASSERT(buffer_pos_ < buffer_size_);
+  SWANSTATION_VIXL_ASSERT(buffer_pos_ < buffer_size_);
   buffer_[buffer_pos_] = 0;
   ProcessOutput(instr);
 }
@@ -4850,7 +4850,7 @@ void Disassembler::Substitute(const Instruction *instr, const char *string) {
     if (chr == '\'') {
       string += SubstituteField(instr, string);
     } else {
-      VIXL_ASSERT(buffer_pos_ < buffer_size_);
+      SWANSTATION_VIXL_ASSERT(buffer_pos_ < buffer_size_);
       buffer_[buffer_pos_++] = chr;
     }
     chr = *string++;
@@ -4898,7 +4898,7 @@ int Disassembler::SubstituteField(const Instruction *instr,
     case 'G':
       return SubstituteSysOpField(instr, format);
     default: {
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 1;
     }
   }
@@ -4990,14 +4990,14 @@ int Disassembler::SubstituteRegisterField(const Instruction *instr,
           reg_num = instr->GetRt();
           break;
         default:
-          VIXL_UNREACHABLE();
+          SWANSTATION_VIXL_UNREACHABLE();
       }
 
-      VIXL_ASSERT(format[3] == '+');
+      SWANSTATION_VIXL_ASSERT(format[3] == '+');
       int i = 4;
       int addition = 0;
       while (format[i] != ')') {
-        VIXL_ASSERT((format[i] >= '0') && (format[i] <= '9'));
+        SWANSTATION_VIXL_ASSERT((format[i] >= '0') && (format[i] <= '9'));
         addition *= 10;
         addition += format[i] - '0';
         ++i;
@@ -5007,7 +5007,7 @@ int Disassembler::SubstituteRegisterField(const Instruction *instr,
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   // Increase field length for registers tagged as stack.
@@ -5068,7 +5068,7 @@ int Disassembler::SubstituteRegisterField(const Instruction *instr,
       AppendToOutput("v%d", reg_num);
       return field_len;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   if ((reg_type == CPURegister::kRegister) && (reg_num == kZeroRegCode) &&
@@ -5084,7 +5084,7 @@ int Disassembler::SubstituteRegisterField(const Instruction *instr,
 
 int Disassembler::SubstituteImmediateField(const Instruction *instr,
                                            const char *format) {
-  VIXL_ASSERT(format[0] == 'I');
+  SWANSTATION_VIXL_ASSERT(format[0] == 'I');
 
   switch (format[1]) {
     case 'M': {  // IMoveImm, IMoveNeg or IMoveLSL.
@@ -5094,7 +5094,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
           AppendToOutput(", lsl #%" PRId32, 16 * instr->GetShiftMoveWide());
         }
       } else {
-        VIXL_ASSERT((format[5] == 'I') || (format[5] == 'N'));
+        SWANSTATION_VIXL_ASSERT((format[5] == 'I') || (format[5] == 'N'));
         uint64_t imm = static_cast<uint64_t>(instr->GetImmMoveWide())
                        << (16 * instr->GetShiftMoveWide());
         if (format[5] == 'N') imm = ~imm;
@@ -5123,7 +5123,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
         case 'P': {  // ILPx - Immediate Load/Store Pair, x = access size.
                      // ILPxi - As above, but an index field which must not be
                      // omitted even if it is zero.
-          VIXL_ASSERT((format[3] >= '0') && (format[3] <= '9'));
+          SWANSTATION_VIXL_ASSERT((format[3] >= '0') && (format[3] <= '9'));
           bool is_index = format[4] == 'i';
           if (is_index || (instr->GetImmLSPair() != 0)) {
             // format[3] is the scale value. Convert to a number.
@@ -5144,7 +5144,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
           return strlen("ILFCNR");
         }
         default: {
-          VIXL_UNIMPLEMENTED();
+          SWANSTATION_VIXL_UNIMPLEMENTED();
           return 0;
         }
       }
@@ -5155,7 +5155,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
       return 6;
     }
     case 'A': {  // IAddSub.
-      VIXL_ASSERT(instr->GetShiftAddSub() <= 1);
+      SWANSTATION_VIXL_ASSERT(instr->GetShiftAddSub() <= 1);
       int64_t imm = instr->GetImmAddSub() << (12 * instr->GetShiftAddSub());
       AppendToOutput("#0x%" PRIx64 " (%" PRId64 ")", imm, imm);
       return 7;
@@ -5227,7 +5227,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
           return 3;
         }
         default: {
-          VIXL_UNIMPLEMENTED();
+          SWANSTATION_VIXL_UNIMPLEMENTED();
           return 0;
         }
       }
@@ -5297,7 +5297,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
             }
             return 0;
           }
-          VIXL_FALLTHROUGH();
+          SWANSTATION_VIXL_FALLTHROUGH();
         }
         case 'L': {  // IVLSLane[0123] - suffix indicates access size shift.
           AppendToOutput("%d", instr->GetNEONLSIndex(format[8] - '0'));
@@ -5353,12 +5353,12 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
             AppendToOutput("#%d", shift_amount);
             return strlen("IVMIShiftAmt2");
           } else {
-            VIXL_UNIMPLEMENTED();
+            SWANSTATION_VIXL_UNIMPLEMENTED();
             return 0;
           }
         }
         default: {
-          VIXL_UNIMPLEMENTED();
+          SWANSTATION_VIXL_UNIMPLEMENTED();
           return 0;
         }
       }
@@ -5387,7 +5387,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
       return 2;
     }
     default: {
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       return 0;
     }
   }
@@ -5396,7 +5396,7 @@ int Disassembler::SubstituteImmediateField(const Instruction *instr,
 
 int Disassembler::SubstituteBitfieldImmediateField(const Instruction *instr,
                                                    const char *format) {
-  VIXL_ASSERT((format[0] == 'I') && (format[1] == 'B'));
+  SWANSTATION_VIXL_ASSERT((format[0] == 'I') && (format[1] == 'B'));
   unsigned r = instr->GetImmR();
   unsigned s = instr->GetImmS();
 
@@ -5410,20 +5410,20 @@ int Disassembler::SubstituteBitfieldImmediateField(const Instruction *instr,
         AppendToOutput("#%d", s + 1);
         return 5;
       } else {
-        VIXL_ASSERT(format[3] == '-');
+        SWANSTATION_VIXL_ASSERT(format[3] == '-');
         AppendToOutput("#%d", s - r + 1);
         return 7;
       }
     }
     case 'Z': {  // IBZ-r.
-      VIXL_ASSERT((format[3] == '-') && (format[4] == 'r'));
+      SWANSTATION_VIXL_ASSERT((format[3] == '-') && (format[4] == 'r'));
       unsigned reg_size =
           (instr->GetSixtyFourBits() == 1) ? kXRegSize : kWRegSize;
       AppendToOutput("#%d", reg_size - r);
       return 5;
     }
     default: {
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 0;
     }
   }
@@ -5432,7 +5432,7 @@ int Disassembler::SubstituteBitfieldImmediateField(const Instruction *instr,
 
 int Disassembler::SubstituteLiteralField(const Instruction *instr,
                                          const char *format) {
-  VIXL_ASSERT(strncmp(format, "LValue", 6) == 0);
+  SWANSTATION_VIXL_ASSERT(strncmp(format, "LValue", 6) == 0);
   USE(format);
 
   const void *address = instr->GetLiteralAddress<const void *>();
@@ -5462,7 +5462,7 @@ int Disassembler::SubstituteLiteralField(const Instruction *instr,
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   return 6;
@@ -5471,13 +5471,13 @@ int Disassembler::SubstituteLiteralField(const Instruction *instr,
 
 int Disassembler::SubstituteShiftField(const Instruction *instr,
                                        const char *format) {
-  VIXL_ASSERT(format[0] == 'N');
-  VIXL_ASSERT(instr->GetShiftDP() <= 0x3);
+  SWANSTATION_VIXL_ASSERT(format[0] == 'N');
+  SWANSTATION_VIXL_ASSERT(instr->GetShiftDP() <= 0x3);
 
   switch (format[1]) {
     case 'D': {  // HDP.
-      VIXL_ASSERT(instr->GetShiftDP() != ROR);
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_ASSERT(instr->GetShiftDP() != ROR);
+      SWANSTATION_VIXL_FALLTHROUGH();
     }
     case 'L': {  // HLo.
       if (instr->GetImmDPShift() != 0) {
@@ -5489,7 +5489,7 @@ int Disassembler::SubstituteShiftField(const Instruction *instr,
       return 3;
     }
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       return 0;
   }
 }
@@ -5497,7 +5497,7 @@ int Disassembler::SubstituteShiftField(const Instruction *instr,
 
 int Disassembler::SubstituteConditionField(const Instruction *instr,
                                            const char *format) {
-  VIXL_ASSERT(format[0] == 'C');
+  SWANSTATION_VIXL_ASSERT(format[0] == 'C');
   const char *condition_code[] = {"eq",
                                   "ne",
                                   "hs",
@@ -5533,7 +5533,7 @@ int Disassembler::SubstituteConditionField(const Instruction *instr,
 
 int Disassembler::SubstitutePCRelAddressField(const Instruction *instr,
                                               const char *format) {
-  VIXL_ASSERT((strcmp(format, "AddrPCRelByte") == 0) ||  // Used by `adr`.
+  SWANSTATION_VIXL_ASSERT((strcmp(format, "AddrPCRelByte") == 0) ||  // Used by `adr`.
               (strcmp(format, "AddrPCRelPage") == 0));   // Used by `adrp`.
 
   int64_t offset = instr->GetImmPCRel();
@@ -5559,7 +5559,7 @@ int Disassembler::SubstitutePCRelAddressField(const Instruction *instr,
 
 int Disassembler::SubstituteBranchTargetField(const Instruction *instr,
                                               const char *format) {
-  VIXL_ASSERT(strncmp(format, "TImm", 4) == 0);
+  SWANSTATION_VIXL_ASSERT(strncmp(format, "TImm", 4) == 0);
 
   int64_t offset = 0;
   switch (format[5]) {
@@ -5580,11 +5580,11 @@ int Disassembler::SubstituteBranchTargetField(const Instruction *instr,
       offset = instr->GetImmTestBranch();
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
   offset *= static_cast<int>(kInstructionSize);
   const void *target_address = reinterpret_cast<const void *>(instr + offset);
-  VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
 
   AppendPCRelativeOffsetToOutput(instr, offset);
   AppendToOutput(" ");
@@ -5596,8 +5596,8 @@ int Disassembler::SubstituteBranchTargetField(const Instruction *instr,
 
 int Disassembler::SubstituteExtendField(const Instruction *instr,
                                         const char *format) {
-  VIXL_ASSERT(strncmp(format, "Ext", 3) == 0);
-  VIXL_ASSERT(instr->GetExtendMode() <= 7);
+  SWANSTATION_VIXL_ASSERT(strncmp(format, "Ext", 3) == 0);
+  SWANSTATION_VIXL_ASSERT(instr->GetExtendMode() <= 7);
   USE(format);
 
   const char *extend_mode[] =
@@ -5623,7 +5623,7 @@ int Disassembler::SubstituteExtendField(const Instruction *instr,
 
 int Disassembler::SubstituteLSRegOffsetField(const Instruction *instr,
                                              const char *format) {
-  VIXL_ASSERT(strncmp(format, "Offsetreg", 9) == 0);
+  SWANSTATION_VIXL_ASSERT(strncmp(format, "Offsetreg", 9) == 0);
   const char *extend_mode[] = {"undefined",
                                "undefined",
                                "uxtw",
@@ -5658,7 +5658,7 @@ int Disassembler::SubstituteLSRegOffsetField(const Instruction *instr,
 
 int Disassembler::SubstitutePrefetchField(const Instruction *instr,
                                           const char *format) {
-  VIXL_ASSERT(format[0] == 'P');
+  SWANSTATION_VIXL_ASSERT(format[0] == 'P');
   USE(format);
 
   static const char *hints[] = {"ld", "li", "st"};
@@ -5678,7 +5678,7 @@ int Disassembler::SubstitutePrefetchField(const Instruction *instr,
                    (prefetch_mode & (1 << 1)) ? '1' : '0',
                    (prefetch_mode & (1 << 0)) ? '1' : '0');
   } else {
-    VIXL_ASSERT(stream < ArrayLength(stream_options));
+    SWANSTATION_VIXL_ASSERT(stream < ArrayLength(stream_options));
     AppendToOutput("p%sl%d%s", hints[hint], target, stream_options[stream]);
   }
   return 6;
@@ -5686,7 +5686,7 @@ int Disassembler::SubstitutePrefetchField(const Instruction *instr,
 
 int Disassembler::SubstituteBarrierField(const Instruction *instr,
                                          const char *format) {
-  VIXL_ASSERT(format[0] == 'M');
+  SWANSTATION_VIXL_ASSERT(format[0] == 'M');
   USE(format);
 
   static const char *options[4][4] = {{"sy (0b0000)", "oshld", "oshst", "osh"},
@@ -5702,7 +5702,7 @@ int Disassembler::SubstituteBarrierField(const Instruction *instr,
 
 int Disassembler::SubstituteSysOpField(const Instruction *instr,
                                        const char *format) {
-  VIXL_ASSERT(format[0] == 'G');
+  SWANSTATION_VIXL_ASSERT(format[0] == 'G');
   int op = -1;
   switch (format[1]) {
     case '1':
@@ -5712,7 +5712,7 @@ int Disassembler::SubstituteSysOpField(const Instruction *instr,
       op = instr->GetSysOp2();
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   AppendToOutput("#%d", op);
   return 2;
@@ -5720,7 +5720,7 @@ int Disassembler::SubstituteSysOpField(const Instruction *instr,
 
 int Disassembler::SubstituteCrField(const Instruction *instr,
                                     const char *format) {
-  VIXL_ASSERT(format[0] == 'K');
+  SWANSTATION_VIXL_ASSERT(format[0] == 'K');
   int cr = -1;
   switch (format[1]) {
     case 'n':
@@ -5730,7 +5730,7 @@ int Disassembler::SubstituteCrField(const Instruction *instr,
       cr = instr->GetCRm();
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   AppendToOutput("C%d", cr);
   return 2;
@@ -5814,4 +5814,4 @@ void PrintDisassembler::ProcessOutput(const Instruction *instr) {
 }
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl

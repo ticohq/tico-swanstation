@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH32_MACRO_ASSEMBLER_AARCH32_H_
-#define VIXL_AARCH32_MACRO_ASSEMBLER_AARCH32_H_
+#ifndef SWANSTATION_VIXL_AARCH32_MACRO_ASSEMBLER_AARCH32_H_
+#define SWANSTATION_VIXL_AARCH32_MACRO_ASSEMBLER_AARCH32_H_
 
 #include "../code-generation-scopes-vixl.h"
 #include "../macro-assembler-interface.h"
@@ -38,7 +38,7 @@
 #include "instructions-aarch32.h"
 #include "operands-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 namespace aarch32 {
 
@@ -66,29 +66,29 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     kUnreachable   // Anything generated after calling Finalize is unreachable.
   };
 
-  virtual internal::AssemblerBase* AsAssemblerBase() VIXL_OVERRIDE {
+  virtual internal::AssemblerBase* AsAssemblerBase() SWANSTATION_VIXL_OVERRIDE {
     return this;
   }
 
-  virtual bool ArePoolsBlocked() const VIXL_OVERRIDE {
+  virtual bool ArePoolsBlocked() const SWANSTATION_VIXL_OVERRIDE {
     return pool_manager_.IsBlocked();
   }
 
-  virtual void EmitPoolHeader() VIXL_OVERRIDE {
+  virtual void EmitPoolHeader() SWANSTATION_VIXL_OVERRIDE {
     // Check that we have the correct alignment.
     if (IsUsingT32()) {
-      VIXL_ASSERT(GetBuffer()->Is16bitAligned());
+      SWANSTATION_VIXL_ASSERT(GetBuffer()->Is16bitAligned());
     } else {
-      VIXL_ASSERT(GetBuffer()->Is32bitAligned());
+      SWANSTATION_VIXL_ASSERT(GetBuffer()->Is32bitAligned());
     }
-    VIXL_ASSERT(pool_end_ == NULL);
+    SWANSTATION_VIXL_ASSERT(pool_end_ == NULL);
     pool_end_ = new Label();
     ExactAssemblyScopeWithoutPoolsCheck guard(this,
                                               kMaxInstructionSizeInBytes,
                                               ExactAssemblyScope::kMaximumSize);
     b(pool_end_);
   }
-  virtual void EmitPoolFooter() VIXL_OVERRIDE {
+  virtual void EmitPoolFooter() SWANSTATION_VIXL_OVERRIDE {
     // Align buffer to 4 bytes.
     GetBuffer()->Align();
     if (pool_end_ != NULL) {
@@ -97,14 +97,14 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
       pool_end_ = NULL;
     }
   }
-  virtual void EmitPaddingBytes(int n) VIXL_OVERRIDE {
+  virtual void EmitPaddingBytes(int n) SWANSTATION_VIXL_OVERRIDE {
     GetBuffer()->EmitZeroedBytes(n);
   }
-  virtual void EmitNopBytes(int n) VIXL_OVERRIDE {
+  virtual void EmitNopBytes(int n) SWANSTATION_VIXL_OVERRIDE {
     int nops = 0;
     int nop_size = IsUsingT32() ? k16BitT32InstructionSizeInBytes
                                 : kA32InstructionSizeInBytes;
-    VIXL_ASSERT(n % nop_size == 0);
+    SWANSTATION_VIXL_ASSERT(n % nop_size == 0);
     nops = n / nop_size;
     ExactAssemblyScopeWithoutPoolsCheck guard(this,
                                               n,
@@ -146,11 +146,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
         for (unsigned i = 0; i < kMaxRecursion; i++) {
           printf("%10s %s\n", (i == 0) ? "oldest -> " : "", location_stack_[i]);
         }
-        VIXL_ABORT();
+        SWANSTATION_VIXL_ABORT();
       }
     }
     void Down() {
-      VIXL_ASSERT((count_ > 0) && (count_ < kMaxRecursion));
+      SWANSTATION_VIXL_ASSERT((count_ > 0) && (count_ < kMaxRecursion));
       count_--;
     }
 
@@ -167,7 +167,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
    public:
     explicit ContextScope(MacroAssembler* const masm, const char* loc)
         : masm_(masm) {
-      VIXL_ASSERT(masm_->AllowMacroInstructions());
+      SWANSTATION_VIXL_ASSERT(masm_->AllowMacroInstructions());
       masm_->GetContext()->Up(loc);
     }
     ~ContextScope() { masm_->GetContext()->Down(); }
@@ -204,7 +204,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
           *cond = al;
         }
       }
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
       initial_cursor_offset_ = masm->GetCursorOffset();
 #else
       USE(initial_cursor_offset_);
@@ -214,18 +214,18 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
       if (label_.IsReferenced()) {
         // We only use the label for conditional T32 instructions for which we
         // cannot use IT.
-        VIXL_ASSERT(!cond_.Is(al));
-        VIXL_ASSERT(masm_->IsUsingT32());
-        VIXL_ASSERT(!can_use_it_);
-        VIXL_ASSERT(masm_->GetCursorOffset() - initial_cursor_offset_ <=
+        SWANSTATION_VIXL_ASSERT(!cond_.Is(al));
+        SWANSTATION_VIXL_ASSERT(masm_->IsUsingT32());
+        SWANSTATION_VIXL_ASSERT(!can_use_it_);
+        SWANSTATION_VIXL_ASSERT(masm_->GetCursorOffset() - initial_cursor_offset_ <=
                     kMaxT32MacroInstructionSizeInBytes);
         masm_->BindHelper(&label_);
       } else if (masm_->IsUsingT32() && !cond_.Is(al)) {
         // If we've generated a conditional T32 instruction but haven't used the
         // label, we must have used IT. Check that we did not generate a
         // deprecated sequence.
-        VIXL_ASSERT(can_use_it_);
-        VIXL_ASSERT(masm_->GetCursorOffset() - initial_cursor_offset_ <=
+        SWANSTATION_VIXL_ASSERT(can_use_it_);
+        SWANSTATION_VIXL_ASSERT(masm_->GetCursorOffset() - initial_cursor_offset_ <=
                     k16BitT32InstructionSizeInBytes);
       }
     }
@@ -239,16 +239,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   };
 
  protected:
-  virtual void BlockPools() VIXL_OVERRIDE { pool_manager_.Block(); }
-  virtual void ReleasePools() VIXL_OVERRIDE {
+  virtual void BlockPools() SWANSTATION_VIXL_OVERRIDE { pool_manager_.Block(); }
+  virtual void ReleasePools() SWANSTATION_VIXL_OVERRIDE {
     pool_manager_.Release(GetCursorOffset());
   }
-  virtual void EnsureEmitPoolsFor(size_t size) VIXL_OVERRIDE;
+  virtual void EnsureEmitPoolsFor(size_t size) SWANSTATION_VIXL_OVERRIDE;
 
   // Tell whether any of the macro instruction can be used. When false the
   // MacroAssembler will assert if a method which can emit a variable number
   // of instructions is called.
-  virtual void SetAllowMacroInstructions(bool value) VIXL_OVERRIDE {
+  virtual void SetAllowMacroInstructions(bool value) SWANSTATION_VIXL_OVERRIDE {
     allow_macro_instructions_ = value;
   }
 
@@ -265,9 +265,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
         pool_manager_(4 /*header_size*/,
                       4 /*alignment*/,
                       4 /*buffer_alignment*/),
-        generate_simulator_code_(VIXL_AARCH32_GENERATE_SIMULATOR_CODE),
+        generate_simulator_code_(SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE),
         pool_end_(NULL) {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     SetAllowMacroInstructions(true);
 #else
     USE(allow_macro_instructions_);
@@ -280,9 +280,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
         pool_manager_(4 /*header_size*/,
                       4 /*alignment*/,
                       4 /*buffer_alignment*/),
-        generate_simulator_code_(VIXL_AARCH32_GENERATE_SIMULATOR_CODE),
+        generate_simulator_code_(SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE),
         pool_end_(NULL) {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     SetAllowMacroInstructions(true);
 #endif
   }
@@ -293,16 +293,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
         pool_manager_(4 /*header_size*/,
                       4 /*alignment*/,
                       4 /*buffer_alignment*/),
-        generate_simulator_code_(VIXL_AARCH32_GENERATE_SIMULATOR_CODE),
+        generate_simulator_code_(SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE),
         pool_end_(NULL) {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     SetAllowMacroInstructions(true);
 #endif
   }
 
   bool GenerateSimulatorCode() const { return generate_simulator_code_; }
 
-  virtual bool AllowMacroInstructions() const VIXL_OVERRIDE {
+  virtual bool AllowMacroInstructions() const SWANSTATION_VIXL_OVERRIDE {
     return allow_macro_instructions_;
   }
 
@@ -387,16 +387,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Bind(Label* label) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     BindHelper(label);
   }
 
-  virtual void BindHelper(Label* label) VIXL_OVERRIDE {
+  virtual void BindHelper(Label* label) SWANSTATION_VIXL_OVERRIDE {
     // Assert that we have the correct buffer alignment.
     if (IsUsingT32()) {
-      VIXL_ASSERT(GetBuffer()->Is16bitAligned());
+      SWANSTATION_VIXL_ASSERT(GetBuffer()->Is16bitAligned());
     } else {
-      VIXL_ASSERT(GetBuffer()->Is32bitAligned());
+      SWANSTATION_VIXL_ASSERT(GetBuffer()->Is32bitAligned());
     }
     // If we need to add padding, check if we have to emit the pool.
     const int32_t pc = GetCursorOffset();
@@ -405,7 +405,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
       if (pool_manager_.MustEmit(pc, kPaddingBytes)) {
         int32_t new_pc = pool_manager_.Emit(this, pc, kPaddingBytes);
         USE(new_pc);
-        VIXL_ASSERT(new_pc == GetCursorOffset());
+        SWANSTATION_VIXL_ASSERT(new_pc == GetCursorOffset());
       }
     }
     pool_manager_.Bind(this, label, GetCursorOffset());
@@ -418,7 +418,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void RegisterForwardReference(Location* location) {
     if (location->IsBound()) return;
-    VIXL_ASSERT(location->HasForwardReferences());
+    SWANSTATION_VIXL_ASSERT(location->HasForwardReferences());
     const Location::ForwardRef& reference = location->GetLastForwardReference();
     pool_manager_.AddObjectReference(&reference, location);
   }
@@ -450,13 +450,13 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                                           &temp_ref,
                                           location);
       USE(new_pc);
-      VIXL_ASSERT(new_pc == GetCursorOffset());
+      SWANSTATION_VIXL_ASSERT(new_pc == GetCursorOffset());
     }
   }
 
   void Place(RawLiteral* literal) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(literal->IsManuallyPlaced());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(literal->IsManuallyPlaced());
     // Check if we need to emit the pools. Take the alignment of the literal
     // into account, as well as potential 16-bit padding needed to reach the
     // minimum accessible location.
@@ -467,7 +467,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     if (pool_manager_.MustEmit(pc, total_size)) {
       int32_t new_pc = pool_manager_.Emit(this, pc, total_size);
       USE(new_pc);
-      VIXL_ASSERT(new_pc == GetCursorOffset());
+      SWANSTATION_VIXL_ASSERT(new_pc == GetCursorOffset());
     }
     pool_manager_.Bind(this, literal, GetCursorOffset());
     literal->EmitPoolObject(this);
@@ -478,16 +478,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void EmitLiteralPool(PoolManager<int32_t>::EmitOption option =
                            PoolManager<int32_t>::kBranchRequired) {
-    VIXL_ASSERT(!ArePoolsBlocked());
+    SWANSTATION_VIXL_ASSERT(!ArePoolsBlocked());
     int32_t new_pc =
         pool_manager_.Emit(this, GetCursorOffset(), 0, NULL, NULL, option);
-    VIXL_ASSERT(new_pc == GetCursorOffset());
+    SWANSTATION_VIXL_ASSERT(new_pc == GetCursorOffset());
     USE(new_pc);
   }
 
   void EnsureEmitFor(uint32_t size) {
     EnsureEmitPoolsFor(size);
-    VIXL_ASSERT(GetBuffer()->HasSpaceFor(size) || GetBuffer()->IsManaged());
+    SWANSTATION_VIXL_ASSERT(GetBuffer()->HasSpaceFor(size) || GetBuffer()->IsManaged());
     GetBuffer()->EnsureSpaceFor(size);
   }
 
@@ -550,15 +550,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   // Adr with a literal already constructed. Add the literal to the pool if it
   // is not already done.
   void Adr(Condition cond, Register rd, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = adr_info(cond, Best, rd, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -573,15 +573,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   // Loads with literals already constructed. Add the literal to the pool
   // if it is not already done.
   void Ldr(Condition cond, Register rt, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = ldr_info(cond, Best, rt, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -594,15 +594,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldr(Register rt, RawLiteral* literal) { Ldr(al, rt, literal); }
 
   void Ldrb(Condition cond, Register rt, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = ldrb_info(cond, rt, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -615,16 +615,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldrb(Register rt, RawLiteral* literal) { Ldrb(al, rt, literal); }
 
   void Ldrd(Condition cond, Register rt, Register rt2, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = ldrd_info(cond, rt, rt2, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -639,15 +639,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ldrh(Condition cond, Register rt, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = ldrh_info(cond, rt, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -660,15 +660,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldrh(Register rt, RawLiteral* literal) { Ldrh(al, rt, literal); }
 
   void Ldrsb(Condition cond, Register rt, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = ldrsb_info(cond, rt, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -681,15 +681,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldrsb(Register rt, RawLiteral* literal) { Ldrsb(al, rt, literal); }
 
   void Ldrsh(Condition cond, Register rt, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = ldrsh_info(cond, rt, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -702,15 +702,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldrsh(Register rt, RawLiteral* literal) { Ldrsh(al, rt, literal); }
 
   void Vldr(Condition cond, DataType dt, DRegister rd, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = vldr_info(cond, dt, rd, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -731,15 +731,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vldr(Condition cond, DataType dt, SRegister rd, RawLiteral* literal) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!literal->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = vldr_info(cond, dt, rd, literal, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, literal, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -761,9 +761,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   // Generic Ldr(register, data)
   void Ldr(Condition cond, Register rt, uint32_t v) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     RawLiteral* literal =
         new Literal<uint32_t>(v, RawLiteral::kDeletedOnPlacementByPool);
     Ldr(cond, rt, literal);
@@ -775,10 +775,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   // Generic Ldrd(rt, rt2, data)
   void Ldrd(Condition cond, Register rt, Register rt2, uint64_t v) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     RawLiteral* literal =
         new Literal<uint64_t>(v, RawLiteral::kDeletedOnPlacementByPool);
     Ldrd(cond, rt, rt2, literal);
@@ -789,9 +789,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vldr(Condition cond, SRegister rd, float v) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     RawLiteral* literal =
         new Literal<float>(v, RawLiteral::kDeletedOnPlacementByPool);
     Vldr(cond, rd, literal);
@@ -799,9 +799,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vldr(SRegister rd, float v) { Vldr(al, rd, v); }
 
   void Vldr(Condition cond, DRegister rd, double v) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     RawLiteral* literal =
         new Literal<double>(v, RawLiteral::kDeletedOnPlacementByPool);
     Vldr(cond, rd, literal);
@@ -828,22 +828,22 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Claim(int32_t size) {
     if (size == 0) return;
     // The stack must be kept 32bit aligned.
-    VIXL_ASSERT((size > 0) && ((size % 4) == 0));
+    SWANSTATION_VIXL_ASSERT((size > 0) && ((size % 4) == 0));
     Sub(sp, sp, size);
   }
   // Release memory on the stack
   void Drop(int32_t size) {
     if (size == 0) return;
     // The stack must be kept 32bit aligned.
-    VIXL_ASSERT((size > 0) && ((size % 4) == 0));
+    SWANSTATION_VIXL_ASSERT((size > 0) && ((size % 4) == 0));
     Add(sp, sp, size);
   }
   void Peek(Register dst, int32_t offset) {
-    VIXL_ASSERT((offset >= 0) && ((offset % 4) == 0));
+    SWANSTATION_VIXL_ASSERT((offset >= 0) && ((offset % 4) == 0));
     Ldr(dst, MemOperand(sp, offset));
   }
   void Poke(Register src, int32_t offset) {
-    VIXL_ASSERT((offset >= 0) && ((offset % 4) == 0));
+    SWANSTATION_VIXL_ASSERT((offset >= 0) && ((offset % 4) == 0));
     Str(src, MemOperand(sp, offset));
   }
   void Printf(const char* format,
@@ -863,14 +863,14 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                         InstructionCondROp instruction,
                         Condition cond,
                         Register rn,
-                        const Operand& operand) VIXL_OVERRIDE;
+                        const Operand& operand) SWANSTATION_VIXL_OVERRIDE;
   // CMN, CMP, MOV, MOVS, MVN, MVNS, SXTB, SXTH, TST, UXTB, UXTH
   virtual void Delegate(InstructionType type,
                         InstructionCondSizeROp instruction,
                         Condition cond,
                         EncodingSize size,
                         Register rn,
-                        const Operand& operand) VIXL_OVERRIDE;
+                        const Operand& operand) SWANSTATION_VIXL_OVERRIDE;
   // ADDW, ORN, ORNS, PKHBT, PKHTB, RSC, RSCS, SUBW, SXTAB, SXTAB16, SXTAH,
   // UXTAB, UXTAB16, UXTAH
   virtual void Delegate(InstructionType type,
@@ -878,7 +878,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                         Condition cond,
                         Register rd,
                         Register rn,
-                        const Operand& operand) VIXL_OVERRIDE;
+                        const Operand& operand) SWANSTATION_VIXL_OVERRIDE;
   // ADC, ADCS, ADD, ADDS, AND, ANDS, ASR, ASRS, BIC, BICS, EOR, EORS, LSL,
   // LSLS, LSR, LSRS, ORR, ORRS, ROR, RORS, RSB, RSBS, SBC, SBCS, SUB, SUBS
   virtual void Delegate(InstructionType type,
@@ -886,7 +886,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                         Condition cond,
                         EncodingSize size,
                         Register rd,
-                        Location* location) VIXL_OVERRIDE;
+                        Location* location) SWANSTATION_VIXL_OVERRIDE;
   bool GenerateSplitInstruction(InstructionCondSizeRROp instruction,
                                 Condition cond,
                                 Register rd,
@@ -899,99 +899,99 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                         EncodingSize size,
                         Register rd,
                         Register rn,
-                        const Operand& operand) VIXL_OVERRIDE;
+                        const Operand& operand) SWANSTATION_VIXL_OVERRIDE;
   // CBNZ, CBZ
   virtual void Delegate(InstructionType type,
                         InstructionRL instruction,
                         Register rn,
-                        Location* location) VIXL_OVERRIDE;
+                        Location* location) SWANSTATION_VIXL_OVERRIDE;
   // VMOV
   virtual void Delegate(InstructionType type,
                         InstructionCondDtSSop instruction,
                         Condition cond,
                         DataType dt,
                         SRegister rd,
-                        const SOperand& operand) VIXL_OVERRIDE;
+                        const SOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // VMOV, VMVN
   virtual void Delegate(InstructionType type,
                         InstructionCondDtDDop instruction,
                         Condition cond,
                         DataType dt,
                         DRegister rd,
-                        const DOperand& operand) VIXL_OVERRIDE;
+                        const DOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // VMOV, VMVN
   virtual void Delegate(InstructionType type,
                         InstructionCondDtQQop instruction,
                         Condition cond,
                         DataType dt,
                         QRegister rd,
-                        const QOperand& operand) VIXL_OVERRIDE;
+                        const QOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // LDR, LDRB, LDRH, LDRSB, LDRSH, STR, STRB, STRH
   virtual void Delegate(InstructionType type,
                         InstructionCondSizeRMop instruction,
                         Condition cond,
                         EncodingSize size,
                         Register rd,
-                        const MemOperand& operand) VIXL_OVERRIDE;
+                        const MemOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // LDAEXD, LDRD, LDREXD, STLEX, STLEXB, STLEXH, STRD, STREX, STREXB, STREXH
   virtual void Delegate(InstructionType type,
                         InstructionCondRL instruction,
                         Condition cond,
                         Register rt,
-                        Location* location) VIXL_OVERRIDE;
+                        Location* location) SWANSTATION_VIXL_OVERRIDE;
   virtual void Delegate(InstructionType type,
                         InstructionCondRRL instruction,
                         Condition cond,
                         Register rt,
                         Register rt2,
-                        Location* location) VIXL_OVERRIDE;
+                        Location* location) SWANSTATION_VIXL_OVERRIDE;
   virtual void Delegate(InstructionType type,
                         InstructionCondRRMop instruction,
                         Condition cond,
                         Register rt,
                         Register rt2,
-                        const MemOperand& operand) VIXL_OVERRIDE;
+                        const MemOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // VLDR, VSTR
   virtual void Delegate(InstructionType type,
                         InstructionCondDtSMop instruction,
                         Condition cond,
                         DataType dt,
                         SRegister rd,
-                        const MemOperand& operand) VIXL_OVERRIDE;
+                        const MemOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // VLDR, VSTR
   virtual void Delegate(InstructionType type,
                         InstructionCondDtDMop instruction,
                         Condition cond,
                         DataType dt,
                         DRegister rd,
-                        const MemOperand& operand) VIXL_OVERRIDE;
+                        const MemOperand& operand) SWANSTATION_VIXL_OVERRIDE;
   // MSR
   virtual void Delegate(InstructionType type,
                         InstructionCondMsrOp instruction,
                         Condition cond,
                         MaskedSpecialRegister spec_reg,
-                        const Operand& operand) VIXL_OVERRIDE;
+                        const Operand& operand) SWANSTATION_VIXL_OVERRIDE;
   virtual void Delegate(InstructionType type,
                         InstructionCondDtDL instruction,
                         Condition cond,
                         DataType dt,
                         DRegister rd,
-                        Location* location) VIXL_OVERRIDE;
+                        Location* location) SWANSTATION_VIXL_OVERRIDE;
   virtual void Delegate(InstructionType type,
                         InstructionCondDtSL instruction,
                         Condition cond,
                         DataType dt,
                         SRegister rd,
-                        Location* location) VIXL_OVERRIDE;
+                        Location* location) SWANSTATION_VIXL_OVERRIDE;
 
   // Start of generated code.
 
   void Adc(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // ADC<c>{<q>} {<Rdn>,} <Rdn>, <Rm> ; T1
@@ -1035,11 +1035,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Adcs(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     adcs(cond, rd, rn, operand);
@@ -1049,11 +1049,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Add(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (cond.Is(al) && rd.Is(rn) && operand.IsImmediate()) {
       uint32_t immediate = operand.GetImmediate();
@@ -1133,11 +1133,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Adds(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     adds(cond, rd, rn, operand);
@@ -1147,11 +1147,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void And(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (rd.Is(rn) && operand.IsPlainRegister() &&
         rd.Is(operand.GetBaseRegister())) {
@@ -1213,11 +1213,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ands(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ands(cond, rd, rn, operand);
@@ -1227,11 +1227,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Asr(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // ASR<c>{<q>} {<Rd>,} <Rm>, #<imm> ; T2
@@ -1280,11 +1280,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Asrs(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     asrs(cond, rd, rm, operand);
@@ -1294,8 +1294,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void B(Condition cond, Label* label, BranchHint hint = kBranchWithoutHint) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     EncodingSize size = Best;
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
@@ -1303,7 +1303,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
       if (hint == kNear) size = Narrow;
       const ReferenceInfo* info;
       bool can_encode = b_info(cond, size, label, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, label, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -1319,9 +1319,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void BPreferNear(Label* label) { B(al, label, kNear); }
 
   void Bfc(Condition cond, Register rd, uint32_t lsb, uint32_t width) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     bfc(cond, rd, lsb, width);
@@ -1332,10 +1332,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Bfi(
       Condition cond, Register rd, Register rn, uint32_t lsb, uint32_t width) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     bfi(cond, rd, rn, lsb, width);
@@ -1345,11 +1345,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Bic(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (cond.Is(al) && operand.IsImmediate()) {
       uint32_t immediate = operand.GetImmediate();
@@ -1403,11 +1403,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Bics(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     bics(cond, rd, rn, operand);
@@ -1417,8 +1417,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Bkpt(Condition cond, uint32_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     bkpt(cond, imm);
@@ -1426,14 +1426,14 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Bkpt(uint32_t imm) { Bkpt(al, imm); }
 
   void Bl(Condition cond, Label* label) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!label->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = bl_info(cond, label, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, label, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -1446,14 +1446,14 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Bl(Label* label) { Bl(al, label); }
 
   void Blx(Condition cond, Label* label) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!label->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = blx_info(cond, label, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, label, &cond);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -1466,9 +1466,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Blx(Label* label) { Blx(al, label); }
 
   void Blx(Condition cond, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // BLX{<c>}{<q>} <Rm> ; T1
@@ -1479,9 +1479,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Blx(Register rm) { Blx(al, rm); }
 
   void Bx(Condition cond, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // BX{<c>}{<q>} <Rm> ; T1
@@ -1492,9 +1492,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Bx(Register rm) { Bx(al, rm); }
 
   void Bxj(Condition cond, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     bxj(cond, rm);
@@ -1502,15 +1502,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Bxj(Register rm) { Bxj(al, rm); }
 
   void Cbnz(Register rn, Label* label) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!label->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = cbnz_info(rn, label, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, label);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -1521,15 +1521,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Cbz(Register rn, Label* label) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope::PoolPolicy pool_policy =
         MacroEmissionCheckScope::kBlockPools;
     if (!label->IsBound()) {
       const ReferenceInfo* info;
       bool can_encode = cbz_info(rn, label, &info);
-      VIXL_CHECK(can_encode);
+      SWANSTATION_VIXL_CHECK(can_encode);
       CheckEmitPoolForInstruction(info, label);
       // We have already checked for pool emission.
       pool_policy = MacroEmissionCheckScope::kIgnorePools;
@@ -1540,8 +1540,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Clrex(Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     clrex(cond);
@@ -1549,10 +1549,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Clrex() { Clrex(al); }
 
   void Clz(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     clz(cond, rd, rm);
@@ -1560,10 +1560,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Clz(Register rd, Register rm) { Clz(al, rd, rm); }
 
   void Cmn(Condition cond, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // CMN{<c>}{<q>} <Rn>, <Rm> ; T1
@@ -1575,10 +1575,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Cmn(Register rn, const Operand& operand) { Cmn(al, rn, operand); }
 
   void Cmp(Condition cond, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // CMP{<c>}{<q>} <Rn>, #<imm8> ; T1
@@ -1593,11 +1593,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Cmp(Register rn, const Operand& operand) { Cmp(al, rn, operand); }
 
   void Crc32b(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     crc32b(cond, rd, rn, rm);
@@ -1605,11 +1605,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Crc32b(Register rd, Register rn, Register rm) { Crc32b(al, rd, rn, rm); }
 
   void Crc32cb(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     crc32cb(cond, rd, rn, rm);
@@ -1619,11 +1619,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Crc32ch(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     crc32ch(cond, rd, rn, rm);
@@ -1633,11 +1633,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Crc32cw(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     crc32cw(cond, rd, rn, rm);
@@ -1647,11 +1647,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Crc32h(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     crc32h(cond, rd, rn, rm);
@@ -1659,11 +1659,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Crc32h(Register rd, Register rn, Register rm) { Crc32h(al, rd, rn, rm); }
 
   void Crc32w(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     crc32w(cond, rd, rn, rm);
@@ -1671,8 +1671,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Crc32w(Register rd, Register rn, Register rm) { Crc32w(al, rd, rn, rm); }
 
   void Dmb(Condition cond, MemoryBarrier option) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     dmb(cond, option);
@@ -1680,8 +1680,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Dmb(MemoryBarrier option) { Dmb(al, option); }
 
   void Dsb(Condition cond, MemoryBarrier option) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     dsb(cond, option);
@@ -1689,11 +1689,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Dsb(MemoryBarrier option) { Dsb(al, option); }
 
   void Eor(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (cond.Is(al) && rd.Is(rn) && operand.IsImmediate()) {
       uint32_t immediate = operand.GetImmediate();
@@ -1747,11 +1747,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Eors(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     eors(cond, rd, rn, operand);
@@ -1764,10 +1764,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                Register rn,
                WriteBack write_back,
                DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     fldmdbx(cond, rn, write_back, dreglist);
@@ -1780,10 +1780,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                Register rn,
                WriteBack write_back,
                DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     fldmiax(cond, rn, write_back, dreglist);
@@ -1796,10 +1796,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                Register rn,
                WriteBack write_back,
                DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     fstmdbx(cond, rn, write_back, dreglist);
@@ -1812,10 +1812,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                Register rn,
                WriteBack write_back,
                DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     fstmiax(cond, rn, write_back, dreglist);
@@ -1825,8 +1825,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Hlt(Condition cond, uint32_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     hlt(cond, imm);
@@ -1834,8 +1834,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Hlt(uint32_t imm) { Hlt(al, imm); }
 
   void Hvc(Condition cond, uint32_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     hvc(cond, imm);
@@ -1843,8 +1843,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Hvc(uint32_t imm) { Hvc(al, imm); }
 
   void Isb(Condition cond, MemoryBarrier option) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     isb(cond, option);
@@ -1852,10 +1852,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Isb(MemoryBarrier option) { Isb(al, option); }
 
   void Lda(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     lda(cond, rt, operand);
@@ -1863,10 +1863,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Lda(Register rt, const MemOperand& operand) { Lda(al, rt, operand); }
 
   void Ldab(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldab(cond, rt, operand);
@@ -1874,10 +1874,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldab(Register rt, const MemOperand& operand) { Ldab(al, rt, operand); }
 
   void Ldaex(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldaex(cond, rt, operand);
@@ -1885,10 +1885,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldaex(Register rt, const MemOperand& operand) { Ldaex(al, rt, operand); }
 
   void Ldaexb(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldaexb(cond, rt, operand);
@@ -1901,11 +1901,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rt,
               Register rt2,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldaexd(cond, rt, rt2, operand);
@@ -1915,10 +1915,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ldaexh(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldaexh(cond, rt, operand);
@@ -1928,10 +1928,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ldah(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldah(cond, rt, operand);
@@ -1942,10 +1942,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            Register rn,
            WriteBack write_back,
            RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldm(cond, rn, write_back, registers);
@@ -1958,10 +1958,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmda(cond, rn, write_back, registers);
@@ -1974,10 +1974,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmdb(cond, rn, write_back, registers);
@@ -1990,10 +1990,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmea(cond, rn, write_back, registers);
@@ -2006,10 +2006,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmed(cond, rn, write_back, registers);
@@ -2022,10 +2022,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmfa(cond, rn, write_back, registers);
@@ -2038,10 +2038,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmfd(cond, rn, write_back, registers);
@@ -2054,10 +2054,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldmib(cond, rn, write_back, registers);
@@ -2067,10 +2067,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ldr(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LDR{<c>}{<q>} <Rt>, [<Rn> {, #{+}<imm>}] ; T1
@@ -2095,10 +2095,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Ldrb(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LDRB{<c>}{<q>} <Rt>, [<Rn> {, #{+}<imm>}] ; T1
@@ -2121,11 +2121,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             Register rt,
             Register rt2,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldrd(cond, rt, rt2, operand);
@@ -2136,10 +2136,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Ldrex(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldrex(cond, rt, operand);
@@ -2147,10 +2147,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldrex(Register rt, const MemOperand& operand) { Ldrex(al, rt, operand); }
 
   void Ldrexb(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldrexb(cond, rt, operand);
@@ -2163,11 +2163,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rt,
               Register rt2,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldrexd(cond, rt, rt2, operand);
@@ -2177,10 +2177,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ldrexh(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ldrexh(cond, rt, operand);
@@ -2190,10 +2190,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ldrh(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LDRH{<c>}{<q>} <Rt>, [<Rn> {, #{+}<imm>}] ; T1
@@ -2213,10 +2213,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Ldrsb(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LDRSB{<c>}{<q>} <Rt>, [<Rn>, {+}<Rm>] ; T1
@@ -2231,10 +2231,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Ldrsh(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LDRSH{<c>}{<q>} <Rt>, [<Rn>, {+}<Rm>] ; T1
@@ -2249,11 +2249,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Lsl(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LSL<c>{<q>} {<Rd>,} <Rm>, #<imm> ; T2
@@ -2302,11 +2302,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Lsls(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     lsls(cond, rd, rm, operand);
@@ -2316,11 +2316,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Lsr(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // LSR<c>{<q>} {<Rd>,} <Rm>, #<imm> ; T2
@@ -2369,11 +2369,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Lsrs(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     lsrs(cond, rd, rm, operand);
@@ -2383,12 +2383,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Mla(Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     mla(cond, rd, rn, rm, ra);
@@ -2421,12 +2421,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Mlas(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     mlas(cond, rd, rn, rm, ra);
@@ -2436,12 +2436,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Mls(Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     mls(cond, rd, rn, rm, ra);
@@ -2451,10 +2451,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Mov(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (operand.IsPlainRegister() && rd.Is(operand.GetBaseRegister())) {
       return;
@@ -2528,10 +2528,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Movs(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     movs(cond, rd, operand);
@@ -2539,10 +2539,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Movs(Register rd, const Operand& operand) { Movs(al, rd, operand); }
 
   void Movt(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     movt(cond, rd, operand);
@@ -2550,9 +2550,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Movt(Register rd, const Operand& operand) { Movt(al, rd, operand); }
 
   void Mrs(Condition cond, Register rd, SpecialRegister spec_reg) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     mrs(cond, rd, spec_reg);
@@ -2562,9 +2562,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Msr(Condition cond,
            MaskedSpecialRegister spec_reg,
            const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     msr(cond, spec_reg, operand);
@@ -2574,11 +2574,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Mul(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // MUL<c>{<q>} <Rdm>, <Rn>{, <Rdm>} ; T1
@@ -2615,11 +2615,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Muls(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     muls(cond, rd, rn, rm);
@@ -2627,10 +2627,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Muls(Register rd, Register rn, Register rm) { Muls(al, rd, rn, rm); }
 
   void Mvn(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // MVN<c>{<q>} <Rd>, <Rm> ; T1
@@ -2668,10 +2668,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Mvns(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     mvns(cond, rd, operand);
@@ -2679,8 +2679,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Mvns(Register rd, const Operand& operand) { Mvns(al, rd, operand); }
 
   void Nop(Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     nop(cond);
@@ -2688,11 +2688,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Nop() { Nop(al); }
 
   void Orn(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (cond.Is(al) && operand.IsImmediate()) {
       uint32_t immediate = operand.GetImmediate();
@@ -2735,11 +2735,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Orns(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     orns(cond, rd, rn, operand);
@@ -2749,11 +2749,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Orr(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (rd.Is(rn) && operand.IsPlainRegister() &&
         rd.Is(operand.GetBaseRegister())) {
@@ -2815,11 +2815,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Orrs(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     orrs(cond, rd, rn, operand);
@@ -2829,11 +2829,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Pkhbt(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pkhbt(cond, rd, rn, operand);
@@ -2843,11 +2843,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Pkhtb(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pkhtb(cond, rd, rn, operand);
@@ -2858,9 +2858,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Pld(Condition cond, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pld(cond, operand);
@@ -2868,9 +2868,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Pld(const MemOperand& operand) { Pld(al, operand); }
 
   void Pldw(Condition cond, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pldw(cond, operand);
@@ -2878,9 +2878,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Pldw(const MemOperand& operand) { Pldw(al, operand); }
 
   void Pli(Condition cond, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pli(cond, operand);
@@ -2889,9 +2889,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 
   void Pop(Condition cond, RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pop(cond, registers);
@@ -2899,9 +2899,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Pop(RegisterList registers) { Pop(al, registers); }
 
   void Pop(Condition cond, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     pop(cond, rt);
@@ -2909,9 +2909,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Pop(Register rt) { Pop(al, rt); }
 
   void Push(Condition cond, RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     push(cond, registers);
@@ -2919,9 +2919,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Push(RegisterList registers) { Push(al, registers); }
 
   void Push(Condition cond, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     push(cond, rt);
@@ -2929,11 +2929,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Push(Register rt) { Push(al, rt); }
 
   void Qadd(Condition cond, Register rd, Register rm, Register rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qadd(cond, rd, rm, rn);
@@ -2941,11 +2941,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qadd(Register rd, Register rm, Register rn) { Qadd(al, rd, rm, rn); }
 
   void Qadd16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qadd16(cond, rd, rn, rm);
@@ -2953,11 +2953,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qadd16(Register rd, Register rn, Register rm) { Qadd16(al, rd, rn, rm); }
 
   void Qadd8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qadd8(cond, rd, rn, rm);
@@ -2965,11 +2965,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qadd8(Register rd, Register rn, Register rm) { Qadd8(al, rd, rn, rm); }
 
   void Qasx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qasx(cond, rd, rn, rm);
@@ -2977,11 +2977,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qasx(Register rd, Register rn, Register rm) { Qasx(al, rd, rn, rm); }
 
   void Qdadd(Condition cond, Register rd, Register rm, Register rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qdadd(cond, rd, rm, rn);
@@ -2989,11 +2989,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qdadd(Register rd, Register rm, Register rn) { Qdadd(al, rd, rm, rn); }
 
   void Qdsub(Condition cond, Register rd, Register rm, Register rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qdsub(cond, rd, rm, rn);
@@ -3001,11 +3001,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qdsub(Register rd, Register rm, Register rn) { Qdsub(al, rd, rm, rn); }
 
   void Qsax(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qsax(cond, rd, rn, rm);
@@ -3013,11 +3013,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qsax(Register rd, Register rn, Register rm) { Qsax(al, rd, rn, rm); }
 
   void Qsub(Condition cond, Register rd, Register rm, Register rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qsub(cond, rd, rm, rn);
@@ -3025,11 +3025,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qsub(Register rd, Register rm, Register rn) { Qsub(al, rd, rm, rn); }
 
   void Qsub16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qsub16(cond, rd, rn, rm);
@@ -3037,11 +3037,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qsub16(Register rd, Register rn, Register rm) { Qsub16(al, rd, rn, rm); }
 
   void Qsub8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     qsub8(cond, rd, rn, rm);
@@ -3049,10 +3049,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Qsub8(Register rd, Register rn, Register rm) { Qsub8(al, rd, rn, rm); }
 
   void Rbit(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rbit(cond, rd, rm);
@@ -3060,10 +3060,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Rbit(Register rd, Register rm) { Rbit(al, rd, rm); }
 
   void Rev(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rev(cond, rd, rm);
@@ -3071,10 +3071,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Rev(Register rd, Register rm) { Rev(al, rd, rm); }
 
   void Rev16(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rev16(cond, rd, rm);
@@ -3082,10 +3082,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Rev16(Register rd, Register rm) { Rev16(al, rd, rm); }
 
   void Revsh(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     revsh(cond, rd, rm);
@@ -3093,11 +3093,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Revsh(Register rd, Register rm) { Revsh(al, rd, rm); }
 
   void Ror(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // ROR<c>{<q>} {<Rdm>,} <Rdm>, <Rs> ; T1
@@ -3141,11 +3141,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Rors(Condition cond, Register rd, Register rm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rors(cond, rd, rm, operand);
@@ -3155,10 +3155,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Rrx(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rrx(cond, rd, rm);
@@ -3182,10 +3182,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Rrxs(Condition cond, Register rd, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rrxs(cond, rd, rm);
@@ -3193,11 +3193,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Rrxs(Register rd, Register rm) { Rrxs(al, rd, rm); }
 
   void Rsb(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // RSB<c>{<q>} {<Rd>, }<Rn>, #0 ; T1
@@ -3241,11 +3241,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Rsbs(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rsbs(cond, rd, rn, operand);
@@ -3255,11 +3255,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Rsc(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rsc(cond, rd, rn, operand);
@@ -3292,11 +3292,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Rscs(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     rscs(cond, rd, rn, operand);
@@ -3306,11 +3306,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Sadd16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sadd16(cond, rd, rn, rm);
@@ -3318,11 +3318,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sadd16(Register rd, Register rn, Register rm) { Sadd16(al, rd, rn, rm); }
 
   void Sadd8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sadd8(cond, rd, rn, rm);
@@ -3330,11 +3330,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sadd8(Register rd, Register rn, Register rm) { Sadd8(al, rd, rn, rm); }
 
   void Sasx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sasx(cond, rd, rn, rm);
@@ -3342,11 +3342,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sasx(Register rd, Register rn, Register rm) { Sasx(al, rd, rn, rm); }
 
   void Sbc(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // SBC<c>{<q>} {<Rdn>,} <Rdn>, <Rm> ; T1
@@ -3390,11 +3390,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Sbcs(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sbcs(cond, rd, rn, operand);
@@ -3405,10 +3405,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Sbfx(
       Condition cond, Register rd, Register rn, uint32_t lsb, uint32_t width) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sbfx(cond, rd, rn, lsb, width);
@@ -3418,11 +3418,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Sdiv(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sdiv(cond, rd, rn, rm);
@@ -3430,11 +3430,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sdiv(Register rd, Register rn, Register rm) { Sdiv(al, rd, rn, rm); }
 
   void Sel(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sel(cond, rd, rn, rm);
@@ -3442,11 +3442,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sel(Register rd, Register rn, Register rm) { Sel(al, rd, rn, rm); }
 
   void Shadd16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     shadd16(cond, rd, rn, rm);
@@ -3456,11 +3456,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Shadd8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     shadd8(cond, rd, rn, rm);
@@ -3468,11 +3468,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Shadd8(Register rd, Register rn, Register rm) { Shadd8(al, rd, rn, rm); }
 
   void Shasx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     shasx(cond, rd, rn, rm);
@@ -3480,11 +3480,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Shasx(Register rd, Register rn, Register rm) { Shasx(al, rd, rn, rm); }
 
   void Shsax(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     shsax(cond, rd, rn, rm);
@@ -3492,11 +3492,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Shsax(Register rd, Register rn, Register rm) { Shsax(al, rd, rn, rm); }
 
   void Shsub16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     shsub16(cond, rd, rn, rm);
@@ -3506,11 +3506,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Shsub8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     shsub8(cond, rd, rn, rm);
@@ -3519,12 +3519,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlabb(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlabb(cond, rd, rn, rm, ra);
@@ -3535,12 +3535,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlabt(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlabt(cond, rd, rn, rm, ra);
@@ -3551,12 +3551,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlad(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlad(cond, rd, rn, rm, ra);
@@ -3567,12 +3567,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smladx(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smladx(cond, rd, rn, rm, ra);
@@ -3583,12 +3583,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlal(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlal(cond, rdlo, rdhi, rn, rm);
@@ -3599,12 +3599,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlalbb(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlalbb(cond, rdlo, rdhi, rn, rm);
@@ -3615,12 +3615,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlalbt(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlalbt(cond, rdlo, rdhi, rn, rm);
@@ -3631,12 +3631,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlald(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlald(cond, rdlo, rdhi, rn, rm);
@@ -3647,12 +3647,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlaldx(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlaldx(cond, rdlo, rdhi, rn, rm);
@@ -3663,12 +3663,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlals(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlals(cond, rdlo, rdhi, rn, rm);
@@ -3679,12 +3679,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlaltb(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlaltb(cond, rdlo, rdhi, rn, rm);
@@ -3695,12 +3695,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlaltt(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlaltt(cond, rdlo, rdhi, rn, rm);
@@ -3711,12 +3711,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlatb(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlatb(cond, rd, rn, rm, ra);
@@ -3727,12 +3727,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlatt(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlatt(cond, rd, rn, rm, ra);
@@ -3743,12 +3743,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlawb(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlawb(cond, rd, rn, rm, ra);
@@ -3759,12 +3759,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlawt(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlawt(cond, rd, rn, rm, ra);
@@ -3775,12 +3775,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlsd(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlsd(cond, rd, rn, rm, ra);
@@ -3791,12 +3791,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlsdx(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlsdx(cond, rd, rn, rm, ra);
@@ -3807,12 +3807,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlsld(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlsld(cond, rdlo, rdhi, rn, rm);
@@ -3823,12 +3823,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smlsldx(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smlsldx(cond, rdlo, rdhi, rn, rm);
@@ -3839,12 +3839,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smmla(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smmla(cond, rd, rn, rm, ra);
@@ -3855,12 +3855,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smmlar(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smmlar(cond, rd, rn, rm, ra);
@@ -3871,12 +3871,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smmls(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smmls(cond, rd, rn, rm, ra);
@@ -3887,12 +3887,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smmlsr(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smmlsr(cond, rd, rn, rm, ra);
@@ -3902,11 +3902,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Smmul(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smmul(cond, rd, rn, rm);
@@ -3914,11 +3914,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smmul(Register rd, Register rn, Register rm) { Smmul(al, rd, rn, rm); }
 
   void Smmulr(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smmulr(cond, rd, rn, rm);
@@ -3926,11 +3926,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smmulr(Register rd, Register rn, Register rm) { Smmulr(al, rd, rn, rm); }
 
   void Smuad(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smuad(cond, rd, rn, rm);
@@ -3938,11 +3938,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smuad(Register rd, Register rn, Register rm) { Smuad(al, rd, rn, rm); }
 
   void Smuadx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smuadx(cond, rd, rn, rm);
@@ -3950,11 +3950,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smuadx(Register rd, Register rn, Register rm) { Smuadx(al, rd, rn, rm); }
 
   void Smulbb(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smulbb(cond, rd, rn, rm);
@@ -3962,11 +3962,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smulbb(Register rd, Register rn, Register rm) { Smulbb(al, rd, rn, rm); }
 
   void Smulbt(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smulbt(cond, rd, rn, rm);
@@ -3975,12 +3975,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smull(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smull(cond, rdlo, rdhi, rn, rm);
@@ -4016,12 +4016,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Smulls(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smulls(cond, rdlo, rdhi, rn, rm);
@@ -4031,11 +4031,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Smultb(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smultb(cond, rd, rn, rm);
@@ -4043,11 +4043,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smultb(Register rd, Register rn, Register rm) { Smultb(al, rd, rn, rm); }
 
   void Smultt(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smultt(cond, rd, rn, rm);
@@ -4055,11 +4055,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smultt(Register rd, Register rn, Register rm) { Smultt(al, rd, rn, rm); }
 
   void Smulwb(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smulwb(cond, rd, rn, rm);
@@ -4067,11 +4067,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smulwb(Register rd, Register rn, Register rm) { Smulwb(al, rd, rn, rm); }
 
   void Smulwt(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smulwt(cond, rd, rn, rm);
@@ -4079,11 +4079,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smulwt(Register rd, Register rn, Register rm) { Smulwt(al, rd, rn, rm); }
 
   void Smusd(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smusd(cond, rd, rn, rm);
@@ -4091,11 +4091,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smusd(Register rd, Register rn, Register rm) { Smusd(al, rd, rn, rm); }
 
   void Smusdx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     smusdx(cond, rd, rn, rm);
@@ -4103,10 +4103,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Smusdx(Register rd, Register rn, Register rm) { Smusdx(al, rd, rn, rm); }
 
   void Ssat(Condition cond, Register rd, uint32_t imm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ssat(cond, rd, imm, operand);
@@ -4116,10 +4116,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ssat16(Condition cond, Register rd, uint32_t imm, Register rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ssat16(cond, rd, imm, rn);
@@ -4129,11 +4129,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Ssax(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ssax(cond, rd, rn, rm);
@@ -4141,11 +4141,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ssax(Register rd, Register rn, Register rm) { Ssax(al, rd, rn, rm); }
 
   void Ssub16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ssub16(cond, rd, rn, rm);
@@ -4153,11 +4153,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ssub16(Register rd, Register rn, Register rm) { Ssub16(al, rd, rn, rm); }
 
   void Ssub8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ssub8(cond, rd, rn, rm);
@@ -4165,10 +4165,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ssub8(Register rd, Register rn, Register rm) { Ssub8(al, rd, rn, rm); }
 
   void Stl(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stl(cond, rt, operand);
@@ -4176,10 +4176,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Stl(Register rt, const MemOperand& operand) { Stl(al, rt, operand); }
 
   void Stlb(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stlb(cond, rt, operand);
@@ -4190,11 +4190,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rd,
              Register rt,
              const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stlex(cond, rd, rt, operand);
@@ -4207,11 +4207,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rd,
               Register rt,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stlexb(cond, rd, rt, operand);
@@ -4225,12 +4225,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rt,
               Register rt2,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stlexd(cond, rd, rt, rt2, operand);
@@ -4246,11 +4246,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rd,
               Register rt,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stlexh(cond, rd, rt, operand);
@@ -4260,10 +4260,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Stlh(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stlh(cond, rt, operand);
@@ -4274,10 +4274,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            Register rn,
            WriteBack write_back,
            RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stm(cond, rn, write_back, registers);
@@ -4290,10 +4290,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmda(cond, rn, write_back, registers);
@@ -4306,10 +4306,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmdb(cond, rn, write_back, registers);
@@ -4322,10 +4322,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmea(cond, rn, write_back, registers);
@@ -4338,10 +4338,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmed(cond, rn, write_back, registers);
@@ -4354,10 +4354,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmfa(cond, rn, write_back, registers);
@@ -4370,10 +4370,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmfd(cond, rn, write_back, registers);
@@ -4386,10 +4386,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rn,
              WriteBack write_back,
              RegisterList registers) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(registers));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     stmib(cond, rn, write_back, registers);
@@ -4399,10 +4399,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Str(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // STR{<c>}{<q>} <Rt>, [<Rn> {, #{+}<imm>}] ; T1
@@ -4426,10 +4426,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Str(Register rt, const MemOperand& operand) { Str(al, rt, operand); }
 
   void Strb(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // STRB{<c>}{<q>} <Rt>, [<Rn> {, #{+}<imm>}] ; T1
@@ -4451,11 +4451,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             Register rt,
             Register rt2,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     strd(cond, rt, rt2, operand);
@@ -4468,11 +4468,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              Register rd,
              Register rt,
              const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     strex(cond, rd, rt, operand);
@@ -4485,11 +4485,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rd,
               Register rt,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     strexb(cond, rd, rt, operand);
@@ -4503,12 +4503,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rt,
               Register rt2,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     strexd(cond, rd, rt, rt2, operand);
@@ -4524,11 +4524,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rd,
               Register rt,
               const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     strexh(cond, rd, rt, operand);
@@ -4538,10 +4538,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Strh(Condition cond, Register rt, const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // STRH{<c>}{<q>} <Rt>, [<Rn> {, #{+}<imm>}] ; T1
@@ -4560,11 +4560,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Strh(Register rt, const MemOperand& operand) { Strh(al, rt, operand); }
 
   void Sub(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     if (cond.Is(al) && rd.Is(rn) && operand.IsImmediate()) {
       uint32_t immediate = operand.GetImmediate();
@@ -4634,11 +4634,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Subs(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     subs(cond, rd, rn, operand);
@@ -4648,8 +4648,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Svc(Condition cond, uint32_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     svc(cond, imm);
@@ -4657,11 +4657,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Svc(uint32_t imm) { Svc(al, imm); }
 
   void Sxtab(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sxtab(cond, rd, rn, operand);
@@ -4674,11 +4674,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                Register rd,
                Register rn,
                const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sxtab16(cond, rd, rn, operand);
@@ -4688,11 +4688,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Sxtah(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sxtah(cond, rd, rn, operand);
@@ -4702,10 +4702,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Sxtb(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sxtb(cond, rd, operand);
@@ -4713,10 +4713,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sxtb(Register rd, const Operand& operand) { Sxtb(al, rd, operand); }
 
   void Sxtb16(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sxtb16(cond, rd, operand);
@@ -4724,10 +4724,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sxtb16(Register rd, const Operand& operand) { Sxtb16(al, rd, operand); }
 
   void Sxth(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     sxth(cond, rd, operand);
@@ -4735,10 +4735,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Sxth(Register rd, const Operand& operand) { Sxth(al, rd, operand); }
 
   void Teq(Condition cond, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     teq(cond, rn, operand);
@@ -4746,10 +4746,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Teq(Register rn, const Operand& operand) { Teq(al, rn, operand); }
 
   void Tst(Condition cond, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     bool can_use_it =
         // TST{<c>}{<q>} <Rn>, <Rm> ; T1
@@ -4761,11 +4761,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Tst(Register rn, const Operand& operand) { Tst(al, rn, operand); }
 
   void Uadd16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uadd16(cond, rd, rn, rm);
@@ -4773,11 +4773,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uadd16(Register rd, Register rn, Register rm) { Uadd16(al, rd, rn, rm); }
 
   void Uadd8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uadd8(cond, rd, rn, rm);
@@ -4785,11 +4785,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uadd8(Register rd, Register rn, Register rm) { Uadd8(al, rd, rn, rm); }
 
   void Uasx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uasx(cond, rd, rn, rm);
@@ -4798,10 +4798,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Ubfx(
       Condition cond, Register rd, Register rn, uint32_t lsb, uint32_t width) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     ubfx(cond, rd, rn, lsb, width);
@@ -4811,8 +4811,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Udf(Condition cond, uint32_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     udf(cond, imm);
@@ -4820,11 +4820,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Udf(uint32_t imm) { Udf(al, imm); }
 
   void Udiv(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     udiv(cond, rd, rn, rm);
@@ -4832,11 +4832,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Udiv(Register rd, Register rn, Register rm) { Udiv(al, rd, rn, rm); }
 
   void Uhadd16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uhadd16(cond, rd, rn, rm);
@@ -4846,11 +4846,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uhadd8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uhadd8(cond, rd, rn, rm);
@@ -4858,11 +4858,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uhadd8(Register rd, Register rn, Register rm) { Uhadd8(al, rd, rn, rm); }
 
   void Uhasx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uhasx(cond, rd, rn, rm);
@@ -4870,11 +4870,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uhasx(Register rd, Register rn, Register rm) { Uhasx(al, rd, rn, rm); }
 
   void Uhsax(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uhsax(cond, rd, rn, rm);
@@ -4882,11 +4882,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uhsax(Register rd, Register rn, Register rm) { Uhsax(al, rd, rn, rm); }
 
   void Uhsub16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uhsub16(cond, rd, rn, rm);
@@ -4896,11 +4896,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uhsub8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uhsub8(cond, rd, rn, rm);
@@ -4909,12 +4909,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Umaal(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     umaal(cond, rdlo, rdhi, rn, rm);
@@ -4925,12 +4925,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Umlal(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     umlal(cond, rdlo, rdhi, rn, rm);
@@ -4966,12 +4966,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Umlals(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     umlals(cond, rdlo, rdhi, rn, rm);
@@ -4982,12 +4982,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Umull(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     umull(cond, rdlo, rdhi, rn, rm);
@@ -5023,12 +5023,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Umulls(
       Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdlo));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rdhi));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     umulls(cond, rdlo, rdhi, rn, rm);
@@ -5038,11 +5038,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uqadd16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uqadd16(cond, rd, rn, rm);
@@ -5052,11 +5052,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uqadd8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uqadd8(cond, rd, rn, rm);
@@ -5064,11 +5064,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uqadd8(Register rd, Register rn, Register rm) { Uqadd8(al, rd, rn, rm); }
 
   void Uqasx(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uqasx(cond, rd, rn, rm);
@@ -5076,11 +5076,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uqasx(Register rd, Register rn, Register rm) { Uqasx(al, rd, rn, rm); }
 
   void Uqsax(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uqsax(cond, rd, rn, rm);
@@ -5088,11 +5088,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uqsax(Register rd, Register rn, Register rm) { Uqsax(al, rd, rn, rm); }
 
   void Uqsub16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uqsub16(cond, rd, rn, rm);
@@ -5102,11 +5102,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uqsub8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uqsub8(cond, rd, rn, rm);
@@ -5114,11 +5114,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uqsub8(Register rd, Register rn, Register rm) { Uqsub8(al, rd, rn, rm); }
 
   void Usad8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usad8(cond, rd, rn, rm);
@@ -5127,12 +5127,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Usada8(
       Condition cond, Register rd, Register rn, Register rm, Register ra) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(ra));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usada8(cond, rd, rn, rm, ra);
@@ -5142,10 +5142,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Usat(Condition cond, Register rd, uint32_t imm, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usat(cond, rd, imm, operand);
@@ -5155,10 +5155,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Usat16(Condition cond, Register rd, uint32_t imm, Register rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usat16(cond, rd, imm, rn);
@@ -5168,11 +5168,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Usax(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usax(cond, rd, rn, rm);
@@ -5180,11 +5180,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Usax(Register rd, Register rn, Register rm) { Usax(al, rd, rn, rm); }
 
   void Usub16(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usub16(cond, rd, rn, rm);
@@ -5192,11 +5192,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Usub16(Register rd, Register rn, Register rm) { Usub16(al, rd, rn, rm); }
 
   void Usub8(Condition cond, Register rd, Register rn, Register rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     usub8(cond, rd, rn, rm);
@@ -5204,11 +5204,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Usub8(Register rd, Register rn, Register rm) { Usub8(al, rd, rn, rm); }
 
   void Uxtab(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uxtab(cond, rd, rn, operand);
@@ -5221,11 +5221,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                Register rd,
                Register rn,
                const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uxtab16(cond, rd, rn, operand);
@@ -5235,11 +5235,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uxtah(Condition cond, Register rd, Register rn, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uxtah(cond, rd, rn, operand);
@@ -5249,10 +5249,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Uxtb(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uxtb(cond, rd, operand);
@@ -5260,10 +5260,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uxtb(Register rd, const Operand& operand) { Uxtb(al, rd, operand); }
 
   void Uxtb16(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uxtb16(cond, rd, operand);
@@ -5271,10 +5271,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Uxtb16(Register rd, const Operand& operand) { Uxtb16(al, rd, operand); }
 
   void Uxth(Condition cond, Register rd, const Operand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     uxth(cond, rd, operand);
@@ -5283,11 +5283,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaba(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaba(cond, dt, rd, rn, rm);
@@ -5298,11 +5298,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaba(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaba(cond, dt, rd, rn, rm);
@@ -5313,11 +5313,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vabal(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabal(cond, dt, rd, rn, rm);
@@ -5328,11 +5328,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vabd(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabd(cond, dt, rd, rn, rm);
@@ -5343,11 +5343,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vabd(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabd(cond, dt, rd, rn, rm);
@@ -5358,11 +5358,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vabdl(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabdl(cond, dt, rd, rn, rm);
@@ -5372,10 +5372,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vabs(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabs(cond, dt, rd, rm);
@@ -5383,10 +5383,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vabs(DataType dt, DRegister rd, DRegister rm) { Vabs(al, dt, rd, rm); }
 
   void Vabs(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabs(cond, dt, rd, rm);
@@ -5394,10 +5394,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vabs(DataType dt, QRegister rd, QRegister rm) { Vabs(al, dt, rd, rm); }
 
   void Vabs(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vabs(cond, dt, rd, rm);
@@ -5406,11 +5406,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vacge(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vacge(cond, dt, rd, rn, rm);
@@ -5421,11 +5421,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vacge(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vacge(cond, dt, rd, rn, rm);
@@ -5436,11 +5436,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vacgt(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vacgt(cond, dt, rd, rn, rm);
@@ -5451,11 +5451,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vacgt(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vacgt(cond, dt, rd, rn, rm);
@@ -5466,11 +5466,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vacle(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vacle(cond, dt, rd, rn, rm);
@@ -5481,11 +5481,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vacle(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vacle(cond, dt, rd, rn, rm);
@@ -5496,11 +5496,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaclt(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaclt(cond, dt, rd, rn, rm);
@@ -5511,11 +5511,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaclt(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaclt(cond, dt, rd, rn, rm);
@@ -5526,11 +5526,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vadd(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vadd(cond, dt, rd, rn, rm);
@@ -5541,11 +5541,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vadd(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vadd(cond, dt, rd, rn, rm);
@@ -5556,11 +5556,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vadd(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vadd(cond, dt, rd, rn, rm);
@@ -5571,11 +5571,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaddhn(
       Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaddhn(cond, dt, rd, rn, rm);
@@ -5586,11 +5586,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaddl(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaddl(cond, dt, rd, rn, rm);
@@ -5601,11 +5601,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vaddw(
       Condition cond, DataType dt, QRegister rd, QRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vaddw(cond, dt, rd, rn, rm);
@@ -5619,11 +5619,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rn,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vand(cond, dt, rd, rn, operand);
@@ -5637,11 +5637,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rn,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vand(cond, dt, rd, rn, operand);
@@ -5655,11 +5655,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rn,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbic(cond, dt, rd, rn, operand);
@@ -5673,11 +5673,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rn,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbic(cond, dt, rd, rn, operand);
@@ -5688,11 +5688,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vbif(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbif(cond, dt, rd, rn, rm);
@@ -5709,11 +5709,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vbif(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbif(cond, dt, rd, rn, rm);
@@ -5730,11 +5730,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vbit(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbit(cond, dt, rd, rn, rm);
@@ -5751,11 +5751,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vbit(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbit(cond, dt, rd, rn, rm);
@@ -5772,11 +5772,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vbsl(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbsl(cond, dt, rd, rn, rm);
@@ -5793,11 +5793,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vbsl(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vbsl(cond, dt, rd, rn, rm);
@@ -5817,11 +5817,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vceq(cond, dt, rd, rm, operand);
@@ -5835,11 +5835,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vceq(cond, dt, rd, rm, operand);
@@ -5850,11 +5850,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vceq(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vceq(cond, dt, rd, rn, rm);
@@ -5865,11 +5865,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vceq(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vceq(cond, dt, rd, rn, rm);
@@ -5883,11 +5883,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcge(cond, dt, rd, rm, operand);
@@ -5901,11 +5901,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcge(cond, dt, rd, rm, operand);
@@ -5916,11 +5916,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcge(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcge(cond, dt, rd, rn, rm);
@@ -5931,11 +5931,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcge(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcge(cond, dt, rd, rn, rm);
@@ -5949,11 +5949,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcgt(cond, dt, rd, rm, operand);
@@ -5967,11 +5967,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcgt(cond, dt, rd, rm, operand);
@@ -5982,11 +5982,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcgt(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcgt(cond, dt, rd, rn, rm);
@@ -5997,11 +5997,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcgt(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcgt(cond, dt, rd, rn, rm);
@@ -6015,11 +6015,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcle(cond, dt, rd, rm, operand);
@@ -6033,11 +6033,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcle(cond, dt, rd, rm, operand);
@@ -6048,11 +6048,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcle(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcle(cond, dt, rd, rn, rm);
@@ -6063,11 +6063,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcle(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcle(cond, dt, rd, rn, rm);
@@ -6077,10 +6077,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vcls(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcls(cond, dt, rd, rm);
@@ -6088,10 +6088,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vcls(DataType dt, DRegister rd, DRegister rm) { Vcls(al, dt, rd, rm); }
 
   void Vcls(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcls(cond, dt, rd, rm);
@@ -6103,11 +6103,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vclt(cond, dt, rd, rm, operand);
@@ -6121,11 +6121,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vclt(cond, dt, rd, rm, operand);
@@ -6136,11 +6136,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vclt(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vclt(cond, dt, rd, rn, rm);
@@ -6151,11 +6151,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vclt(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vclt(cond, dt, rd, rn, rm);
@@ -6165,10 +6165,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vclz(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vclz(cond, dt, rd, rm);
@@ -6176,10 +6176,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vclz(DataType dt, DRegister rd, DRegister rm) { Vclz(al, dt, rd, rm); }
 
   void Vclz(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vclz(cond, dt, rd, rm);
@@ -6190,10 +6190,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             SRegister rd,
             const SOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcmp(cond, dt, rd, operand);
@@ -6206,10 +6206,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             DRegister rd,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcmp(cond, dt, rd, operand);
@@ -6222,10 +6222,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DataType dt,
              SRegister rd,
              const SOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcmpe(cond, dt, rd, operand);
@@ -6238,10 +6238,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DataType dt,
              DRegister rd,
              const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcmpe(cond, dt, rd, operand);
@@ -6251,10 +6251,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vcnt(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcnt(cond, dt, rd, rm);
@@ -6262,10 +6262,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vcnt(DataType dt, DRegister rd, DRegister rm) { Vcnt(al, dt, rd, rm); }
 
   void Vcnt(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcnt(cond, dt, rd, rm);
@@ -6274,10 +6274,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, DRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6288,10 +6288,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6306,10 +6306,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             int32_t fbits) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm, fbits);
@@ -6325,10 +6325,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             int32_t fbits) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm, fbits);
@@ -6344,10 +6344,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             SRegister rd,
             SRegister rm,
             int32_t fbits) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm, fbits);
@@ -6359,10 +6359,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6373,10 +6373,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6387,10 +6387,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, DRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6401,10 +6401,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, QRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6415,10 +6415,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvt(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvt(cond, dt1, dt2, rd, rm);
@@ -6428,47 +6428,47 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vcvta(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvta(dt1, dt2, rd, rm);
   }
 
   void Vcvta(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvta(dt1, dt2, rd, rm);
   }
 
   void Vcvta(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvta(dt1, dt2, rd, rm);
   }
 
   void Vcvta(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvta(dt1, dt2, rd, rm);
   }
 
   void Vcvtb(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtb(cond, dt1, dt2, rd, rm);
@@ -6479,10 +6479,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvtb(
       Condition cond, DataType dt1, DataType dt2, DRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtb(cond, dt1, dt2, rd, rm);
@@ -6493,10 +6493,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvtb(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtb(cond, dt1, dt2, rd, rm);
@@ -6506,119 +6506,119 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vcvtm(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtm(dt1, dt2, rd, rm);
   }
 
   void Vcvtm(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtm(dt1, dt2, rd, rm);
   }
 
   void Vcvtm(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtm(dt1, dt2, rd, rm);
   }
 
   void Vcvtm(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtm(dt1, dt2, rd, rm);
   }
 
   void Vcvtn(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtn(dt1, dt2, rd, rm);
   }
 
   void Vcvtn(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtn(dt1, dt2, rd, rm);
   }
 
   void Vcvtn(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtn(dt1, dt2, rd, rm);
   }
 
   void Vcvtn(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtn(dt1, dt2, rd, rm);
   }
 
   void Vcvtp(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtp(dt1, dt2, rd, rm);
   }
 
   void Vcvtp(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtp(dt1, dt2, rd, rm);
   }
 
   void Vcvtp(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtp(dt1, dt2, rd, rm);
   }
 
   void Vcvtp(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vcvtp(dt1, dt2, rd, rm);
   }
 
   void Vcvtr(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtr(cond, dt1, dt2, rd, rm);
@@ -6629,10 +6629,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvtr(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtr(cond, dt1, dt2, rd, rm);
@@ -6643,10 +6643,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvtt(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtt(cond, dt1, dt2, rd, rm);
@@ -6657,10 +6657,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvtt(
       Condition cond, DataType dt1, DataType dt2, DRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtt(cond, dt1, dt2, rd, rm);
@@ -6671,10 +6671,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vcvtt(
       Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vcvtt(cond, dt1, dt2, rd, rm);
@@ -6685,11 +6685,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vdiv(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vdiv(cond, dt, rd, rn, rm);
@@ -6700,11 +6700,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vdiv(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vdiv(cond, dt, rd, rn, rm);
@@ -6714,10 +6714,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vdup(Condition cond, DataType dt, QRegister rd, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vdup(cond, dt, rd, rt);
@@ -6725,10 +6725,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vdup(DataType dt, QRegister rd, Register rt) { Vdup(al, dt, rd, rt); }
 
   void Vdup(Condition cond, DataType dt, DRegister rd, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vdup(cond, dt, rd, rt);
@@ -6736,10 +6736,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vdup(DataType dt, DRegister rd, Register rt) { Vdup(al, dt, rd, rt); }
 
   void Vdup(Condition cond, DataType dt, DRegister rd, DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vdup(cond, dt, rd, rm);
@@ -6749,10 +6749,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vdup(Condition cond, DataType dt, QRegister rd, DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vdup(cond, dt, rd, rm);
@@ -6763,11 +6763,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Veor(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     veor(cond, dt, rd, rn, rm);
@@ -6784,11 +6784,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Veor(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     veor(cond, dt, rd, rn, rm);
@@ -6809,12 +6809,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rn,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vext(cond, dt, rd, rn, rm, operand);
@@ -6833,12 +6833,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rn,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vext(cond, dt, rd, rn, rm, operand);
@@ -6853,11 +6853,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfma(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfma(cond, dt, rd, rn, rm);
@@ -6868,11 +6868,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfma(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfma(cond, dt, rd, rn, rm);
@@ -6883,11 +6883,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfma(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfma(cond, dt, rd, rn, rm);
@@ -6898,11 +6898,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfms(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfms(cond, dt, rd, rn, rm);
@@ -6913,11 +6913,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfms(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfms(cond, dt, rd, rn, rm);
@@ -6928,11 +6928,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfms(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfms(cond, dt, rd, rn, rm);
@@ -6943,11 +6943,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfnma(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfnma(cond, dt, rd, rn, rm);
@@ -6958,11 +6958,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfnma(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfnma(cond, dt, rd, rn, rm);
@@ -6973,11 +6973,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfnms(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfnms(cond, dt, rd, rn, rm);
@@ -6988,11 +6988,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vfnms(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vfnms(cond, dt, rd, rn, rm);
@@ -7003,11 +7003,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vhadd(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vhadd(cond, dt, rd, rn, rm);
@@ -7018,11 +7018,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vhadd(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vhadd(cond, dt, rd, rn, rm);
@@ -7033,11 +7033,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vhsub(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vhsub(cond, dt, rd, rn, rm);
@@ -7048,11 +7048,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vhsub(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vhsub(cond, dt, rd, rn, rm);
@@ -7065,10 +7065,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vld1(cond, dt, nreglist, operand);
@@ -7083,10 +7083,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vld2(cond, dt, nreglist, operand);
@@ -7101,10 +7101,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vld3(cond, dt, nreglist, operand);
@@ -7119,10 +7119,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vld3(cond, dt, nreglist, operand);
@@ -7137,10 +7137,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vld4(cond, dt, nreglist, operand);
@@ -7156,10 +7156,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             Register rn,
             WriteBack write_back,
             DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldm(cond, dt, rn, write_back, dreglist);
@@ -7185,10 +7185,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             Register rn,
             WriteBack write_back,
             SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldm(cond, dt, rn, write_back, sreglist);
@@ -7214,10 +7214,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldmdb(cond, dt, rn, write_back, dreglist);
@@ -7243,10 +7243,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldmdb(cond, dt, rn, write_back, sreglist);
@@ -7272,10 +7272,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldmia(cond, dt, rn, write_back, dreglist);
@@ -7301,10 +7301,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldmia(cond, dt, rn, write_back, sreglist);
@@ -7330,10 +7330,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             DRegister rd,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldr(cond, dt, rd, operand);
@@ -7353,10 +7353,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             SRegister rd,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vldr(cond, dt, rd, operand);
@@ -7373,11 +7373,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmax(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmax(cond, dt, rd, rn, rm);
@@ -7388,11 +7388,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmax(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmax(cond, dt, rd, rn, rm);
@@ -7402,42 +7402,42 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vmaxnm(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vmaxnm(dt, rd, rn, rm);
   }
 
   void Vmaxnm(DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vmaxnm(dt, rd, rn, rm);
   }
 
   void Vmaxnm(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vmaxnm(dt, rd, rn, rm);
   }
 
   void Vmin(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmin(cond, dt, rd, rn, rm);
@@ -7448,11 +7448,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmin(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmin(cond, dt, rd, rn, rm);
@@ -7462,31 +7462,31 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vminnm(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vminnm(dt, rd, rn, rm);
   }
 
   void Vminnm(DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vminnm(dt, rd, rn, rm);
   }
 
   void Vminnm(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vminnm(dt, rd, rn, rm);
   }
@@ -7496,11 +7496,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rn,
             DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmla(cond, dt, rd, rn, rm);
@@ -7514,11 +7514,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rn,
             DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmla(cond, dt, rd, rn, rm);
@@ -7529,11 +7529,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmla(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmla(cond, dt, rd, rn, rm);
@@ -7544,11 +7544,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmla(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmla(cond, dt, rd, rn, rm);
@@ -7559,11 +7559,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmla(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmla(cond, dt, rd, rn, rm);
@@ -7577,11 +7577,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              QRegister rd,
              DRegister rn,
              DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmlal(cond, dt, rd, rn, rm);
@@ -7592,11 +7592,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmlal(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmlal(cond, dt, rd, rn, rm);
@@ -7610,11 +7610,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rn,
             DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmls(cond, dt, rd, rn, rm);
@@ -7628,11 +7628,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rn,
             DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmls(cond, dt, rd, rn, rm);
@@ -7643,11 +7643,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmls(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmls(cond, dt, rd, rn, rm);
@@ -7658,11 +7658,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmls(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmls(cond, dt, rd, rn, rm);
@@ -7673,11 +7673,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmls(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmls(cond, dt, rd, rn, rm);
@@ -7691,11 +7691,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              QRegister rd,
              DRegister rn,
              DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmlsl(cond, dt, rd, rn, rm);
@@ -7706,11 +7706,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmlsl(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmlsl(cond, dt, rd, rn, rm);
@@ -7720,10 +7720,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vmov(Condition cond, Register rt, SRegister rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, rt, rn);
@@ -7731,10 +7731,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vmov(Register rt, SRegister rn) { Vmov(al, rt, rn); }
 
   void Vmov(Condition cond, SRegister rn, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, rn, rt);
@@ -7742,11 +7742,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vmov(SRegister rn, Register rt) { Vmov(al, rn, rt); }
 
   void Vmov(Condition cond, Register rt, Register rt2, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, rt, rt2, rm);
@@ -7754,11 +7754,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vmov(Register rt, Register rt2, DRegister rm) { Vmov(al, rt, rt2, rm); }
 
   void Vmov(Condition cond, DRegister rm, Register rt, Register rt2) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, rm, rt, rt2);
@@ -7767,12 +7767,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmov(
       Condition cond, Register rt, Register rt2, SRegister rm, SRegister rm1) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm1));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm1));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, rt, rt2, rm, rm1);
@@ -7783,12 +7783,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmov(
       Condition cond, SRegister rm, SRegister rm1, Register rt, Register rt2) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm1));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm1));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, rm, rm1, rt, rt2);
@@ -7798,10 +7798,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vmov(Condition cond, DataType dt, DRegisterLane rd, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, dt, rd, rt);
@@ -7820,10 +7820,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             DRegister rd,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, dt, rd, operand);
@@ -7836,10 +7836,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             QRegister rd,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, dt, rd, operand);
@@ -7852,10 +7852,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             SRegister rd,
             const SOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, dt, rd, operand);
@@ -7865,10 +7865,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vmov(Condition cond, DataType dt, Register rt, DRegisterLane rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmov(cond, dt, rt, rn);
@@ -7884,10 +7884,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vmovl(Condition cond, DataType dt, QRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmovl(cond, dt, rd, rm);
@@ -7895,10 +7895,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vmovl(DataType dt, QRegister rd, DRegister rm) { Vmovl(al, dt, rd, rm); }
 
   void Vmovn(Condition cond, DataType dt, DRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmovn(cond, dt, rd, rm);
@@ -7908,9 +7908,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vmrs(Condition cond,
             RegisterOrAPSR_nzcv rt,
             SpecialFPRegister spec_reg) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmrs(cond, rt, spec_reg);
@@ -7920,9 +7920,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vmsr(Condition cond, SpecialFPRegister spec_reg, Register rt) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmsr(cond, spec_reg, rt);
@@ -7935,11 +7935,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rn,
             DRegister dm,
             unsigned index) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmul(cond, dt, rd, rn, dm, index);
@@ -7955,11 +7955,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rn,
             DRegister dm,
             unsigned index) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmul(cond, dt, rd, rn, dm, index);
@@ -7971,11 +7971,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmul(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmul(cond, dt, rd, rn, rm);
@@ -7986,11 +7986,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmul(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmul(cond, dt, rd, rn, rm);
@@ -8001,11 +8001,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmul(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmul(cond, dt, rd, rn, rm);
@@ -8020,11 +8020,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DRegister rn,
              DRegister dm,
              unsigned index) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmull(cond, dt, rd, rn, dm, index);
@@ -8036,11 +8036,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vmull(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmull(cond, dt, rd, rn, rm);
@@ -8053,10 +8053,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             DRegister rd,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmvn(cond, dt, rd, operand);
@@ -8069,10 +8069,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             QRegister rd,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vmvn(cond, dt, rd, operand);
@@ -8082,10 +8082,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vneg(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vneg(cond, dt, rd, rm);
@@ -8093,10 +8093,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vneg(DataType dt, DRegister rd, DRegister rm) { Vneg(al, dt, rd, rm); }
 
   void Vneg(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vneg(cond, dt, rd, rm);
@@ -8104,10 +8104,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vneg(DataType dt, QRegister rd, QRegister rm) { Vneg(al, dt, rd, rm); }
 
   void Vneg(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vneg(cond, dt, rd, rm);
@@ -8116,11 +8116,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vnmla(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vnmla(cond, dt, rd, rn, rm);
@@ -8131,11 +8131,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vnmla(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vnmla(cond, dt, rd, rn, rm);
@@ -8146,11 +8146,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vnmls(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vnmls(cond, dt, rd, rn, rm);
@@ -8161,11 +8161,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vnmls(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vnmls(cond, dt, rd, rn, rm);
@@ -8176,11 +8176,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vnmul(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vnmul(cond, dt, rd, rn, rm);
@@ -8191,11 +8191,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vnmul(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vnmul(cond, dt, rd, rn, rm);
@@ -8209,11 +8209,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rn,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vorn(cond, dt, rd, rn, operand);
@@ -8227,11 +8227,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rn,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vorn(cond, dt, rd, rn, operand);
@@ -8245,11 +8245,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rn,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vorr(cond, dt, rd, rn, operand);
@@ -8272,11 +8272,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rn,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vorr(cond, dt, rd, rn, operand);
@@ -8295,10 +8295,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vpadal(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpadal(cond, dt, rd, rm);
@@ -8308,10 +8308,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vpadal(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpadal(cond, dt, rd, rm);
@@ -8322,11 +8322,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vpadd(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpadd(cond, dt, rd, rn, rm);
@@ -8336,10 +8336,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vpaddl(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpaddl(cond, dt, rd, rm);
@@ -8349,10 +8349,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vpaddl(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpaddl(cond, dt, rd, rm);
@@ -8363,11 +8363,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vpmax(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpmax(cond, dt, rd, rn, rm);
@@ -8378,11 +8378,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vpmin(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpmin(cond, dt, rd, rn, rm);
@@ -8392,9 +8392,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vpop(Condition cond, DataType dt, DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpop(cond, dt, dreglist);
@@ -8406,9 +8406,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vpop(DRegisterList dreglist) { Vpop(al, kDataTypeValueNone, dreglist); }
 
   void Vpop(Condition cond, DataType dt, SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpop(cond, dt, sreglist);
@@ -8420,9 +8420,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vpop(SRegisterList sreglist) { Vpop(al, kDataTypeValueNone, sreglist); }
 
   void Vpush(Condition cond, DataType dt, DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpush(cond, dt, dreglist);
@@ -8436,9 +8436,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vpush(Condition cond, DataType dt, SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vpush(cond, dt, sreglist);
@@ -8452,10 +8452,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vqabs(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqabs(cond, dt, rd, rm);
@@ -8463,10 +8463,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vqabs(DataType dt, DRegister rd, DRegister rm) { Vqabs(al, dt, rd, rm); }
 
   void Vqabs(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqabs(cond, dt, rd, rm);
@@ -8475,11 +8475,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqadd(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqadd(cond, dt, rd, rn, rm);
@@ -8490,11 +8490,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqadd(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqadd(cond, dt, rd, rn, rm);
@@ -8505,11 +8505,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqdmlal(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmlal(cond, dt, rd, rn, rm);
@@ -8524,11 +8524,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                DRegister rn,
                DRegister dm,
                unsigned index) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmlal(cond, dt, rd, rn, dm, index);
@@ -8540,11 +8540,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqdmlsl(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmlsl(cond, dt, rd, rn, rm);
@@ -8559,11 +8559,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                DRegister rn,
                DRegister dm,
                unsigned index) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmlsl(cond, dt, rd, rn, dm, index);
@@ -8575,11 +8575,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqdmulh(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmulh(cond, dt, rd, rn, rm);
@@ -8590,11 +8590,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqdmulh(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmulh(cond, dt, rd, rn, rm);
@@ -8608,11 +8608,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                DRegister rd,
                DRegister rn,
                DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmulh(cond, dt, rd, rn, rm);
@@ -8626,11 +8626,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                QRegister rd,
                QRegister rn,
                DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmulh(cond, dt, rd, rn, rm);
@@ -8641,11 +8641,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqdmull(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmull(cond, dt, rd, rn, rm);
@@ -8659,11 +8659,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                QRegister rd,
                DRegister rn,
                DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqdmull(cond, dt, rd, rn, rm);
@@ -8673,10 +8673,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vqmovn(Condition cond, DataType dt, DRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqmovn(cond, dt, rd, rm);
@@ -8686,10 +8686,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vqmovun(Condition cond, DataType dt, DRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqmovun(cond, dt, rd, rm);
@@ -8699,10 +8699,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vqneg(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqneg(cond, dt, rd, rm);
@@ -8710,10 +8710,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vqneg(DataType dt, DRegister rd, DRegister rm) { Vqneg(al, dt, rd, rm); }
 
   void Vqneg(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqneg(cond, dt, rd, rm);
@@ -8722,11 +8722,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqrdmulh(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrdmulh(cond, dt, rd, rn, rm);
@@ -8737,11 +8737,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqrdmulh(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrdmulh(cond, dt, rd, rn, rm);
@@ -8755,11 +8755,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                 DRegister rd,
                 DRegister rn,
                 DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrdmulh(cond, dt, rd, rn, rm);
@@ -8773,11 +8773,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                 QRegister rd,
                 QRegister rn,
                 DRegisterLane rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrdmulh(cond, dt, rd, rn, rm);
@@ -8788,11 +8788,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqrshl(
       Condition cond, DataType dt, DRegister rd, DRegister rm, DRegister rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrshl(cond, dt, rd, rm, rn);
@@ -8803,11 +8803,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqrshl(
       Condition cond, DataType dt, QRegister rd, QRegister rm, QRegister rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrshl(cond, dt, rd, rm, rn);
@@ -8821,11 +8821,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                DRegister rd,
                QRegister rm,
                const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrshrn(cond, dt, rd, rm, operand);
@@ -8842,11 +8842,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                 DRegister rd,
                 QRegister rm,
                 const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqrshrun(cond, dt, rd, rm, operand);
@@ -8863,11 +8863,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DRegister rd,
              DRegister rm,
              const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqshl(cond, dt, rd, rm, operand);
@@ -8881,11 +8881,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              QRegister rd,
              QRegister rm,
              const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqshl(cond, dt, rd, rm, operand);
@@ -8899,11 +8899,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               DRegister rd,
               DRegister rm,
               const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqshlu(cond, dt, rd, rm, operand);
@@ -8920,11 +8920,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               QRegister rd,
               QRegister rm,
               const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqshlu(cond, dt, rd, rm, operand);
@@ -8941,11 +8941,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               DRegister rd,
               QRegister rm,
               const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqshrn(cond, dt, rd, rm, operand);
@@ -8962,11 +8962,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                DRegister rd,
                QRegister rm,
                const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqshrun(cond, dt, rd, rm, operand);
@@ -8980,11 +8980,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqsub(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqsub(cond, dt, rd, rn, rm);
@@ -8995,11 +8995,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vqsub(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vqsub(cond, dt, rd, rn, rm);
@@ -9010,11 +9010,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vraddhn(
       Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vraddhn(cond, dt, rd, rn, rm);
@@ -9024,10 +9024,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrecpe(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrecpe(cond, dt, rd, rm);
@@ -9037,10 +9037,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrecpe(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrecpe(cond, dt, rd, rm);
@@ -9051,11 +9051,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrecps(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrecps(cond, dt, rd, rn, rm);
@@ -9066,11 +9066,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrecps(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrecps(cond, dt, rd, rn, rm);
@@ -9080,10 +9080,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrev16(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrev16(cond, dt, rd, rm);
@@ -9093,10 +9093,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrev16(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrev16(cond, dt, rd, rm);
@@ -9106,10 +9106,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrev32(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrev32(cond, dt, rd, rm);
@@ -9119,10 +9119,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrev32(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrev32(cond, dt, rd, rm);
@@ -9132,10 +9132,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrev64(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrev64(cond, dt, rd, rm);
@@ -9145,10 +9145,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrev64(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrev64(cond, dt, rd, rm);
@@ -9159,11 +9159,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrhadd(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrhadd(cond, dt, rd, rn, rm);
@@ -9174,11 +9174,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrhadd(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrhadd(cond, dt, rd, rn, rm);
@@ -9188,118 +9188,118 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrinta(DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrinta(dt, rd, rm);
   }
 
   void Vrinta(DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrinta(dt, rd, rm);
   }
 
   void Vrinta(DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrinta(dt, rd, rm);
   }
 
   void Vrintm(DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintm(dt, rd, rm);
   }
 
   void Vrintm(DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintm(dt, rd, rm);
   }
 
   void Vrintm(DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintm(dt, rd, rm);
   }
 
   void Vrintn(DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintn(dt, rd, rm);
   }
 
   void Vrintn(DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintn(dt, rd, rm);
   }
 
   void Vrintn(DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintn(dt, rd, rm);
   }
 
   void Vrintp(DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintp(dt, rd, rm);
   }
 
   void Vrintp(DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintp(dt, rd, rm);
   }
 
   void Vrintp(DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintp(dt, rd, rm);
   }
 
   void Vrintr(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrintr(cond, dt, rd, rm);
@@ -9309,10 +9309,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrintr(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrintr(cond, dt, rd, rm);
@@ -9322,10 +9322,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrintx(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrintx(cond, dt, rd, rm);
@@ -9335,19 +9335,19 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrintx(DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintx(dt, rd, rm);
   }
 
   void Vrintx(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrintx(cond, dt, rd, rm);
@@ -9357,10 +9357,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrintz(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrintz(cond, dt, rd, rm);
@@ -9370,19 +9370,19 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrintz(DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vrintz(dt, rd, rm);
   }
 
   void Vrintz(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrintz(cond, dt, rd, rm);
@@ -9393,11 +9393,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrshl(
       Condition cond, DataType dt, DRegister rd, DRegister rm, DRegister rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrshl(cond, dt, rd, rm, rn);
@@ -9408,11 +9408,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrshl(
       Condition cond, DataType dt, QRegister rd, QRegister rm, QRegister rn) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrshl(cond, dt, rd, rm, rn);
@@ -9426,11 +9426,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DRegister rd,
              DRegister rm,
              const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrshr(cond, dt, rd, rm, operand);
@@ -9444,11 +9444,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              QRegister rd,
              QRegister rm,
              const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrshr(cond, dt, rd, rm, operand);
@@ -9462,11 +9462,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               DRegister rd,
               QRegister rm,
               const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrshrn(cond, dt, rd, rm, operand);
@@ -9479,10 +9479,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrsqrte(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsqrte(cond, dt, rd, rm);
@@ -9492,10 +9492,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vrsqrte(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsqrte(cond, dt, rd, rm);
@@ -9506,11 +9506,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrsqrts(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsqrts(cond, dt, rd, rn, rm);
@@ -9521,11 +9521,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrsqrts(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsqrts(cond, dt, rd, rn, rm);
@@ -9539,11 +9539,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DRegister rd,
              DRegister rm,
              const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsra(cond, dt, rd, rm, operand);
@@ -9557,11 +9557,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              QRegister rd,
              QRegister rm,
              const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsra(cond, dt, rd, rm, operand);
@@ -9572,11 +9572,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vrsubhn(
       Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vrsubhn(cond, dt, rd, rn, rm);
@@ -9586,81 +9586,81 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vseleq(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vseleq(dt, rd, rn, rm);
   }
 
   void Vseleq(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vseleq(dt, rd, rn, rm);
   }
 
   void Vselge(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vselge(dt, rd, rn, rm);
   }
 
   void Vselge(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vselge(dt, rd, rn, rm);
   }
 
   void Vselgt(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vselgt(dt, rd, rn, rm);
   }
 
   void Vselgt(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vselgt(dt, rd, rn, rm);
   }
 
   void Vselvs(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vselvs(dt, rd, rn, rm);
   }
 
   void Vselvs(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     vselvs(dt, rd, rn, rm);
   }
@@ -9670,11 +9670,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vshl(cond, dt, rd, rm, operand);
@@ -9688,11 +9688,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vshl(cond, dt, rd, rm, operand);
@@ -9706,11 +9706,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              QRegister rd,
              DRegister rm,
              const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vshll(cond, dt, rd, rm, operand);
@@ -9724,11 +9724,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vshr(cond, dt, rd, rm, operand);
@@ -9742,11 +9742,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vshr(cond, dt, rd, rm, operand);
@@ -9760,11 +9760,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              DRegister rd,
              QRegister rm,
              const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vshrn(cond, dt, rd, rm, operand);
@@ -9778,11 +9778,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsli(cond, dt, rd, rm, operand);
@@ -9796,11 +9796,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsli(cond, dt, rd, rm, operand);
@@ -9810,10 +9810,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vsqrt(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsqrt(cond, dt, rd, rm);
@@ -9821,10 +9821,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vsqrt(DataType dt, SRegister rd, SRegister rm) { Vsqrt(al, dt, rd, rm); }
 
   void Vsqrt(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsqrt(cond, dt, rd, rm);
@@ -9836,11 +9836,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsra(cond, dt, rd, rm, operand);
@@ -9854,11 +9854,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsra(cond, dt, rd, rm, operand);
@@ -9872,11 +9872,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             DRegister rm,
             const DOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsri(cond, dt, rd, rm, operand);
@@ -9890,11 +9890,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             QRegister rd,
             QRegister rm,
             const QOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsri(cond, dt, rd, rm, operand);
@@ -9907,10 +9907,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vst1(cond, dt, nreglist, operand);
@@ -9925,10 +9925,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vst2(cond, dt, nreglist, operand);
@@ -9943,10 +9943,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vst3(cond, dt, nreglist, operand);
@@ -9961,10 +9961,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vst3(cond, dt, nreglist, operand);
@@ -9979,10 +9979,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             const NeonRegisterList& nreglist,
             const AlignedMemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vst4(cond, dt, nreglist, operand);
@@ -9998,10 +9998,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             Register rn,
             WriteBack write_back,
             DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstm(cond, dt, rn, write_back, dreglist);
@@ -10027,10 +10027,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             Register rn,
             WriteBack write_back,
             SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstm(cond, dt, rn, write_back, sreglist);
@@ -10056,10 +10056,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstmdb(cond, dt, rn, write_back, dreglist);
@@ -10085,10 +10085,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstmdb(cond, dt, rn, write_back, sreglist);
@@ -10114,10 +10114,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               DRegisterList dreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(dreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstmia(cond, dt, rn, write_back, dreglist);
@@ -10143,10 +10143,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               Register rn,
               WriteBack write_back,
               SRegisterList sreglist) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(sreglist));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstmia(cond, dt, rn, write_back, sreglist);
@@ -10171,10 +10171,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             DRegister rd,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstr(cond, dt, rd, operand);
@@ -10193,10 +10193,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DataType dt,
             SRegister rd,
             const MemOperand& operand) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(operand));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vstr(cond, dt, rd, operand);
@@ -10213,11 +10213,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vsub(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsub(cond, dt, rd, rn, rm);
@@ -10228,11 +10228,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vsub(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsub(cond, dt, rd, rn, rm);
@@ -10243,11 +10243,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vsub(
       Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsub(cond, dt, rd, rn, rm);
@@ -10258,11 +10258,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vsubhn(
       Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsubhn(cond, dt, rd, rn, rm);
@@ -10273,11 +10273,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vsubl(
       Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsubl(cond, dt, rd, rn, rm);
@@ -10288,11 +10288,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vsubw(
       Condition cond, DataType dt, QRegister rd, QRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vsubw(cond, dt, rd, rn, rm);
@@ -10302,10 +10302,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vswp(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vswp(cond, dt, rd, rm);
@@ -10319,10 +10319,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vswp(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vswp(cond, dt, rd, rm);
@@ -10340,11 +10340,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             const NeonRegisterList& nreglist,
             DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vtbl(cond, dt, rd, nreglist, rm);
@@ -10361,11 +10361,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             DRegister rd,
             const NeonRegisterList& nreglist,
             DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(nreglist));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vtbx(cond, dt, rd, nreglist, rm);
@@ -10378,10 +10378,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vtrn(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vtrn(cond, dt, rd, rm);
@@ -10389,10 +10389,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vtrn(DataType dt, DRegister rd, DRegister rm) { Vtrn(al, dt, rd, rm); }
 
   void Vtrn(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vtrn(cond, dt, rd, rm);
@@ -10401,11 +10401,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vtst(
       Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vtst(cond, dt, rd, rn, rm);
@@ -10416,11 +10416,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   void Vtst(
       Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rn));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vtst(cond, dt, rd, rn, rm);
@@ -10430,10 +10430,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void Vuzp(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vuzp(cond, dt, rd, rm);
@@ -10441,10 +10441,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vuzp(DataType dt, DRegister rd, DRegister rm) { Vuzp(al, dt, rd, rm); }
 
   void Vuzp(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vuzp(cond, dt, rd, rm);
@@ -10452,10 +10452,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vuzp(DataType dt, QRegister rd, QRegister rm) { Vuzp(al, dt, rd, rm); }
 
   void Vzip(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vzip(cond, dt, rd, rm);
@@ -10463,10 +10463,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vzip(DataType dt, DRegister rd, DRegister rm) { Vzip(al, dt, rd, rm); }
 
   void Vzip(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
-    VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rd));
+    SWANSTATION_VIXL_ASSERT(!AliasesAvailableScratchRegister(rm));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     vzip(cond, dt, rd, rm);
@@ -10474,16 +10474,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vzip(DataType dt, QRegister rd, QRegister rm) { Vzip(al, dt, rd, rm); }
 
   void Yield(Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(OutsideITBlock());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
     MacroEmissionCheckScope guard(this);
     ITScope it_scope(this, &cond, guard);
     yield(cond);
   }
   void Yield() { Yield(al); }
   void Vabs(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vabs(cond, F32, rd.S(), rm.S());
     } else {
@@ -10492,9 +10492,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vabs(VRegister rd, VRegister rm) { Vabs(al, rd, rm); }
   void Vadd(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vadd(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10503,8 +10503,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vadd(VRegister rd, VRegister rn, VRegister rm) { Vadd(al, rd, rn, rm); }
   void Vcmp(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vcmp(cond, F32, rd.S(), rm.S());
     } else {
@@ -10513,8 +10513,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vcmp(VRegister rd, VRegister rm) { Vcmp(al, rd, rm); }
   void Vcmpe(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vcmpe(cond, F32, rd.S(), rm.S());
     } else {
@@ -10523,9 +10523,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vcmpe(VRegister rd, VRegister rm) { Vcmpe(al, rd, rm); }
   void Vdiv(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vdiv(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10534,9 +10534,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vdiv(VRegister rd, VRegister rn, VRegister rm) { Vdiv(al, rd, rn, rm); }
   void Vfma(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vfma(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10545,9 +10545,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vfma(VRegister rd, VRegister rn, VRegister rm) { Vfma(al, rd, rn, rm); }
   void Vfms(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vfms(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10556,9 +10556,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vfms(VRegister rd, VRegister rn, VRegister rm) { Vfms(al, rd, rn, rm); }
   void Vfnma(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vfnma(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10569,9 +10569,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     Vfnma(al, rd, rn, rm);
   }
   void Vfnms(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vfnms(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10582,9 +10582,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     Vfnms(al, rd, rn, rm);
   }
   void Vmaxnm(VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vmaxnm(F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10592,9 +10592,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vminnm(VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vminnm(F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10602,9 +10602,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vmla(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vmla(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10613,9 +10613,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vmla(VRegister rd, VRegister rn, VRegister rm) { Vmla(al, rd, rn, rm); }
   void Vmls(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vmls(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10624,8 +10624,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vmls(VRegister rd, VRegister rn, VRegister rm) { Vmls(al, rd, rn, rm); }
   void Vmov(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vmov(cond, F32, rd.S(), rm.S());
     } else {
@@ -10634,9 +10634,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vmov(VRegister rd, VRegister rm) { Vmov(al, rd, rm); }
   void Vmul(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vmul(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10645,8 +10645,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vmul(VRegister rd, VRegister rn, VRegister rm) { Vmul(al, rd, rn, rm); }
   void Vneg(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vneg(cond, F32, rd.S(), rm.S());
     } else {
@@ -10655,9 +10655,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vneg(VRegister rd, VRegister rm) { Vneg(al, rd, rm); }
   void Vnmla(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vnmla(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10668,9 +10668,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     Vnmla(al, rd, rn, rm);
   }
   void Vnmls(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vnmls(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10681,9 +10681,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     Vnmls(al, rd, rn, rm);
   }
   void Vnmul(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vnmul(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10694,8 +10694,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     Vnmul(al, rd, rn, rm);
   }
   void Vrinta(VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrinta(F32, rd.S(), rm.S());
     } else {
@@ -10703,8 +10703,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vrintm(VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrintm(F32, rd.S(), rm.S());
     } else {
@@ -10712,8 +10712,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vrintn(VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrintn(F32, rd.S(), rm.S());
     } else {
@@ -10721,8 +10721,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vrintp(VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrintp(F32, rd.S(), rm.S());
     } else {
@@ -10730,8 +10730,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vrintr(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrintr(cond, F32, rd.S(), rm.S());
     } else {
@@ -10740,8 +10740,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vrintr(VRegister rd, VRegister rm) { Vrintr(al, rd, rm); }
   void Vrintx(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrintx(cond, F32, rd.S(), rm.S());
     } else {
@@ -10750,8 +10750,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vrintx(VRegister rd, VRegister rm) { Vrintx(al, rd, rm); }
   void Vrintz(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vrintz(cond, F32, rd.S(), rm.S());
     } else {
@@ -10760,9 +10760,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vrintz(VRegister rd, VRegister rm) { Vrintz(al, rd, rm); }
   void Vseleq(VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vseleq(F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10770,9 +10770,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vselge(VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vselge(F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10780,9 +10780,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vselgt(VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vselgt(F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10790,9 +10790,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vselvs(VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vselvs(F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10800,8 +10800,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Vsqrt(Condition cond, VRegister rd, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vsqrt(cond, F32, rd.S(), rm.S());
     } else {
@@ -10810,9 +10810,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
   void Vsqrt(VRegister rd, VRegister rm) { Vsqrt(al, rd, rm); }
   void Vsub(Condition cond, VRegister rd, VRegister rn, VRegister rm) {
-    VIXL_ASSERT(rd.IsS() || rd.IsD());
-    VIXL_ASSERT(rd.GetType() == rn.GetType());
-    VIXL_ASSERT(rd.GetType() == rm.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.IsS() || rd.IsD());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rn.GetType());
+    SWANSTATION_VIXL_ASSERT(rd.GetType() == rm.GetType());
     if (rd.IsS()) {
       Vsub(cond, F32, rd.S(), rn.S(), rm.S());
     } else {
@@ -10822,105 +10822,105 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Vsub(VRegister rd, VRegister rn, VRegister rm) { Vsub(al, rd, rn, rm); }
   // End of generated code.
 
-  virtual bool AllowUnpredictable() VIXL_OVERRIDE {
-    VIXL_ABORT_WITH_MSG("Unpredictable instruction.\n");
+  virtual bool AllowUnpredictable() SWANSTATION_VIXL_OVERRIDE {
+    SWANSTATION_VIXL_ABORT_WITH_MSG("Unpredictable instruction.\n");
     return false;
   }
-  virtual bool AllowStronglyDiscouraged() VIXL_OVERRIDE {
-    VIXL_ABORT_WITH_MSG(
+  virtual bool AllowStronglyDiscouraged() SWANSTATION_VIXL_OVERRIDE {
+    SWANSTATION_VIXL_ABORT_WITH_MSG(
         "ARM strongly recommends to not use this instruction.\n");
     return false;
   }
   // Old syntax of vrint instructions.
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrinta(DataType dt, DRegister rd, DRegister rm)",
       void Vrinta(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrinta(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrinta(DataType dt, QRegister rd, QRegister rm)",
       void Vrinta(DataType dt1, DataType dt2, QRegister rd, QRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrinta(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrinta(DataType dt, SRegister rd, SRegister rm)",
       void Vrinta(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrinta(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintm(DataType dt, DRegister rd, DRegister rm)",
       void Vrintm(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintm(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintm(DataType dt, QRegister rd, QRegister rm)",
       void Vrintm(DataType dt1, DataType dt2, QRegister rd, QRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintm(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintm(DataType dt, SRegister rd, SRegister rm)",
       void Vrintm(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintm(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintn(DataType dt, DRegister rd, DRegister rm)",
       void Vrintn(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintn(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintn(DataType dt, QRegister rd, QRegister rm)",
       void Vrintn(DataType dt1, DataType dt2, QRegister rd, QRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintn(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintn(DataType dt, SRegister rd, SRegister rm)",
       void Vrintn(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintn(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintp(DataType dt, DRegister rd, DRegister rm)",
       void Vrintp(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintp(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintp(DataType dt, QRegister rd, QRegister rm)",
       void Vrintp(DataType dt1, DataType dt2, QRegister rd, QRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintp(dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintp(DataType dt, SRegister rd, SRegister rm)",
       void Vrintp(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintp(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintr(Condition cond, DataType dt, SRegister rd, SRegister rm)",
       void Vrintr(Condition cond,
                   DataType dt1,
@@ -10928,18 +10928,18 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                   SRegister rd,
                   SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintr(cond, dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintr(DataType dt, SRegister rd, SRegister rm)",
       void Vrintr(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintr(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintr(Condition cond, DataType dt, DRegister rd, DRegister rm)",
       void Vrintr(Condition cond,
                   DataType dt1,
@@ -10947,18 +10947,18 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                   DRegister rd,
                   DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintr(cond, dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintr(DataType dt, DRegister rd, DRegister rm)",
       void Vrintr(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintr(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintx(Condition cond, DataType dt, DRegister rd, DRegister rm)",
       void Vrintx(Condition cond,
                   DataType dt1,
@@ -10966,26 +10966,26 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                   DRegister rd,
                   DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintx(cond, dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintx(DataType dt, DRegister rd, DRegister rm)",
       void Vrintx(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintx(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintx(DataType dt, QRegister rd, QRegister rm)",
       void Vrintx(DataType dt1, DataType dt2, QRegister rd, QRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintx(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintx(Condition cond, DataType dt, SRegister rd, SRegister rm)",
       void Vrintx(Condition cond,
                   DataType dt1,
@@ -10993,18 +10993,18 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                   SRegister rd,
                   SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintx(cond, dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintx(DataType dt, SRegister rd, SRegister rm)",
       void Vrintx(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintx(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintz(Condition cond, DataType dt, DRegister rd, DRegister rm)",
       void Vrintz(Condition cond,
                   DataType dt1,
@@ -11012,26 +11012,26 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                   DRegister rd,
                   DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintz(cond, dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintz(DataType dt, DRegister rd, DRegister rm)",
       void Vrintz(DataType dt1, DataType dt2, DRegister rd, DRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintz(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintz(DataType dt, QRegister rd, QRegister rm)",
       void Vrintz(DataType dt1, DataType dt2, QRegister rd, QRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintz(dt1, rd, rm);
   }
 
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintz(Condition cond, DataType dt, SRegister rd, SRegister rm)",
       void Vrintz(Condition cond,
                   DataType dt1,
@@ -11039,14 +11039,14 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                   SRegister rd,
                   SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintz(cond, dt1, rd, rm);
   }
-  VIXL_DEPRECATED(
+  SWANSTATION_VIXL_DEPRECATED(
       "void Vrintz(DataType dt, SRegister rd, SRegister rm)",
       void Vrintz(DataType dt1, DataType dt2, SRegister rd, SRegister rm)) {
     USE(dt2);
-    VIXL_ASSERT(dt1.Is(dt2));
+    SWANSTATION_VIXL_ASSERT(dt1.Is(dt2));
     return Vrintz(dt1, rd, rm);
   }
 
@@ -11170,16 +11170,16 @@ class UseScratchRegisterScope {
   uint32_t old_available_;      // kRRegister
   uint64_t old_available_vfp_;  // kVRegister
 
-  VIXL_DEBUG_NO_RETURN UseScratchRegisterScope(const UseScratchRegisterScope&) {
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_DEBUG_NO_RETURN UseScratchRegisterScope(const UseScratchRegisterScope&) {
+    SWANSTATION_VIXL_UNREACHABLE();
   }
-  VIXL_DEBUG_NO_RETURN void operator=(const UseScratchRegisterScope&) {
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_DEBUG_NO_RETURN void operator=(const UseScratchRegisterScope&) {
+    SWANSTATION_VIXL_UNREACHABLE();
   }
 };
 
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH32_MACRO_ASSEMBLER_AARCH32_H_
+#endif  // SWANSTATION_VIXL_AARCH32_MACRO_ASSEMBLER_AARCH32_H_

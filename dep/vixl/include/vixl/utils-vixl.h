@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_UTILS_H
-#define VIXL_UTILS_H
+#ifndef SWANSTATION_VIXL_UTILS_H
+#define SWANSTATION_VIXL_UTILS_H
 
 #include <cmath>
 #include <cstring>
@@ -35,7 +35,7 @@
 #include "compiler-intrinsics-vixl.h"
 #include "globals-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 // Macros for compile-time format checking.
 #if GCC_VERSION_OR_NEWER(4, 4, 0)
@@ -46,24 +46,24 @@ namespace vixl {
 #endif
 
 #ifdef __GNUC__
-#define VIXL_HAS_DEPRECATED_WITH_MSG
+#define SWANSTATION_VIXL_HAS_DEPRECATED_WITH_MSG
 #elif defined(__clang__)
 #ifdef __has_extension(attribute_deprecated_with_message)
-#define VIXL_HAS_DEPRECATED_WITH_MSG
+#define SWANSTATION_VIXL_HAS_DEPRECATED_WITH_MSG
 #endif
 #endif
 
-#ifdef VIXL_HAS_DEPRECATED_WITH_MSG
-#define VIXL_DEPRECATED(replaced_by, declarator) \
+#ifdef SWANSTATION_VIXL_HAS_DEPRECATED_WITH_MSG
+#define SWANSTATION_VIXL_DEPRECATED(replaced_by, declarator) \
   __attribute__((deprecated("Use \"" replaced_by "\" instead"))) declarator
 #else
-#define VIXL_DEPRECATED(replaced_by, declarator) declarator
+#define SWANSTATION_VIXL_DEPRECATED(replaced_by, declarator) declarator
 #endif
 
-#ifdef VIXL_DEBUG
-#define VIXL_UNREACHABLE_OR_FALLTHROUGH() VIXL_UNREACHABLE()
+#ifdef SWANSTATION_VIXL_DEBUG
+#define SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH() SWANSTATION_VIXL_UNREACHABLE()
 #else
-#define VIXL_UNREACHABLE_OR_FALLTHROUGH() VIXL_FALLTHROUGH()
+#define SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH() SWANSTATION_VIXL_FALLTHROUGH()
 #endif
 
 template <typename T, size_t n>
@@ -74,56 +74,56 @@ size_t ArrayLength(const T (&)[n]) {
 // Check number width.
 // TODO: Refactor these using templates.
 inline bool IsIntN(unsigned n, uint32_t x) {
-  VIXL_ASSERT((0 < n) && (n < 32));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 32));
   uint32_t limit = UINT32_C(1) << (n - 1);
   return x < limit;
 }
 inline bool IsIntN(unsigned n, int32_t x) {
-  VIXL_ASSERT((0 < n) && (n < 32));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 32));
   int32_t limit = INT32_C(1) << (n - 1);
   return (-limit <= x) && (x < limit);
 }
 inline bool IsIntN(unsigned n, uint64_t x) {
-  VIXL_ASSERT((0 < n) && (n < 64));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 64));
   uint64_t limit = UINT64_C(1) << (n - 1);
   return x < limit;
 }
 inline bool IsIntN(unsigned n, int64_t x) {
-  VIXL_ASSERT((0 < n) && (n < 64));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 64));
   int64_t limit = INT64_C(1) << (n - 1);
   return (-limit <= x) && (x < limit);
 }
-VIXL_DEPRECATED("IsIntN", inline bool is_intn(unsigned n, int64_t x)) {
+SWANSTATION_VIXL_DEPRECATED("IsIntN", inline bool is_intn(unsigned n, int64_t x)) {
   return IsIntN(n, x);
 }
 
 inline bool IsUintN(unsigned n, uint32_t x) {
-  VIXL_ASSERT((0 < n) && (n < 32));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 32));
   return !(x >> n);
 }
 inline bool IsUintN(unsigned n, int32_t x) {
-  VIXL_ASSERT((0 < n) && (n < 32));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 32));
   // Convert to an unsigned integer to avoid implementation-defined behavior.
   return !(static_cast<uint32_t>(x) >> n);
 }
 inline bool IsUintN(unsigned n, uint64_t x) {
-  VIXL_ASSERT((0 < n) && (n < 64));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 64));
   return !(x >> n);
 }
 inline bool IsUintN(unsigned n, int64_t x) {
-  VIXL_ASSERT((0 < n) && (n < 64));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 64));
   // Convert to an unsigned integer to avoid implementation-defined behavior.
   return !(static_cast<uint64_t>(x) >> n);
 }
-VIXL_DEPRECATED("IsUintN", inline bool is_uintn(unsigned n, int64_t x)) {
+SWANSTATION_VIXL_DEPRECATED("IsUintN", inline bool is_uintn(unsigned n, int64_t x)) {
   return IsUintN(n, x);
 }
 
 inline uint64_t TruncateToUintN(unsigned n, uint64_t x) {
-  VIXL_ASSERT((0 < n) && (n < 64));
+  SWANSTATION_VIXL_ASSERT((0 < n) && (n < 64));
   return static_cast<uint64_t>(x) & ((UINT64_C(1) << n) - 1);
 }
-VIXL_DEPRECATED("TruncateToUintN",
+SWANSTATION_VIXL_DEPRECATED("TruncateToUintN",
                 inline uint64_t truncate_to_intn(unsigned n, int64_t x)) {
   return TruncateToUintN(n, x);
 }
@@ -147,13 +147,13 @@ V(57) V(58) V(59) V(60) V(61) V(62) V(63)
 
 #define DECLARE_IS_INT_N(N)                                       \
   inline bool IsInt##N(int64_t x) { return IsIntN(N, x); }        \
-  VIXL_DEPRECATED("IsInt" #N, inline bool is_int##N(int64_t x)) { \
+  SWANSTATION_VIXL_DEPRECATED("IsInt" #N, inline bool is_int##N(int64_t x)) { \
     return IsIntN(N, x);                                          \
   }
 
 #define DECLARE_IS_UINT_N(N)                                        \
   inline bool IsUint##N(int64_t x) { return IsUintN(N, x); }        \
-  VIXL_DEPRECATED("IsUint" #N, inline bool is_uint##N(int64_t x)) { \
+  SWANSTATION_VIXL_DEPRECATED("IsUint" #N, inline bool is_uint##N(int64_t x)) { \
     return IsUintN(N, x);                                           \
   }
 
@@ -161,7 +161,7 @@ V(57) V(58) V(59) V(60) V(61) V(62) V(63)
   inline uint32_t TruncateToUint##N(uint64_t x) {                  \
     return static_cast<uint32_t>(TruncateToUintN(N, x));           \
   }                                                                \
-  VIXL_DEPRECATED("TruncateToUint" #N,                             \
+  SWANSTATION_VIXL_DEPRECATED("TruncateToUint" #N,                             \
                   inline uint32_t truncate_to_int##N(int64_t x)) { \
     return TruncateToUint##N(x);                                   \
   }
@@ -176,7 +176,7 @@ INT_1_TO_32_LIST(DECLARE_TRUNCATE_TO_UINT_32)
 
 // Bit field extraction.
 inline uint64_t ExtractUnsignedBitfield64(int msb, int lsb, uint64_t x) {
-  VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
+  SWANSTATION_VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
               (msb >= lsb));
   if ((msb == 63) && (lsb == 0)) return x;
   return (x >> lsb) & ((static_cast<uint64_t>(1) << (1 + msb - lsb)) - 1);
@@ -184,14 +184,14 @@ inline uint64_t ExtractUnsignedBitfield64(int msb, int lsb, uint64_t x) {
 
 
 inline uint32_t ExtractUnsignedBitfield32(int msb, int lsb, uint32_t x) {
-  VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
+  SWANSTATION_VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
               (msb >= lsb));
   return TruncateToUint32(ExtractUnsignedBitfield64(msb, lsb, x));
 }
 
 
 inline int64_t ExtractSignedBitfield64(int msb, int lsb, int64_t x) {
-  VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
+  SWANSTATION_VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
               (msb >= lsb));
   uint64_t temp = ExtractUnsignedBitfield64(msb, lsb, x);
   // If the highest extracted bit is set, sign extend.
@@ -205,7 +205,7 @@ inline int64_t ExtractSignedBitfield64(int msb, int lsb, int64_t x) {
 
 
 inline int32_t ExtractSignedBitfield32(int msb, int lsb, int32_t x) {
-  VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
+  SWANSTATION_VIXL_ASSERT((static_cast<size_t>(msb) < sizeof(x) * 8) && (lsb >= 0) &&
               (msb >= lsb));
   uint32_t temp = TruncateToUint32(ExtractSignedBitfield64(msb, lsb, x));
   int32_t result;
@@ -217,7 +217,7 @@ inline int32_t ExtractSignedBitfield32(int msb, int lsb, int32_t x) {
 inline uint64_t RotateRight(uint64_t value,
                             unsigned int rotate,
                             unsigned int width) {
-  VIXL_ASSERT((width > 0) && (width <= 64));
+  SWANSTATION_VIXL_ASSERT((width > 0) && (width <= 64));
   uint64_t width_mask = ~UINT64_C(0) >> (64 - width);
   rotate &= 63;
   if (rotate > 0) {
@@ -246,13 +246,13 @@ uint16_t Float16ToRawbits(Float16 value);
 
 
 uint32_t FloatToRawbits(float value);
-VIXL_DEPRECATED("FloatToRawbits",
+SWANSTATION_VIXL_DEPRECATED("FloatToRawbits",
                 inline uint32_t float_to_rawbits(float value)) {
   return FloatToRawbits(value);
 }
 
 uint64_t DoubleToRawbits(double value);
-VIXL_DEPRECATED("DoubleToRawbits",
+SWANSTATION_VIXL_DEPRECATED("DoubleToRawbits",
                 inline uint64_t double_to_rawbits(double value)) {
   return DoubleToRawbits(value);
 }
@@ -260,13 +260,13 @@ VIXL_DEPRECATED("DoubleToRawbits",
 Float16 RawbitsToFloat16(uint16_t bits);
 
 float RawbitsToFloat(uint32_t bits);
-VIXL_DEPRECATED("RawbitsToFloat",
+SWANSTATION_VIXL_DEPRECATED("RawbitsToFloat",
                 inline float rawbits_to_float(uint32_t bits)) {
   return RawbitsToFloat(bits);
 }
 
 double RawbitsToDouble(uint64_t bits);
-VIXL_DEPRECATED("RawbitsToDouble",
+SWANSTATION_VIXL_DEPRECATED("RawbitsToDouble",
                 inline double rawbits_to_double(uint64_t bits)) {
   return RawbitsToDouble(bits);
 }
@@ -307,32 +307,32 @@ uint32_t Float16Exp(internal::SimFloat16 value);
 uint32_t Float16Mantissa(internal::SimFloat16 value);
 
 uint32_t FloatSign(float value);
-VIXL_DEPRECATED("FloatSign", inline uint32_t float_sign(float value)) {
+SWANSTATION_VIXL_DEPRECATED("FloatSign", inline uint32_t float_sign(float value)) {
   return FloatSign(value);
 }
 
 uint32_t FloatExp(float value);
-VIXL_DEPRECATED("FloatExp", inline uint32_t float_exp(float value)) {
+SWANSTATION_VIXL_DEPRECATED("FloatExp", inline uint32_t float_exp(float value)) {
   return FloatExp(value);
 }
 
 uint32_t FloatMantissa(float value);
-VIXL_DEPRECATED("FloatMantissa", inline uint32_t float_mantissa(float value)) {
+SWANSTATION_VIXL_DEPRECATED("FloatMantissa", inline uint32_t float_mantissa(float value)) {
   return FloatMantissa(value);
 }
 
 uint32_t DoubleSign(double value);
-VIXL_DEPRECATED("DoubleSign", inline uint32_t double_sign(double value)) {
+SWANSTATION_VIXL_DEPRECATED("DoubleSign", inline uint32_t double_sign(double value)) {
   return DoubleSign(value);
 }
 
 uint32_t DoubleExp(double value);
-VIXL_DEPRECATED("DoubleExp", inline uint32_t double_exp(double value)) {
+SWANSTATION_VIXL_DEPRECATED("DoubleExp", inline uint32_t double_exp(double value)) {
   return DoubleExp(value);
 }
 
 uint64_t DoubleMantissa(double value);
-VIXL_DEPRECATED("DoubleMantissa",
+SWANSTATION_VIXL_DEPRECATED("DoubleMantissa",
                 inline uint64_t double_mantissa(double value)) {
   return DoubleMantissa(value);
 }
@@ -342,7 +342,7 @@ internal::SimFloat16 Float16Pack(uint16_t sign,
                                  uint16_t mantissa);
 
 float FloatPack(uint32_t sign, uint32_t exp, uint32_t mantissa);
-VIXL_DEPRECATED("FloatPack",
+SWANSTATION_VIXL_DEPRECATED("FloatPack",
                 inline float float_pack(uint32_t sign,
                                         uint32_t exp,
                                         uint32_t mantissa)) {
@@ -350,7 +350,7 @@ VIXL_DEPRECATED("FloatPack",
 }
 
 double DoublePack(uint64_t sign, uint64_t exp, uint64_t mantissa);
-VIXL_DEPRECATED("DoublePack",
+SWANSTATION_VIXL_DEPRECATED("DoublePack",
                 inline double double_pack(uint32_t sign,
                                           uint32_t exp,
                                           uint64_t mantissa)) {
@@ -359,7 +359,7 @@ VIXL_DEPRECATED("DoublePack",
 
 // An fpclassify() function for 16-bit half-precision floats.
 int Float16Classify(Float16 value);
-VIXL_DEPRECATED("Float16Classify", inline int float16classify(uint16_t value)) {
+SWANSTATION_VIXL_DEPRECATED("Float16Classify", inline int float16classify(uint16_t value)) {
   return Float16Classify(RawbitsToFloat16(value));
 }
 
@@ -416,21 +416,21 @@ inline bool IsQuietNaN(T num) {
 // Convert the NaN in 'num' to a quiet NaN.
 inline double ToQuietNaN(double num) {
   const uint64_t kFP64QuietNaNMask = UINT64_C(0x0008000000000000);
-  VIXL_ASSERT(IsNaN(num));
+  SWANSTATION_VIXL_ASSERT(IsNaN(num));
   return RawbitsToDouble(DoubleToRawbits(num) | kFP64QuietNaNMask);
 }
 
 
 inline float ToQuietNaN(float num) {
   const uint32_t kFP32QuietNaNMask = 0x00400000;
-  VIXL_ASSERT(IsNaN(num));
+  SWANSTATION_VIXL_ASSERT(IsNaN(num));
   return RawbitsToFloat(FloatToRawbits(num) | kFP32QuietNaNMask);
 }
 
 
 inline internal::SimFloat16 ToQuietNaN(internal::SimFloat16 num) {
   const uint16_t kFP16QuietNaNMask = 0x0200;
-  VIXL_ASSERT(IsNaN(num));
+  SWANSTATION_VIXL_ASSERT(IsNaN(num));
   return internal::SimFloat16(
       RawbitsToFloat16(Float16ToRawbits(num) | kFP16QuietNaNMask));
 }
@@ -452,14 +452,14 @@ inline uint64_t LowestSetBit(uint64_t value) { return value & static_cast<uint64
 
 template <typename T>
 inline int HighestSetBitPosition(T value) {
-  VIXL_ASSERT(value != 0);
+  SWANSTATION_VIXL_ASSERT(value != 0);
   return (sizeof(value) * 8 - 1) - CountLeadingZeros(value);
 }
 
 
 template <typename V>
 inline int WhichPowerOf2(V value) {
-  VIXL_ASSERT(IsPowerOf2(value));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(value));
   return CountTrailingZeros(value);
 }
 
@@ -472,7 +472,7 @@ int BitCount(uint64_t value);
 
 template <typename T>
 T ReverseBits(T value) {
-  VIXL_ASSERT((sizeof(value) == 1) || (sizeof(value) == 2) ||
+  SWANSTATION_VIXL_ASSERT((sizeof(value) == 1) || (sizeof(value) == 2) ||
               (sizeof(value) == 4) || (sizeof(value) == 8));
   T result = 0;
   for (unsigned i = 0; i < (sizeof(value) * 8); i++) {
@@ -485,7 +485,7 @@ T ReverseBits(T value) {
 
 template <typename T>
 inline T SignExtend(T val, int bitSize) {
-  VIXL_ASSERT(bitSize > 0);
+  SWANSTATION_VIXL_ASSERT(bitSize > 0);
   T mask = (T(2) << (bitSize - 1)) - T(1);
   val &= mask;
   T sign_bits = -((val >> (bitSize - 1)) << bitSize);
@@ -496,8 +496,8 @@ inline T SignExtend(T val, int bitSize) {
 
 template <typename T>
 T ReverseBytes(T value, int block_bytes_log2) {
-  VIXL_ASSERT((sizeof(value) == 4) || (sizeof(value) == 8));
-  VIXL_ASSERT((1U << block_bytes_log2) <= sizeof(value));
+  SWANSTATION_VIXL_ASSERT((sizeof(value) == 4) || (sizeof(value) == 8));
+  SWANSTATION_VIXL_ASSERT((1U << block_bytes_log2) <= sizeof(value));
   // Split the 64-bit value into an 8-bit array, where b[0] is the least
   // significant byte, and b[7] is the most significant.
   uint8_t bytes[8];
@@ -511,7 +511,7 @@ T ReverseBytes(T value, int block_bytes_log2) {
   //  permute_table[0] is used by REV16_x, REV16_w
   //  permute_table[1] is used by REV32_x, REV_w
   //  permute_table[2] is used by REV_x
-  VIXL_ASSERT((0 < block_bytes_log2) && (block_bytes_log2 < 4));
+  SWANSTATION_VIXL_ASSERT((0 < block_bytes_log2) && (block_bytes_log2 < 4));
   static const uint8_t permute_table[3][8] = {{6, 7, 4, 5, 2, 3, 0, 1},
                                               {4, 5, 6, 7, 0, 1, 2, 3},
                                               {0, 1, 2, 3, 4, 5, 6, 7}};
@@ -522,26 +522,26 @@ T ReverseBytes(T value, int block_bytes_log2) {
   }
 
   T result;
-  VIXL_STATIC_ASSERT(sizeof(result) <= sizeof(temp));
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(result) <= sizeof(temp));
   memcpy(&result, &temp, sizeof(result));
   return result;
 }
 
 template <unsigned MULTIPLE, typename T>
 inline bool IsMultiple(T value) {
-  VIXL_ASSERT(IsPowerOf2(MULTIPLE));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(MULTIPLE));
   return (value & (MULTIPLE - 1)) == 0;
 }
 
 template <typename T>
 inline bool IsMultiple(T value, unsigned multiple) {
-  VIXL_ASSERT(IsPowerOf2(multiple));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(multiple));
   return (value & (multiple - 1)) == 0;
 }
 
 template <typename T>
 inline bool IsAligned(T pointer, int alignment) {
-  VIXL_ASSERT(IsPowerOf2(alignment));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment));
   return (pointer & (alignment - 1)) == 0;
 }
 
@@ -549,7 +549,7 @@ inline bool IsAligned(T pointer, int alignment) {
 // TODO: rename/refactor to make it specific to instructions.
 template <unsigned ALIGN, typename T>
 inline bool IsAligned(T pointer) {
-  VIXL_ASSERT(sizeof(pointer) == sizeof(intptr_t));  // NOLINT(runtime/sizeof)
+  SWANSTATION_VIXL_ASSERT(sizeof(pointer) == sizeof(intptr_t));  // NOLINT(runtime/sizeof)
   // Use C-style casts to get static_cast behaviour for integral types (T), and
   // reinterpret_cast behaviour for other types.
   return IsAligned((intptr_t)(pointer), ALIGN);
@@ -565,17 +565,17 @@ bool IsWordAligned(T pointer) {
 template <class T>
 T AlignUp(T pointer,
           typename Unsigned<sizeof(T) * kBitsPerByte>::type alignment) {
-  VIXL_ASSERT(IsPowerOf2(alignment));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment));
   // Use C-style casts to get static_cast behaviour for integral types (T), and
   // reinterpret_cast behaviour for other types.
 
   typename Unsigned<sizeof(T)* kBitsPerByte>::type pointer_raw =
       (typename Unsigned<sizeof(T) * kBitsPerByte>::type)pointer;
-  VIXL_STATIC_ASSERT(sizeof(pointer) <= sizeof(pointer_raw));
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(pointer) <= sizeof(pointer_raw));
 
   size_t mask = alignment - 1;
   T result = (T)((pointer_raw + mask) & ~mask);
-  VIXL_ASSERT(result >= pointer);
+  SWANSTATION_VIXL_ASSERT(result >= pointer);
 
   return result;
 }
@@ -585,13 +585,13 @@ T AlignUp(T pointer,
 template <class T>
 T AlignDown(T pointer,
             typename Unsigned<sizeof(T) * kBitsPerByte>::type alignment) {
-  VIXL_ASSERT(IsPowerOf2(alignment));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(alignment));
   // Use C-style casts to get static_cast behaviour for integral types (T), and
   // reinterpret_cast behaviour for other types.
 
   typename Unsigned<sizeof(T)* kBitsPerByte>::type pointer_raw =
       (typename Unsigned<sizeof(T) * kBitsPerByte>::type)pointer;
-  VIXL_STATIC_ASSERT(sizeof(pointer) <= sizeof(pointer_raw));
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(pointer) <= sizeof(pointer_raw));
 
   size_t mask = alignment - 1;
   return (T)(pointer_raw & ~mask);
@@ -612,9 +612,9 @@ template <typename Ts, typename Td>
 inline void AssignBit(Td& dst,  // NOLINT(runtime/references)
                       int bit,
                       Ts value) {
-  VIXL_ASSERT((value == Ts(0)) || (value == Ts(1)));
-  VIXL_ASSERT(bit >= 0);
-  VIXL_ASSERT(bit < static_cast<int>(sizeof(Td) * 8));
+  SWANSTATION_VIXL_ASSERT((value == Ts(0)) || (value == Ts(1)));
+  SWANSTATION_VIXL_ASSERT(bit >= 0);
+  SWANSTATION_VIXL_ASSERT(bit < static_cast<int>(sizeof(Td) * 8));
   Td mask(1);
   dst &= ~(mask << bit);
   dst |= Td(value) << bit;
@@ -625,11 +625,11 @@ inline void AssignBits(Td& dst,  // NOLINT(runtime/references)
                        int least_significant_bit,
                        Ts mask,
                        Ts value) {
-  VIXL_ASSERT(least_significant_bit >= 0);
-  VIXL_ASSERT(least_significant_bit < static_cast<int>(sizeof(Td) * 8));
-  VIXL_ASSERT(((Td(mask) << least_significant_bit) >> least_significant_bit) ==
+  SWANSTATION_VIXL_ASSERT(least_significant_bit >= 0);
+  SWANSTATION_VIXL_ASSERT(least_significant_bit < static_cast<int>(sizeof(Td) * 8));
+  SWANSTATION_VIXL_ASSERT(((Td(mask) << least_significant_bit) >> least_significant_bit) ==
               Td(mask));
-  VIXL_ASSERT((value & mask) == value);
+  SWANSTATION_VIXL_ASSERT((value & mask) == value);
   dst &= ~(Td(mask) << least_significant_bit);
   dst |= Td(value) << least_significant_bit;
 }
@@ -746,12 +746,12 @@ class BitField {
   explicit BitField(unsigned size) : bitfield_(size, 0) {}
 
   void Set(int i) {
-    VIXL_ASSERT((i >= 0) && (static_cast<size_t>(i) < bitfield_.size()));
+    SWANSTATION_VIXL_ASSERT((i >= 0) && (static_cast<size_t>(i) < bitfield_.size()));
     bitfield_[i] = true;
   }
 
   void Unset(int i) {
-    VIXL_ASSERT((i >= 0) && (static_cast<size_t>(i) < bitfield_.size()));
+    SWANSTATION_VIXL_ASSERT((i >= 0) && (static_cast<size_t>(i) < bitfield_.size()));
     bitfield_[i] = true;
   }
 
@@ -863,7 +863,7 @@ class Uint64 {
   }
   int64_t GetSigned() const { return data_; }
   Uint32 ToUint32() const {
-    VIXL_ASSERT((data_ >> 32) == 0);
+    SWANSTATION_VIXL_ASSERT((data_ >> 32) == 0);
     return Uint32(static_cast<uint32_t>(data_));
   }
   Uint32 GetHigh32() const { return Uint32(data_ >> 32); }
@@ -927,7 +927,7 @@ class Uint128 {
   Uint128(uint64_t data_high, uint64_t data_low)
       : data_high_(data_high), data_low_(data_low) {}
   Uint64 ToUint64() const {
-    VIXL_ASSERT(data_high_ == 0);
+    SWANSTATION_VIXL_ASSERT(data_high_ == 0);
     return Uint64(data_low_);
   }
   Uint64 GetHigh64() const { return Uint64(data_high_); }
@@ -950,7 +950,7 @@ class Uint128 {
     return *this;
   }
   Uint128 operator>>(int shift) const {
-    VIXL_ASSERT((shift >= 0) && (shift < 128));
+    SWANSTATION_VIXL_ASSERT((shift >= 0) && (shift < 128));
     if (shift == 0) return *this;
     if (shift >= 64) {
       return Uint128(0, data_high_ >> (shift - 64));
@@ -959,7 +959,7 @@ class Uint128 {
     return Uint128(data_high_ >> shift, tmp);
   }
   Uint128 operator<<(int shift) const {
-    VIXL_ASSERT((shift >= 0) && (shift < 128));
+    SWANSTATION_VIXL_ASSERT((shift >= 0) && (shift < 128));
     if (shift == 0) return *this;
     if (shift >= 64) {
       return Uint128(data_low_ << (shift - 64), 0);
@@ -1036,10 +1036,10 @@ T FPRound(int64_t sign,
           int64_t exponent,
           uint64_t mantissa,
           FPRounding round_mode) {
-  VIXL_ASSERT((sign == 0) || (sign == 1));
+  SWANSTATION_VIXL_ASSERT((sign == 0) || (sign == 1));
 
   // Only FPTieEven and FPRoundOdd rounding modes are implemented.
-  VIXL_ASSERT((round_mode == FPTieEven) || (round_mode == FPRoundOdd));
+  SWANSTATION_VIXL_ASSERT((round_mode == FPTieEven) || (round_mode == FPRoundOdd));
 
   // Rounding can promote subnormals to normals, and normals to infinities. For
   // example, a double with exponent 127 (FLT_MAX_EXP) would appear to be
@@ -1095,7 +1095,7 @@ T FPRound(int64_t sign,
   static const int mantissa_offset = 0;
   static const int exponent_offset = mantissa_offset + mbits;
   static const int sign_offset = exponent_offset + ebits;
-  VIXL_ASSERT(sign_offset == (sizeof(T) * 8 - 1));
+  SWANSTATION_VIXL_ASSERT(sign_offset == (sizeof(T) * 8 - 1));
 
   // Bail out early for zero inputs.
   if (mantissa == 0) {
@@ -1118,7 +1118,7 @@ T FPRound(int64_t sign,
       exponent = infinite_exponent;
       mantissa = 0;
     } else {
-      VIXL_ASSERT(round_mode == FPRoundOdd);
+      SWANSTATION_VIXL_ASSERT(round_mode == FPRoundOdd);
       // FPRoundOdd rounding mode handles overflows using the largest magnitude
       // normal number.
       exponent = max_normal_exponent;
@@ -1151,8 +1151,8 @@ T FPRound(int64_t sign,
         // The result will always be +/-0.0.
         return static_cast<T>(sign << sign_offset);
       } else {
-        VIXL_ASSERT(round_mode == FPRoundOdd);
-        VIXL_ASSERT(mantissa != 0);
+        SWANSTATION_VIXL_ASSERT(round_mode == FPRoundOdd);
+        SWANSTATION_VIXL_ASSERT(mantissa != 0);
         // For FPRoundOdd, if the mantissa is too small to represent and
         // non-zero return the next "odd" value.
         return static_cast<T>((sign << sign_offset) | 1);
@@ -1168,8 +1168,8 @@ T FPRound(int64_t sign,
   }
 
   // The casts below are only well-defined for unsigned integers.
-  VIXL_STATIC_ASSERT(std::numeric_limits<T>::is_integer);
-  VIXL_STATIC_ASSERT(!std::numeric_limits<T>::is_signed);
+  SWANSTATION_VIXL_STATIC_ASSERT(std::numeric_limits<T>::is_integer);
+  SWANSTATION_VIXL_STATIC_ASSERT(!std::numeric_limits<T>::is_signed);
 
   if (shift > 0) {
     if (round_mode == FPTieEven) {
@@ -1195,7 +1195,7 @@ T FPRound(int64_t sign,
       // normal.
       return result + halfbit_adjusted;
     } else {
-      VIXL_ASSERT(round_mode == FPRoundOdd);
+      SWANSTATION_VIXL_ASSERT(round_mode == FPRoundOdd);
       // If any bits at position halfbit or below are set, onebit (ie. the
       // bottom bit of the resulting mantissa) must be set.
       uint64_t fractional_bits = mantissa & ((UINT64_C(1) << shift) - 1);
@@ -1276,6 +1276,6 @@ Float16 FPToFloat16(double value,
                     FPRounding round_mode,
                     UseDefaultNaN DN,
                     bool* exception = NULL);
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_UTILS_H
+#endif  // SWANSTATION_VIXL_UTILS_H

@@ -29,7 +29,7 @@
 #include "assembler-aarch32.h"
 #include "macro-assembler-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 namespace aarch32 {
 
@@ -37,7 +37,7 @@ bool Location::Needs16BitPadding(int32_t location) const {
   if (!HasForwardReferences()) return false;
   const ForwardRef& last_ref = GetLastForwardReference();
   int32_t min_location_last_ref = last_ref.GetMinLocation();
-  VIXL_ASSERT(min_location_last_ref - location <= 2);
+  SWANSTATION_VIXL_ASSERT(min_location_last_ref - location <= 2);
   return (min_location_last_ref > location);
 }
 
@@ -45,7 +45,7 @@ void Location::ResolveReferences(internal::AssemblerBase* assembler) {
   // Iterate over references and call EncodeLocationFor on each of them.
   for (ForwardRefListIterator it(this); !it.Done(); it.Advance()) {
     const ForwardRef& reference = *it.Current();
-    VIXL_ASSERT(reference.LocationIsEncodable(location_));
+    SWANSTATION_VIXL_ASSERT(reference.LocationIsEncodable(location_));
     int32_t from = reference.GetLocation();
     EncodeLocationFor(assembler, from, reference.op());
   }
@@ -68,7 +68,7 @@ void Location::EncodeLocationFor(internal::AssemblerBase* assembler,
       uint32_t instr = static_cast<uint32_t>(instr_ptr[0]);
       instr = encoder->Encode(instr, from, this);
       // The Encode method should not ever set the top 16 bits.
-      VIXL_ASSERT((instr & ~0xffff) == 0);
+      SWANSTATION_VIXL_ASSERT((instr & ~0xffff) == 0);
       instr_ptr[0] = static_cast<uint16_t>(instr);
     } else {
       uint32_t instr =
@@ -87,7 +87,7 @@ void Location::EncodeLocationFor(internal::AssemblerBase* assembler,
 void Location::AddForwardRef(int32_t instr_location,
                              const EmitOperator& op,
                              const ReferenceInfo* info) {
-  VIXL_ASSERT(referenced_);
+  SWANSTATION_VIXL_ASSERT(referenced_);
   int32_t from = instr_location + (op.IsUsingT32() ? kT32PcDelta : kA32PcDelta);
   if (info->pc_needs_aligning == ReferenceInfo::kAlignPc)
     from = AlignDown(from, 4);
@@ -124,7 +124,7 @@ int Location::GetMinLocation() const {
 }
 
 void Label::UpdatePoolObject(PoolObject<int32_t>* object) {
-  VIXL_ASSERT(forward_.size() == 1);
+  SWANSTATION_VIXL_ASSERT(forward_.size() == 1);
   const ForwardRef& reference = forward_.Front();
   object->Update(reference.GetMinLocation(),
                  reference.GetMaxLocation(),

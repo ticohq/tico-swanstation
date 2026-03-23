@@ -30,16 +30,16 @@
 #include "globals-vixl.h"
 #include "utils-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 static uint64_t MakeFeatureMask(CPUFeatures::Feature feature) {
   if (feature == CPUFeatures::kNone) {
     return 0;
   } else {
     // Check that the shift is well-defined, and that the feature is valid.
-    VIXL_STATIC_ASSERT(CPUFeatures::kNumberOfFeatures <=
+    SWANSTATION_VIXL_STATIC_ASSERT(CPUFeatures::kNumberOfFeatures <=
                        (sizeof(uint64_t) * 8));
-    VIXL_ASSERT(feature < CPUFeatures::kNumberOfFeatures);
+    SWANSTATION_VIXL_ASSERT(feature < CPUFeatures::kNumberOfFeatures);
     return UINT64_C(1) << feature;
   }
 }
@@ -55,7 +55,7 @@ CPUFeatures::CPUFeatures(Feature feature0,
 CPUFeatures CPUFeatures::All() {
   CPUFeatures all;
   // Check that the shift is well-defined.
-  VIXL_STATIC_ASSERT(CPUFeatures::kNumberOfFeatures < (sizeof(uint64_t) * 8));
+  SWANSTATION_VIXL_STATIC_ASSERT(CPUFeatures::kNumberOfFeatures < (sizeof(uint64_t) * 8));
   all.features_ = (UINT64_C(1) << kNumberOfFeatures) - 1;
   return all;
 }
@@ -141,18 +141,18 @@ size_t CPUFeatures::Count() const { return CountSetBits(features_); }
 std::ostream& operator<<(std::ostream& os, CPUFeatures::Feature feature) {
   // clang-format off
   switch (feature) {
-#define VIXL_FORMAT_FEATURE(SYMBOL, NAME, CPUINFO) \
+#define SWANSTATION_VIXL_FORMAT_FEATURE(SYMBOL, NAME, CPUINFO) \
     case CPUFeatures::SYMBOL:                      \
       return os << NAME;
-VIXL_CPU_FEATURE_LIST(VIXL_FORMAT_FEATURE)
-#undef VIXL_FORMAT_FEATURE
+SWANSTATION_VIXL_CPU_FEATURE_LIST(SWANSTATION_VIXL_FORMAT_FEATURE)
+#undef SWANSTATION_VIXL_FORMAT_FEATURE
     case CPUFeatures::kNone:
       return os << "none";
     case CPUFeatures::kNumberOfFeatures:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   // clang-format on
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return os;
 }
 
@@ -160,7 +160,7 @@ CPUFeatures::const_iterator CPUFeatures::begin() const {
   if (features_ == 0) return const_iterator(this, kNone);
 
   int feature_number = CountTrailingZeros(features_);
-  vixl::CPUFeatures::Feature feature =
+  swanstation_vixl::CPUFeatures::Feature feature =
       static_cast<CPUFeatures::Feature>(feature_number);
   return const_iterator(this, feature);
 }
@@ -181,21 +181,21 @@ std::ostream& operator<<(std::ostream& os, const CPUFeatures& features) {
 
 bool CPUFeaturesConstIterator::operator==(
     const CPUFeaturesConstIterator& other) const {
-  VIXL_ASSERT(IsValid());
+  SWANSTATION_VIXL_ASSERT(IsValid());
   return (cpu_features_ == other.cpu_features_) && (feature_ == other.feature_);
 }
 
 CPUFeatures::Feature CPUFeaturesConstIterator::operator++() {  // Prefix
-  VIXL_ASSERT(IsValid());
+  SWANSTATION_VIXL_ASSERT(IsValid());
   do {
     // Find the next feature. The order is unspecified.
     feature_ = static_cast<CPUFeatures::Feature>(feature_ + 1);
     if (feature_ == CPUFeatures::kNumberOfFeatures) {
       feature_ = CPUFeatures::kNone;
-      VIXL_STATIC_ASSERT(CPUFeatures::kNone == -1);
+      SWANSTATION_VIXL_STATIC_ASSERT(CPUFeatures::kNone == -1);
     }
-    VIXL_ASSERT(CPUFeatures::kNone <= feature_);
-    VIXL_ASSERT(feature_ < CPUFeatures::kNumberOfFeatures);
+    SWANSTATION_VIXL_ASSERT(CPUFeatures::kNone <= feature_);
+    SWANSTATION_VIXL_ASSERT(feature_ < CPUFeatures::kNumberOfFeatures);
     // cpu_features_->Has(kNone) is always true, so this will terminate even if
     // the features list is empty.
   } while (!cpu_features_->Has(feature_));
@@ -208,4 +208,4 @@ CPUFeatures::Feature CPUFeaturesConstIterator::operator++(int) {  // Postfix
   return result;
 }
 
-}  // namespace vixl
+}  // namespace swanstation_vixl

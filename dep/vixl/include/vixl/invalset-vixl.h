@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_INVALSET_H_
-#define VIXL_INVALSET_H_
+#ifndef SWANSTATION_VIXL_INVALSET_H_
+#define SWANSTATION_VIXL_INVALSET_H_
 
 #include <cstring>
 
@@ -34,7 +34,7 @@
 
 #include "globals-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 // We define a custom data structure template and its iterator as `std`
 // containers do not fit the performance requirements for some of our use cases.
@@ -219,12 +219,12 @@ class InvalSet {
   // certain operations are illegal to ensure that the iterator will
   // correctly iterate over the elements in the set.
   int monitor_;
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
   int monitor() const { return monitor_; }
   void Acquire() { monitor_++; }
   void Release() {
     monitor_--;
-    VIXL_ASSERT(monitor_ >= 0);
+    SWANSTATION_VIXL_ASSERT(monitor_ >= 0);
   }
 #endif
 
@@ -316,7 +316,7 @@ class InvalSetIterator/* : public std::iterator<std::forward_iterator_tag,
 template <TEMPLATE_INVALSET_P_DECL>
 InvalSet<TEMPLATE_INVALSET_P_DEF>::InvalSet()
     : valid_cached_min_(false), sorted_(true), size_(0), vector_(NULL) {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
   monitor_ = 0;
 #endif
 }
@@ -324,7 +324,7 @@ InvalSet<TEMPLATE_INVALSET_P_DEF>::InvalSet()
 
 template <TEMPLATE_INVALSET_P_DECL>
 InvalSet<TEMPLATE_INVALSET_P_DEF>::~InvalSet() {
-  VIXL_ASSERT(monitor_ == 0);
+  SWANSTATION_VIXL_ASSERT(monitor_ == 0);
   delete vector_;
 }
 
@@ -347,9 +347,9 @@ InvalSet<TEMPLATE_INVALSET_P_DEF>::end() {
 
 template <TEMPLATE_INVALSET_P_DECL>
 void InvalSet<TEMPLATE_INVALSET_P_DEF>::insert(const ElementType& element) {
-  VIXL_ASSERT(monitor() == 0);
-  VIXL_ASSERT(IsValid(element));
-  VIXL_ASSERT(Search(element) == NULL);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(IsValid(element));
+  SWANSTATION_VIXL_ASSERT(Search(element) == NULL);
   SetSorted(empty() || (sorted_ && (element > CleanBack())));
   if (IsUsingVector()) {
     vector_->push_back(element);
@@ -379,8 +379,8 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::insert(const ElementType& element) {
 
 template <TEMPLATE_INVALSET_P_DECL>
 size_t InvalSet<TEMPLATE_INVALSET_P_DEF>::erase(const ElementType& element) {
-  VIXL_ASSERT(monitor() == 0);
-  VIXL_ASSERT(IsValid(element));
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(IsValid(element));
   ElementType* local_element = Search(element);
   if (local_element != NULL) {
     EraseInternal(local_element);
@@ -393,7 +393,7 @@ size_t InvalSet<TEMPLATE_INVALSET_P_DEF>::erase(const ElementType& element) {
 template <TEMPLATE_INVALSET_P_DECL>
 ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::Search(
     const ElementType& element) {
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   if (empty()) {
     return NULL;
   }
@@ -424,7 +424,7 @@ bool InvalSet<TEMPLATE_INVALSET_P_DEF>::empty() const {
 
 template <TEMPLATE_INVALSET_P_DECL>
 void InvalSet<TEMPLATE_INVALSET_P_DEF>::clear() {
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   size_ = 0;
   if (IsUsingVector()) {
     vector_->clear();
@@ -436,8 +436,8 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::clear() {
 
 template <TEMPLATE_INVALSET_P_DECL>
 const ElementType InvalSet<TEMPLATE_INVALSET_P_DEF>::GetMinElement() {
-  VIXL_ASSERT(monitor() == 0);
-  VIXL_ASSERT(!empty());
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(!empty());
   CacheMinElement();
   return *GetElementAt(cached_min_index_);
 }
@@ -445,7 +445,7 @@ const ElementType InvalSet<TEMPLATE_INVALSET_P_DEF>::GetMinElement() {
 
 template <TEMPLATE_INVALSET_P_DECL>
 KeyType InvalSet<TEMPLATE_INVALSET_P_DEF>::GetMinElementKey() {
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   if (valid_cached_min_) {
     return cached_min_key_;
   } else {
@@ -464,14 +464,14 @@ template <TEMPLATE_INVALSET_P_DECL>
 void InvalSet<TEMPLATE_INVALSET_P_DEF>::EraseInternal(ElementType* element) {
   // Note that this function must be safe even while an iterator has acquired
   // this set.
-  VIXL_ASSERT(element != NULL);
+  SWANSTATION_VIXL_ASSERT(element != NULL);
   size_t deleted_index = GetElementIndex(element);
   if (IsUsingVector()) {
-    VIXL_ASSERT((&(vector_->front()) <= element) &&
+    SWANSTATION_VIXL_ASSERT((&(vector_->front()) <= element) &&
                 (element <= &(vector_->back())));
     SetKey(element, kInvalidKey);
   } else {
-    VIXL_ASSERT((preallocated_ <= element) &&
+    SWANSTATION_VIXL_ASSERT((preallocated_ <= element) &&
                 (element < (preallocated_ + kNPreallocatedElements)));
     ElementType* end = preallocated_ + kNPreallocatedElements;
     size_t copy_size = sizeof(*element) * (end - element - 1);
@@ -498,9 +498,9 @@ ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::BinarySearch(
   if (start == end) {
     return NULL;
   }
-  VIXL_ASSERT(sorted_);
-  VIXL_ASSERT(start < end);
-  VIXL_ASSERT(!empty());
+  SWANSTATION_VIXL_ASSERT(sorted_);
+  SWANSTATION_VIXL_ASSERT(start < end);
+  SWANSTATION_VIXL_ASSERT(!empty());
 
   // Perform a binary search through the elements while ignoring invalid
   // elements.
@@ -511,7 +511,7 @@ ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::BinarySearch(
     // Find valid bounds.
     while (!IsValid(elements[low]) && (low < high)) ++low;
     while (!IsValid(elements[high]) && (low < high)) --high;
-    VIXL_ASSERT(low <= high);
+    SWANSTATION_VIXL_ASSERT(low <= high);
     // Avoid overflow when computing the middle index.
     size_t middle = low + (high - low) / 2;
     if ((middle == low) || (middle == high)) {
@@ -542,7 +542,7 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::Sort(SortType sort_type) {
       return;
     }
   }
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   if (empty()) {
     return;
   }
@@ -559,7 +559,7 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::Sort(SortType sort_type) {
 
 template <TEMPLATE_INVALSET_P_DECL>
 void InvalSet<TEMPLATE_INVALSET_P_DEF>::Clean() {
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   if (empty() || !IsUsingVector()) {
     return;
   }
@@ -588,7 +588,7 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::Clean() {
 
   // Delete the trailing invalid elements.
   vector_->erase(vector_->begin() + (first_invalid - start), vector_->end());
-  VIXL_ASSERT(vector_->size() == size_);
+  SWANSTATION_VIXL_ASSERT(vector_->size() == size_);
 
   if (sorted_) {
     valid_cached_min_ = true;
@@ -602,21 +602,21 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::Clean() {
 
 template <TEMPLATE_INVALSET_P_DECL>
 const ElementType InvalSet<TEMPLATE_INVALSET_P_DEF>::Front() const {
-  VIXL_ASSERT(!empty());
+  SWANSTATION_VIXL_ASSERT(!empty());
   return IsUsingVector() ? vector_->front() : preallocated_[0];
 }
 
 
 template <TEMPLATE_INVALSET_P_DECL>
 const ElementType InvalSet<TEMPLATE_INVALSET_P_DEF>::Back() const {
-  VIXL_ASSERT(!empty());
+  SWANSTATION_VIXL_ASSERT(!empty());
   return IsUsingVector() ? vector_->back() : preallocated_[size_ - 1];
 }
 
 
 template <TEMPLATE_INVALSET_P_DECL>
 const ElementType InvalSet<TEMPLATE_INVALSET_P_DEF>::CleanBack() {
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   if (IsUsingVector()) {
     // Delete the invalid trailing elements.
     typename std::vector<ElementType>::reverse_iterator it = vector_->rbegin();
@@ -656,7 +656,7 @@ ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::StorageEnd() {
 template <TEMPLATE_INVALSET_P_DECL>
 size_t InvalSet<TEMPLATE_INVALSET_P_DEF>::GetElementIndex(
     const ElementType* element) const {
-  VIXL_ASSERT((StorageBegin() <= element) && (element < StorageEnd()));
+  SWANSTATION_VIXL_ASSERT((StorageBegin() <= element) && (element < StorageEnd()));
   return element - StorageBegin();
 }
 
@@ -664,14 +664,14 @@ size_t InvalSet<TEMPLATE_INVALSET_P_DEF>::GetElementIndex(
 template <TEMPLATE_INVALSET_P_DECL>
 const ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::GetElementAt(
     size_t index) const {
-  VIXL_ASSERT((IsUsingVector() && (index < vector_->size())) ||
+  SWANSTATION_VIXL_ASSERT((IsUsingVector() && (index < vector_->size())) ||
               (index < size_));
   return StorageBegin() + index;
 }
 
 template <TEMPLATE_INVALSET_P_DECL>
 ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::GetElementAt(size_t index) {
-  VIXL_ASSERT((IsUsingVector() && (index < vector_->size())) ||
+  SWANSTATION_VIXL_ASSERT((IsUsingVector() && (index < vector_->size())) ||
               (index < size_));
   return StorageBegin() + index;
 }
@@ -688,8 +688,8 @@ const ElementType* InvalSet<TEMPLATE_INVALSET_P_DEF>::GetFirstValidElement(
 
 template <TEMPLATE_INVALSET_P_DECL>
 void InvalSet<TEMPLATE_INVALSET_P_DEF>::CacheMinElement() {
-  VIXL_ASSERT(monitor() == 0);
-  VIXL_ASSERT(!empty());
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(!empty());
 
   if (valid_cached_min_) {
     return;
@@ -703,7 +703,7 @@ void InvalSet<TEMPLATE_INVALSET_P_DEF>::CacheMinElement() {
   } else {
     Sort(kHardSort);
   }
-  VIXL_ASSERT(valid_cached_min_);
+  SWANSTATION_VIXL_ASSERT(valid_cached_min_);
 }
 
 
@@ -720,7 +720,7 @@ bool InvalSet<TEMPLATE_INVALSET_P_DEF>::ShouldReclaimMemory() const {
 
 template <TEMPLATE_INVALSET_P_DECL>
 void InvalSet<TEMPLATE_INVALSET_P_DEF>::ReclaimMemory() {
-  VIXL_ASSERT(monitor() == 0);
+  SWANSTATION_VIXL_ASSERT(monitor() == 0);
   Clean();
 }
 
@@ -732,7 +732,7 @@ InvalSetIterator<S>::InvalSetIterator(S* inval_set)
       inval_set_(inval_set) {
   if (inval_set != NULL) {
     inval_set->Sort(S::kSoftSort);
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     inval_set->Acquire();
 #endif
     if (using_vector_) {
@@ -746,7 +746,7 @@ InvalSetIterator<S>::InvalSetIterator(S* inval_set)
 
 template <class S>
 InvalSetIterator<S>::~InvalSetIterator() {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
   if (inval_set_ != NULL) inval_set_->Release();
 #endif
 }
@@ -754,7 +754,7 @@ InvalSetIterator<S>::~InvalSetIterator() {
 
 template <class S>
 typename S::_ElementType* InvalSetIterator<S>::Current() const {
-  VIXL_ASSERT(!Done());
+  SWANSTATION_VIXL_ASSERT(!Done());
   if (using_vector_) {
     return &(*iterator_);
   } else {
@@ -773,7 +773,7 @@ template <class S>
 bool InvalSetIterator<S>::Done() const {
   if (using_vector_) {
     bool done = (iterator_ == inval_set_->vector_->end());
-    VIXL_ASSERT(done == (index_ == inval_set_->size()));
+    SWANSTATION_VIXL_ASSERT(done == (index_ == inval_set_->size()));
     return done;
   } else {
     return index_ == inval_set_->size();
@@ -783,7 +783,7 @@ bool InvalSetIterator<S>::Done() const {
 
 template <class S>
 void InvalSetIterator<S>::Finish() {
-  VIXL_ASSERT(inval_set_->sorted_);
+  SWANSTATION_VIXL_ASSERT(inval_set_->sorted_);
   if (using_vector_) {
     iterator_ = inval_set_->vector_->end();
   }
@@ -821,7 +821,7 @@ void InvalSetIterator<S>::MoveToValidElement() {
       iterator_++;
     }
   } else {
-    VIXL_ASSERT(inval_set_->empty() || IsValid(inval_set_->preallocated_[0]));
+    SWANSTATION_VIXL_ASSERT(inval_set_->empty() || IsValid(inval_set_->preallocated_[0]));
     // Nothing to do.
   }
 }
@@ -832,7 +832,7 @@ InvalSetIterator<S>::InvalSetIterator(const InvalSetIterator<S>& other)
     : using_vector_(other.using_vector_),
       index_(other.index_),
       inval_set_(other.inval_set_) {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
   if (inval_set_ != NULL) inval_set_->Acquire();
 #endif
 }
@@ -861,19 +861,19 @@ bool InvalSetIterator<S>::operator==(const InvalSetIterator<S>& rhs) const {
   bool equal = (inval_set_ == rhs.inval_set_);
 
   // If the inval_set_ matches, using_vector_ must also match.
-  VIXL_ASSERT(!equal || (using_vector_ == rhs.using_vector_));
+  SWANSTATION_VIXL_ASSERT(!equal || (using_vector_ == rhs.using_vector_));
 
   if (using_vector_) {
     equal = equal && (iterator_ == rhs.iterator_);
     // In debug mode, index_ is maintained even with using_vector_.
-    VIXL_ASSERT(!equal || (index_ == rhs.index_));
+    SWANSTATION_VIXL_ASSERT(!equal || (index_ == rhs.index_));
   } else {
     equal = equal && (index_ == rhs.index_);
 #ifdef DEBUG
     // If not using_vector_, iterator_ should be default-initialised.
     typename std::vector<ElementType>::iterator default_iterator;
-    VIXL_ASSERT(iterator_ == default_iterator);
-    VIXL_ASSERT(rhs.iterator_ == default_iterator);
+    SWANSTATION_VIXL_ASSERT(iterator_ == default_iterator);
+    SWANSTATION_VIXL_ASSERT(rhs.iterator_ == default_iterator);
 #endif
   }
   return equal;
@@ -883,10 +883,10 @@ bool InvalSetIterator<S>::operator==(const InvalSetIterator<S>& rhs) const {
 template <class S>
 InvalSetIterator<S>& InvalSetIterator<S>::operator++() {
   // Pre-increment.
-  VIXL_ASSERT(!Done());
+  SWANSTATION_VIXL_ASSERT(!Done());
   if (using_vector_) {
     iterator_++;
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     index_++;
 #endif
     MoveToValidElement();
@@ -900,7 +900,7 @@ InvalSetIterator<S>& InvalSetIterator<S>::operator++() {
 template <class S>
 InvalSetIterator<S> InvalSetIterator<S>::operator++(int /* unused */) {
   // Post-increment.
-  VIXL_ASSERT(!Done());
+  SWANSTATION_VIXL_ASSERT(!Done());
   InvalSetIterator<S> old(*this);
   ++(*this);
   return old;
@@ -910,6 +910,6 @@ InvalSetIterator<S> InvalSetIterator<S>::operator++(int /* unused */) {
 #undef TEMPLATE_INVALSET_P_DECL
 #undef TEMPLATE_INVALSET_P_DEF
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_INVALSET_H_
+#endif  // SWANSTATION_VIXL_INVALSET_H_

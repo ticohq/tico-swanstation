@@ -43,7 +43,7 @@ extern "C" {
 #include "aarch32/instructions-aarch32.h"
 #include "aarch32/operands-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 // Operand
@@ -67,7 +67,7 @@ std::ostream& operator<<(std::ostream& os, const Operand& operand) {
     return os << operand.GetBaseRegister() << ", " << operand.GetShift() << " "
               << operand.GetShiftRegister();
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return os;
 }
 
@@ -166,7 +166,7 @@ DataType ImmediateVbic::DecodeDt(uint32_t cmode) {
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return kDataTypeValueInvalid;
 }
 
@@ -187,7 +187,7 @@ NeonImmediate ImmediateVbic::DecodeImmediate(uint32_t cmode,
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return 0;
 }
 
@@ -312,7 +312,7 @@ DataType ImmediateVmov::DecodeDt(uint32_t cmode) {
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return kDataTypeValueInvalid;
 }
 
@@ -354,7 +354,7 @@ NeonImmediate ImmediateVmov::DecodeImmediate(uint32_t cmode,
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return 0;
 }
 
@@ -415,7 +415,7 @@ DataType ImmediateVmvn::DecodeDt(uint32_t cmode) {
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return kDataTypeValueInvalid;
 }
 
@@ -440,7 +440,7 @@ NeonImmediate ImmediateVmvn::DecodeImmediate(uint32_t cmode,
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return 0;
 }
 
@@ -488,7 +488,7 @@ DataType ImmediateVorr::DecodeDt(uint32_t cmode) {
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return kDataTypeValueInvalid;
 }
 
@@ -509,7 +509,7 @@ NeonImmediate ImmediateVorr::DecodeImmediate(uint32_t cmode,
     default:
       break;
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return 0;
 }
 
@@ -536,7 +536,7 @@ std::ostream& operator<<(std::ostream& os, const MemOperand& operand) {
     os << ", " << operand.GetSign() << operand.GetOffsetRegister()
        << ImmediateShiftOperand(operand.GetShift(), operand.GetShiftAmount());
   } else {
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
     return os;
   }
   if (operand.GetAddrMode() == Offset) {
@@ -560,4 +560,4 @@ std::ostream& operator<<(std::ostream& os, const AlignedMemOperand& operand) {
 }
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl

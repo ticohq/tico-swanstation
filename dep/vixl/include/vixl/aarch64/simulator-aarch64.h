@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_SIMULATOR_AARCH64_H_
-#define VIXL_AARCH64_SIMULATOR_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_SIMULATOR_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_SIMULATOR_AARCH64_H_
 
 #include <vector>
 
@@ -40,11 +40,11 @@
 #include "instrument-aarch64.h"
 #include "simulator-constants-aarch64.h"
 
-#ifdef VIXL_INCLUDE_SIMULATOR_AARCH64
+#ifdef SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64
 
 // These are only used for the ABI feature, and depend on checks performed for
 // it.
-#ifdef VIXL_HAS_ABI_SUPPORT
+#ifdef SWANSTATION_VIXL_HAS_ABI_SUPPORT
 #include <tuple>
 #if __cplusplus >= 201402L
 // Required for `std::index_sequence`
@@ -52,7 +52,7 @@
 #endif
 #endif
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Representation of memory, with typed getters and setters for access.
@@ -70,7 +70,7 @@ class Memory {
   static T Read(A address) {
     T value;
     address = AddressUntag(address);
-    VIXL_ASSERT((sizeof(value) == 1) || (sizeof(value) == 2) ||
+    SWANSTATION_VIXL_ASSERT((sizeof(value) == 1) || (sizeof(value) == 2) ||
                 (sizeof(value) == 4) || (sizeof(value) == 8) ||
                 (sizeof(value) == 16));
     memcpy(&value, reinterpret_cast<const char*>(address), sizeof(value));
@@ -80,7 +80,7 @@ class Memory {
   template <typename T, typename A>
   static void Write(A address, T value) {
     address = AddressUntag(address);
-    VIXL_ASSERT((sizeof(value) == 1) || (sizeof(value) == 2) ||
+    SWANSTATION_VIXL_ASSERT((sizeof(value) == 1) || (sizeof(value) == 2) ||
                 (sizeof(value) == 4) || (sizeof(value) == 8) ||
                 (sizeof(value) == 16));
     memcpy(reinterpret_cast<char*>(address), &value, sizeof(value));
@@ -104,7 +104,7 @@ class SimRegisterBase {
     NotifyRegisterWrite();
   }
   template <typename T>
-  VIXL_DEPRECATED("Write", void Set(T new_value)) {
+  SWANSTATION_VIXL_DEPRECATED("Write", void Set(T new_value)) {
     Write(new_value);
   }
 
@@ -133,7 +133,7 @@ class SimRegisterBase {
     return result;
   }
   template <typename T>
-  VIXL_DEPRECATED("GetLane", T Get(int lane) const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLane", T Get(int lane) const) {
     return GetLane(lane);
   }
 
@@ -155,15 +155,15 @@ class SimRegisterBase {
  private:
   template <typename T>
   void ReadLane(T* dst, int lane) const {
-    VIXL_ASSERT(lane >= 0);
-    VIXL_ASSERT((sizeof(*dst) + (lane * sizeof(*dst))) <= kSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(lane >= 0);
+    SWANSTATION_VIXL_ASSERT((sizeof(*dst) + (lane * sizeof(*dst))) <= kSizeInBytes);
     memcpy(dst, &value_[lane * sizeof(*dst)], sizeof(*dst));
   }
 
   template <typename T>
   void WriteLane(T src, int lane) {
-    VIXL_ASSERT(lane >= 0);
-    VIXL_ASSERT((sizeof(src) + (lane * sizeof(src))) <= kSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(lane >= 0);
+    SWANSTATION_VIXL_ASSERT((sizeof(src) + (lane * sizeof(src))) <= kSizeInBytes);
     memcpy(&value_[lane * sizeof(src)], &src, sizeof(src));
   }
 };
@@ -176,7 +176,7 @@ typedef SimRegisterBase<kQRegSizeInBytes> SimVRegister;  // v0-v31
 
 template <>
 template <>
-inline void SimVRegister::ReadLane(vixl::internal::SimFloat16* dst,
+inline void SimVRegister::ReadLane(swanstation_vixl::internal::SimFloat16* dst,
                                    int lane) const {
   uint16_t rawbits;
   ReadLane(&rawbits, lane);
@@ -185,7 +185,7 @@ inline void SimVRegister::ReadLane(vixl::internal::SimFloat16* dst,
 
 template <>
 template <>
-inline void SimVRegister::WriteLane(vixl::internal::SimFloat16 src, int lane) {
+inline void SimVRegister::WriteLane(swanstation_vixl::internal::SimFloat16 src, int lane) {
   WriteLane(Float16ToRawbits(src), lane);
 }
 
@@ -220,7 +220,7 @@ class LogicVRegister {
         element = register_.GetLane<int64_t>(index);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return 0;
     }
     return element;
@@ -242,7 +242,7 @@ class LogicVRegister {
         element = register_.GetLane<uint64_t>(index);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return 0;
     }
     return element;
@@ -274,7 +274,7 @@ class LogicVRegister {
         register_.Insert(index, static_cast<int64_t>(value));
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return;
     }
   }
@@ -301,7 +301,7 @@ class LogicVRegister {
         register_.Insert(index, static_cast<uint64_t>(value));
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return;
     }
   }
@@ -328,7 +328,7 @@ class LogicVRegister {
         register_.Insert(index, Memory::Read<uint64_t>(addr));
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return;
     }
   }
@@ -405,8 +405,8 @@ class LogicVRegister {
 
   void SetSatFlag(int index, Saturation sat) {
     saturated_[index] = static_cast<Saturation>(saturated_[index] | sat);
-    VIXL_ASSERT((sat & kUnsignedSatMask) != kUnsignedSatUndefined);
-    VIXL_ASSERT((sat & kSignedSatMask) != kSignedSatUndefined);
+    SWANSTATION_VIXL_ASSERT((sat & kUnsignedSatMask) != kUnsignedSatUndefined);
+    SWANSTATION_VIXL_ASSERT((sat & kSignedSatMask) != kSignedSatUndefined);
   }
 
   // Saturate lanes of a vector based on saturation state.
@@ -502,7 +502,7 @@ class SimSystemRegister {
   SimSystemRegister() : value_(0), write_ignore_mask_(0xffffffff) {}
 
   uint32_t GetRawValue() const { return value_; }
-  VIXL_DEPRECATED("GetRawValue", uint32_t RawValue() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetRawValue", uint32_t RawValue() const) {
     return GetRawValue();
   }
 
@@ -513,14 +513,14 @@ class SimSystemRegister {
   uint32_t ExtractBits(int msb, int lsb) const {
     return ExtractUnsignedBitfield32(msb, lsb, value_);
   }
-  VIXL_DEPRECATED("ExtractBits", uint32_t Bits(int msb, int lsb) const) {
+  SWANSTATION_VIXL_DEPRECATED("ExtractBits", uint32_t Bits(int msb, int lsb) const) {
     return ExtractBits(msb, lsb);
   }
 
   int32_t ExtractSignedBits(int msb, int lsb) const {
     return ExtractSignedBitfield32(msb, lsb, value_);
   }
-  VIXL_DEPRECATED("ExtractSignedBits",
+  SWANSTATION_VIXL_DEPRECATED("ExtractSignedBits",
                   int32_t SignedBits(int msb, int lsb) const) {
     return ExtractSignedBits(msb, lsb);
   }
@@ -532,7 +532,7 @@ class SimSystemRegister {
 
 #define DEFINE_GETTER(Name, HighBit, LowBit, Func)                            \
   uint32_t Get##Name() const { return this->Func(HighBit, LowBit); }          \
-  VIXL_DEPRECATED("Get" #Name, uint32_t Name() const) { return Get##Name(); } \
+  SWANSTATION_VIXL_DEPRECATED("Get" #Name, uint32_t Name() const) { return Get##Name(); } \
   void Set##Name(uint32_t bits) { SetBits(HighBit, LowBit, bits); }
 #define DEFINE_WRITE_IGNORE_MASK(Name, Mask) \
   static const uint32_t Name##WriteIgnoreMask = ~static_cast<uint32_t>(Mask);
@@ -585,7 +585,7 @@ class SimExclusiveLocalMonitor {
   // Return true if the address range is marked (like store-exclusive).
   // This helper doesn't implicitly clear the monitor.
   bool IsExclusive(uint64_t address, size_t size) {
-    VIXL_ASSERT(size > 0);
+    SWANSTATION_VIXL_ASSERT(size > 0);
     // Be pedantic: Require both the address and the size to match.
     return (size == size_) && (address == address_);
   }
@@ -633,7 +633,7 @@ class Simulator : public DecoderVisitor {
   void RunFrom(const Instruction* first);
 
 
-#if defined(VIXL_HAS_ABI_SUPPORT) && __cplusplus >= 201103L && \
+#if defined(SWANSTATION_VIXL_HAS_ABI_SUPPORT) && __cplusplus >= 201103L && \
     (defined(__clang__) || GCC_VERSION_OR_NEWER(4, 9, 1))
   // Templated `RunFrom` version taking care of passing arguments and returning
   // the result value.
@@ -694,7 +694,7 @@ class Simulator : public DecoderVisitor {
 
   // Simulation helpers.
   const Instruction* ReadPc() const { return pc_; }
-  VIXL_DEPRECATED("ReadPc", const Instruction* pc() const) { return ReadPc(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadPc", const Instruction* pc() const) { return ReadPc(); }
 
   enum BranchLogMode { LogBranches, NoBranchLog };
 
@@ -704,7 +704,7 @@ class Simulator : public DecoderVisitor {
     pc_ = Memory::AddressUntag(new_pc);
     pc_modified_ = true;
   }
-  VIXL_DEPRECATED("WritePc", void set_pc(const Instruction* new_pc)) {
+  SWANSTATION_VIXL_DEPRECATED("WritePc", void set_pc(const Instruction* new_pc)) {
     return WritePc(new_pc);
   }
 
@@ -713,11 +713,11 @@ class Simulator : public DecoderVisitor {
       pc_ = pc_->GetNextInstruction();
     }
   }
-  VIXL_DEPRECATED("IncrementPc", void increment_pc()) { IncrementPc(); }
+  SWANSTATION_VIXL_DEPRECATED("IncrementPc", void increment_pc()) { IncrementPc(); }
 
   void ExecuteInstruction() {
     // The program counter should always be aligned.
-    VIXL_ASSERT(IsWordAligned(pc_));
+    SWANSTATION_VIXL_ASSERT(IsWordAligned(pc_));
     pc_modified_ = false;
 
     // decoder_->Decode(...) triggers at least the following visitors:
@@ -730,18 +730,18 @@ class Simulator : public DecoderVisitor {
     IncrementPc();
     LogAllWrittenRegisters();
 
-    VIXL_CHECK(cpu_features_auditor_.InstructionIsAvailable());
+    SWANSTATION_VIXL_CHECK(cpu_features_auditor_.InstructionIsAvailable());
   }
 
 // Declare all Visitor functions.
 #define DECLARE(A) \
-  virtual void Visit##A(const Instruction* instr) VIXL_OVERRIDE;
+  virtual void Visit##A(const Instruction* instr) SWANSTATION_VIXL_OVERRIDE;
   VISITOR_LIST_THAT_RETURN(DECLARE)
 #undef DECLARE
 
 #define DECLARE(A)                                                     \
-  VIXL_DEBUG_NO_RETURN virtual void Visit##A(const Instruction* instr) \
-      VIXL_OVERRIDE;
+  SWANSTATION_VIXL_DEBUG_NO_RETURN virtual void Visit##A(const Instruction* instr) \
+      SWANSTATION_VIXL_OVERRIDE;
   VISITOR_LIST_THAT_DONT_RETURN(DECLARE)
 #undef DECLARE
 
@@ -751,7 +751,7 @@ class Simulator : public DecoderVisitor {
   // Basic accessor: Read the register as the specified type.
   template <typename T>
   T ReadRegister(unsigned code, Reg31Mode r31mode = Reg31IsZeroRegister) const {
-    VIXL_ASSERT(
+    SWANSTATION_VIXL_ASSERT(
         code < kNumberOfRegisters ||
         ((r31mode == Reg31IsZeroRegister) && (code == kSPRegInternalCode)));
     if ((code == 31) && (r31mode == Reg31IsZeroRegister)) {
@@ -765,7 +765,7 @@ class Simulator : public DecoderVisitor {
     return registers_[code].Get<T>();
   }
   template <typename T>
-  VIXL_DEPRECATED("ReadRegister",
+  SWANSTATION_VIXL_DEPRECATED("ReadRegister",
                   T reg(unsigned code, Reg31Mode r31mode = Reg31IsZeroRegister)
                       const) {
     return ReadRegister<T>(code, r31mode);
@@ -776,7 +776,7 @@ class Simulator : public DecoderVisitor {
                         Reg31Mode r31mode = Reg31IsZeroRegister) const {
     return ReadRegister<int32_t>(code, r31mode);
   }
-  VIXL_DEPRECATED("ReadWRegister",
+  SWANSTATION_VIXL_DEPRECATED("ReadWRegister",
                   int32_t wreg(unsigned code,
                                Reg31Mode r31mode = Reg31IsZeroRegister) const) {
     return ReadWRegister(code, r31mode);
@@ -786,7 +786,7 @@ class Simulator : public DecoderVisitor {
                         Reg31Mode r31mode = Reg31IsZeroRegister) const {
     return ReadRegister<int64_t>(code, r31mode);
   }
-  VIXL_DEPRECATED("ReadXRegister",
+  SWANSTATION_VIXL_DEPRECATED("ReadXRegister",
                   int64_t xreg(unsigned code,
                                Reg31Mode r31mode = Reg31IsZeroRegister) const) {
     return ReadXRegister(code, r31mode);
@@ -807,18 +807,18 @@ class Simulator : public DecoderVisitor {
         raw = ReadRegister<uint64_t>(code, r31mode);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return 0;
     }
 
     T result;
-    VIXL_STATIC_ASSERT(sizeof(result) <= sizeof(raw));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(result) <= sizeof(raw));
     // Copy the result and truncate to fit. This assumes a little-endian host.
     memcpy(&result, &raw, sizeof(result));
     return result;
   }
   template <typename T>
-  VIXL_DEPRECATED("ReadRegister",
+  SWANSTATION_VIXL_DEPRECATED("ReadRegister",
                   T reg(unsigned size,
                         unsigned code,
                         Reg31Mode r31mode = Reg31IsZeroRegister) const) {
@@ -831,7 +831,7 @@ class Simulator : public DecoderVisitor {
                        Reg31Mode r31mode = Reg31IsZeroRegister) const {
     return ReadRegister<int64_t>(size, code, r31mode);
   }
-  VIXL_DEPRECATED("ReadRegister",
+  SWANSTATION_VIXL_DEPRECATED("ReadRegister",
                   int64_t reg(unsigned size,
                               unsigned code,
                               Reg31Mode r31mode = Reg31IsZeroRegister) const) {
@@ -858,9 +858,9 @@ class Simulator : public DecoderVisitor {
       return;
     }
 
-    VIXL_ASSERT((sizeof(T) == kWRegSizeInBytes) ||
+    SWANSTATION_VIXL_ASSERT((sizeof(T) == kWRegSizeInBytes) ||
                 (sizeof(T) == kXRegSizeInBytes));
-    VIXL_ASSERT(
+    SWANSTATION_VIXL_ASSERT(
         code < kNumberOfRegisters ||
         ((r31mode == Reg31IsZeroRegister) && (code == kSPRegInternalCode)));
 
@@ -877,7 +877,7 @@ class Simulator : public DecoderVisitor {
     if (log_mode == LogRegWrites) LogRegister(code, r31mode);
   }
   template <typename T>
-  VIXL_DEPRECATED("WriteRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteRegister",
                   void set_reg(unsigned code,
                                T value,
                                RegLogMode log_mode = LogRegWrites,
@@ -892,7 +892,7 @@ class Simulator : public DecoderVisitor {
                       Reg31Mode r31mode = Reg31IsZeroRegister) {
     WriteRegister(code, value, log_mode, r31mode);
   }
-  VIXL_DEPRECATED("WriteWRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteWRegister",
                   void set_wreg(unsigned code,
                                 int32_t value,
                                 RegLogMode log_mode = LogRegWrites,
@@ -906,7 +906,7 @@ class Simulator : public DecoderVisitor {
                       Reg31Mode r31mode = Reg31IsZeroRegister) {
     WriteRegister(code, value, log_mode, r31mode);
   }
-  VIXL_DEPRECATED("WriteXRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteXRegister",
                   void set_xreg(unsigned code,
                                 int64_t value,
                                 RegLogMode log_mode = LogRegWrites,
@@ -924,7 +924,7 @@ class Simulator : public DecoderVisitor {
                      Reg31Mode r31mode = Reg31IsZeroRegister) {
     // Zero-extend the input.
     uint64_t raw = 0;
-    VIXL_STATIC_ASSERT(sizeof(value) <= sizeof(raw));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(value) <= sizeof(raw));
     memcpy(&raw, &value, sizeof(value));
 
     // Write (and possibly truncate) the value.
@@ -936,12 +936,12 @@ class Simulator : public DecoderVisitor {
         WriteRegister(code, raw, log_mode, r31mode);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return;
     }
   }
   template <typename T>
-  VIXL_DEPRECATED("WriteRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteRegister",
                   void set_reg(unsigned size,
                                unsigned code,
                                T value,
@@ -958,7 +958,7 @@ class Simulator : public DecoderVisitor {
     WriteRegister(kLinkRegCode, value);
   }
   template <typename T>
-  VIXL_DEPRECATED("WriteLr", void set_lr(T value)) {
+  SWANSTATION_VIXL_DEPRECATED("WriteLr", void set_lr(T value)) {
     WriteLr(value);
   }
 
@@ -967,7 +967,7 @@ class Simulator : public DecoderVisitor {
     WriteRegister(31, value, LogRegWrites, Reg31IsStackPointer);
   }
   template <typename T>
-  VIXL_DEPRECATED("WriteSp", void set_sp(T value)) {
+  SWANSTATION_VIXL_DEPRECATED("WriteSp", void set_sp(T value)) {
     WriteSp(value);
   }
 
@@ -983,16 +983,16 @@ class Simulator : public DecoderVisitor {
   // Basic accessor: read the register as the specified type.
   template <typename T>
   T ReadVRegister(unsigned code) const {
-    VIXL_STATIC_ASSERT(
+    SWANSTATION_VIXL_STATIC_ASSERT(
         (sizeof(T) == kBRegSizeInBytes) || (sizeof(T) == kHRegSizeInBytes) ||
         (sizeof(T) == kSRegSizeInBytes) || (sizeof(T) == kDRegSizeInBytes) ||
         (sizeof(T) == kQRegSizeInBytes));
-    VIXL_ASSERT(code < kNumberOfVRegisters);
+    SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
 
     return vregisters_[code].Get<T>();
   }
   template <typename T>
-  VIXL_DEPRECATED("ReadVRegister", T vreg(unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadVRegister", T vreg(unsigned code) const) {
     return ReadVRegister<T>(code);
   }
 
@@ -1000,14 +1000,14 @@ class Simulator : public DecoderVisitor {
   int8_t ReadBRegister(unsigned code) const {
     return ReadVRegister<int8_t>(code);
   }
-  VIXL_DEPRECATED("ReadBRegister", int8_t breg(unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadBRegister", int8_t breg(unsigned code) const) {
     return ReadBRegister(code);
   }
 
-  vixl::internal::SimFloat16 ReadHRegister(unsigned code) const {
+  swanstation_vixl::internal::SimFloat16 ReadHRegister(unsigned code) const {
     return RawbitsToFloat16(ReadHRegisterBits(code));
   }
-  VIXL_DEPRECATED("ReadHRegister", int16_t hreg(unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadHRegister", int16_t hreg(unsigned code) const) {
     return Float16ToRawbits(ReadHRegister(code));
   }
 
@@ -1018,14 +1018,14 @@ class Simulator : public DecoderVisitor {
   float ReadSRegister(unsigned code) const {
     return ReadVRegister<float>(code);
   }
-  VIXL_DEPRECATED("ReadSRegister", float sreg(unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadSRegister", float sreg(unsigned code) const) {
     return ReadSRegister(code);
   }
 
   uint32_t ReadSRegisterBits(unsigned code) const {
     return ReadVRegister<uint32_t>(code);
   }
-  VIXL_DEPRECATED("ReadSRegisterBits",
+  SWANSTATION_VIXL_DEPRECATED("ReadSRegisterBits",
                   uint32_t sreg_bits(unsigned code) const) {
     return ReadSRegisterBits(code);
   }
@@ -1033,14 +1033,14 @@ class Simulator : public DecoderVisitor {
   double ReadDRegister(unsigned code) const {
     return ReadVRegister<double>(code);
   }
-  VIXL_DEPRECATED("ReadDRegister", double dreg(unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadDRegister", double dreg(unsigned code) const) {
     return ReadDRegister(code);
   }
 
   uint64_t ReadDRegisterBits(unsigned code) const {
     return ReadVRegister<uint64_t>(code);
   }
-  VIXL_DEPRECATED("ReadDRegisterBits",
+  SWANSTATION_VIXL_DEPRECATED("ReadDRegisterBits",
                   uint64_t dreg_bits(unsigned code) const) {
     return ReadDRegisterBits(code);
   }
@@ -1048,7 +1048,7 @@ class Simulator : public DecoderVisitor {
   qreg_t ReadQRegister(unsigned code) const {
     return ReadVRegister<qreg_t>(code);
   }
-  VIXL_DEPRECATED("ReadQRegister", qreg_t qreg(unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadQRegister", qreg_t qreg(unsigned code) const) {
     return ReadQRegister(code);
   }
 
@@ -1067,22 +1067,22 @@ class Simulator : public DecoderVisitor {
         raw = ReadVRegister<uint64_t>(code);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         break;
     }
 
-    VIXL_STATIC_ASSERT(sizeof(result) <= sizeof(raw));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(result) <= sizeof(raw));
     // Copy the result and truncate to fit. This assumes a little-endian host.
     memcpy(&result, &raw, sizeof(result));
     return result;
   }
   template <typename T>
-  VIXL_DEPRECATED("ReadVRegister", T vreg(unsigned size, unsigned code) const) {
+  SWANSTATION_VIXL_DEPRECATED("ReadVRegister", T vreg(unsigned size, unsigned code) const) {
     return ReadVRegister<T>(size, code);
   }
 
   SimVRegister& ReadVRegister(unsigned code) { return vregisters_[code]; }
-  VIXL_DEPRECATED("ReadVRegister", SimVRegister& vreg(unsigned code)) {
+  SWANSTATION_VIXL_DEPRECATED("ReadVRegister", SimVRegister& vreg(unsigned code)) {
     return ReadVRegister(code);
   }
 
@@ -1091,12 +1091,12 @@ class Simulator : public DecoderVisitor {
   void WriteVRegister(unsigned code,
                       T value,
                       RegLogMode log_mode = LogRegWrites) {
-    VIXL_STATIC_ASSERT((sizeof(value) == kBRegSizeInBytes) ||
+    SWANSTATION_VIXL_STATIC_ASSERT((sizeof(value) == kBRegSizeInBytes) ||
                        (sizeof(value) == kHRegSizeInBytes) ||
                        (sizeof(value) == kSRegSizeInBytes) ||
                        (sizeof(value) == kDRegSizeInBytes) ||
                        (sizeof(value) == kQRegSizeInBytes));
-    VIXL_ASSERT(code < kNumberOfVRegisters);
+    SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
     vregisters_[code].Write(value);
 
     if (log_mode == LogRegWrites) {
@@ -1104,7 +1104,7 @@ class Simulator : public DecoderVisitor {
     }
   }
   template <typename T>
-  VIXL_DEPRECATED("WriteVRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteVRegister",
                   void set_vreg(unsigned code,
                                 T value,
                                 RegLogMode log_mode = LogRegWrites)) {
@@ -1117,7 +1117,7 @@ class Simulator : public DecoderVisitor {
                       RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteBRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteBRegister",
                   void set_breg(unsigned code,
                                 int8_t value,
                                 RegLogMode log_mode = LogRegWrites)) {
@@ -1125,7 +1125,7 @@ class Simulator : public DecoderVisitor {
   }
 
   void WriteHRegister(unsigned code,
-                      vixl::internal::SimFloat16 value,
+                      swanstation_vixl::internal::SimFloat16 value,
                       RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, Float16ToRawbits(value), log_mode);
   }
@@ -1135,7 +1135,7 @@ class Simulator : public DecoderVisitor {
                       RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteHRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteHRegister",
                   void set_hreg(unsigned code,
                                 int16_t value,
                                 RegLogMode log_mode = LogRegWrites)) {
@@ -1147,7 +1147,7 @@ class Simulator : public DecoderVisitor {
                       RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteSRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteSRegister",
                   void set_sreg(unsigned code,
                                 float value,
                                 RegLogMode log_mode = LogRegWrites)) {
@@ -1159,7 +1159,7 @@ class Simulator : public DecoderVisitor {
                           RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteSRegisterBits",
+  SWANSTATION_VIXL_DEPRECATED("WriteSRegisterBits",
                   void set_sreg_bits(unsigned code,
                                      uint32_t value,
                                      RegLogMode log_mode = LogRegWrites)) {
@@ -1171,7 +1171,7 @@ class Simulator : public DecoderVisitor {
                       RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteDRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteDRegister",
                   void set_dreg(unsigned code,
                                 double value,
                                 RegLogMode log_mode = LogRegWrites)) {
@@ -1183,7 +1183,7 @@ class Simulator : public DecoderVisitor {
                           RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteDRegisterBits",
+  SWANSTATION_VIXL_DEPRECATED("WriteDRegisterBits",
                   void set_dreg_bits(unsigned code,
                                      uint64_t value,
                                      RegLogMode log_mode = LogRegWrites)) {
@@ -1195,7 +1195,7 @@ class Simulator : public DecoderVisitor {
                       RegLogMode log_mode = LogRegWrites) {
     WriteVRegister(code, value, log_mode);
   }
-  VIXL_DEPRECATED("WriteQRegister",
+  SWANSTATION_VIXL_DEPRECATED("WriteQRegister",
                   void set_qreg(unsigned code,
                                 qreg_t value,
                                 RegLogMode log_mode = LogRegWrites)) {
@@ -1253,7 +1253,7 @@ class Simulator : public DecoderVisitor {
     if (operand.IsCPURegister()) {
       return ReadCPURegister<T>(operand.GetCPURegister());
     } else {
-      VIXL_ASSERT(operand.IsMemOperand());
+      SWANSTATION_VIXL_ASSERT(operand.IsMemOperand());
       return Memory::Read<T>(ComputeMemOperandAddress(operand.GetMemOperand()));
     }
   }
@@ -1265,43 +1265,43 @@ class Simulator : public DecoderVisitor {
     if (operand.IsCPURegister()) {
       WriteCPURegister<T>(operand.GetCPURegister(), value, log_mode);
     } else {
-      VIXL_ASSERT(operand.IsMemOperand());
+      SWANSTATION_VIXL_ASSERT(operand.IsMemOperand());
       Memory::Write(ComputeMemOperandAddress(operand.GetMemOperand()), value);
     }
   }
 
   bool ReadN() const { return nzcv_.GetN() != 0; }
-  VIXL_DEPRECATED("ReadN", bool N() const) { return ReadN(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadN", bool N() const) { return ReadN(); }
 
   bool ReadZ() const { return nzcv_.GetZ() != 0; }
-  VIXL_DEPRECATED("ReadZ", bool Z() const) { return ReadZ(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadZ", bool Z() const) { return ReadZ(); }
 
   bool ReadC() const { return nzcv_.GetC() != 0; }
-  VIXL_DEPRECATED("ReadC", bool C() const) { return ReadC(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadC", bool C() const) { return ReadC(); }
 
   bool ReadV() const { return nzcv_.GetV() != 0; }
-  VIXL_DEPRECATED("ReadV", bool V() const) { return ReadV(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadV", bool V() const) { return ReadV(); }
 
   SimSystemRegister& ReadNzcv() { return nzcv_; }
-  VIXL_DEPRECATED("ReadNzcv", SimSystemRegister& nzcv()) { return ReadNzcv(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadNzcv", SimSystemRegister& nzcv()) { return ReadNzcv(); }
 
   // TODO: Find a way to make the fpcr_ members return the proper types, so
   // these accessors are not necessary.
   FPRounding ReadRMode() const {
     return static_cast<FPRounding>(fpcr_.GetRMode());
   }
-  VIXL_DEPRECATED("ReadRMode", FPRounding RMode()) { return ReadRMode(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadRMode", FPRounding RMode()) { return ReadRMode(); }
 
   UseDefaultNaN ReadDN() const {
     return fpcr_.GetDN() != 0 ? kUseDefaultNaN : kIgnoreDefaultNaN;
   }
 
-  VIXL_DEPRECATED("ReadDN", bool DN()) {
+  SWANSTATION_VIXL_DEPRECATED("ReadDN", bool DN()) {
     return ReadDN() == kUseDefaultNaN ? true : false;
   }
 
   SimSystemRegister& ReadFpcr() { return fpcr_; }
-  VIXL_DEPRECATED("ReadFpcr", SimSystemRegister& fpcr()) { return ReadFpcr(); }
+  SWANSTATION_VIXL_DEPRECATED("ReadFpcr", SimSystemRegister& fpcr()) { return ReadFpcr(); }
 
   // Specify relevant register formats for Print(V)Register and related helpers.
   enum PrintRegisterFormat {
@@ -1381,7 +1381,7 @@ class Simulator : public DecoderVisitor {
   unsigned GetPrintRegLaneCount(PrintRegisterFormat format) {
     unsigned reg_size_log2 = GetPrintRegSizeInBytesLog2(format);
     unsigned lane_size_log2 = GetPrintRegLaneSizeInBytesLog2(format);
-    VIXL_ASSERT(reg_size_log2 >= lane_size_log2);
+    SWANSTATION_VIXL_ASSERT(reg_size_log2 >= lane_size_log2);
     return 1 << (reg_size_log2 - lane_size_log2);
   }
 
@@ -1395,7 +1395,7 @@ class Simulator : public DecoderVisitor {
   PrintRegisterFormat GetPrintRegisterFormatForSizeFP(unsigned size) {
     switch (size) {
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return kPrintDReg;
       case kDRegSizeInBytes:
         return kPrintDReg;
@@ -1421,17 +1421,17 @@ class Simulator : public DecoderVisitor {
   }
 
   PrintRegisterFormat GetPrintRegisterFormat(double value) {
-    VIXL_STATIC_ASSERT(sizeof(value) == kDRegSizeInBytes);
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(value) == kDRegSizeInBytes);
     return GetPrintRegisterFormatForSizeFP(sizeof(value));
   }
 
   PrintRegisterFormat GetPrintRegisterFormat(float value) {
-    VIXL_STATIC_ASSERT(sizeof(value) == kSRegSizeInBytes);
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(value) == kSRegSizeInBytes);
     return GetPrintRegisterFormatForSizeFP(sizeof(value));
   }
 
   PrintRegisterFormat GetPrintRegisterFormat(Float16 value) {
-    VIXL_STATIC_ASSERT(sizeof(Float16ToRawbits(value)) == kHRegSizeInBytes);
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(Float16ToRawbits(value)) == kHRegSizeInBytes);
     return GetPrintRegisterFormatForSizeFP(sizeof(Float16ToRawbits(value)));
   }
 
@@ -1535,7 +1535,7 @@ class Simulator : public DecoderVisitor {
                               int lane_count = 1,
                               int rightmost_lane = 0);
 
-  VIXL_NO_RETURN void DoUnreachable(const Instruction* instr);
+  SWANSTATION_VIXL_NO_RETURN void DoUnreachable(const Instruction* instr);
   void DoTrace(const Instruction* instr);
   void DoLog(const Instruction* instr);
 
@@ -1549,30 +1549,30 @@ class Simulator : public DecoderVisitor {
   static const char* VRegNameForCode(unsigned code);
 
   bool IsColouredTrace() const { return coloured_trace_; }
-  VIXL_DEPRECATED("IsColouredTrace", bool coloured_trace() const) {
+  SWANSTATION_VIXL_DEPRECATED("IsColouredTrace", bool coloured_trace() const) {
     return IsColouredTrace();
   }
 
   void SetColouredTrace(bool value);
-  VIXL_DEPRECATED("SetColouredTrace", void set_coloured_trace(bool value)) {
+  SWANSTATION_VIXL_DEPRECATED("SetColouredTrace", void set_coloured_trace(bool value)) {
     SetColouredTrace(value);
   }
 
   // Values for traces parameters defined in simulator-constants-aarch64.h in
   // enum TraceParameters.
   int GetTraceParameters() const { return trace_parameters_; }
-  VIXL_DEPRECATED("GetTraceParameters", int trace_parameters() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetTraceParameters", int trace_parameters() const) {
     return GetTraceParameters();
   }
 
   void SetTraceParameters(int parameters);
-  VIXL_DEPRECATED("SetTraceParameters",
+  SWANSTATION_VIXL_DEPRECATED("SetTraceParameters",
                   void set_trace_parameters(int parameters)) {
     SetTraceParameters(parameters);
   }
 
   void SetInstructionStats(bool value);
-  VIXL_DEPRECATED("SetInstructionStats",
+  SWANSTATION_VIXL_DEPRECATED("SetInstructionStats",
                   void set_instruction_stats(bool value)) {
     SetInstructionStats(value);
   }
@@ -1602,7 +1602,7 @@ class Simulator : public DecoderVisitor {
   // Current implementation uses 48-bit virtual addresses.
   int GetBottomPACBit(uint64_t ptr, int ttbr) {
     USE(ptr, ttbr);
-    VIXL_ASSERT((ttbr == 0) || (ttbr == 1));
+    SWANSTATION_VIXL_ASSERT((ttbr == 0) || (ttbr == 1));
     return 48;
   }
 
@@ -1643,10 +1643,10 @@ class Simulator : public DecoderVisitor {
 // It requires VIXL's ABI features, and C++11 or greater.
 // Also, the initialisation of the tuples in RuntimeCall(Non)Void is incorrect
 // in GCC before 4.9.1: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=51253
-#if defined(VIXL_HAS_ABI_SUPPORT) && __cplusplus >= 201103L && \
+#if defined(SWANSTATION_VIXL_HAS_ABI_SUPPORT) && __cplusplus >= 201103L && \
     (defined(__clang__) || GCC_VERSION_OR_NEWER(4, 9, 1))
 
-#define VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
+#define SWANSTATION_VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
 
 // The implementation of the runtime call helpers require the functionality
 // provided by `std::index_sequence`. It is only available from C++14, but
@@ -1780,11 +1780,11 @@ class Simulator : public DecoderVisitor {
       case le:
         return !(!ReadZ() && (ReadN() == ReadV()));
       case nv:
-        VIXL_FALLTHROUGH();
+        SWANSTATION_VIXL_FALLTHROUGH();
       case al:
         return true;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return false;
     }
   }
@@ -3018,10 +3018,10 @@ class Simulator : public DecoderVisitor {
   double UFixedToDouble(uint64_t src, int fbits, FPRounding round_mode);
   float FixedToFloat(int64_t src, int fbits, FPRounding round_mode);
   float UFixedToFloat(uint64_t src, int fbits, FPRounding round_mode);
-  ::vixl::internal::SimFloat16 FixedToFloat16(int64_t src,
+  ::swanstation_vixl::internal::SimFloat16 FixedToFloat16(int64_t src,
                                               int fbits,
                                               FPRounding round_mode);
-  ::vixl::internal::SimFloat16 UFixedToFloat16(uint64_t src,
+  ::swanstation_vixl::internal::SimFloat16 UFixedToFloat16(uint64_t src,
                                                int fbits,
                                                FPRounding round_mode);
   int16_t FPToInt16(double value, FPRounding rmode);
@@ -3090,8 +3090,8 @@ class Simulator : public DecoderVisitor {
   void DoRestoreCPUFeatures(const Instruction* instr);
 
 // Simulate a runtime call.
-#ifndef VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
-  VIXL_NO_RETURN_IN_DEBUG_MODE
+#ifndef SWANSTATION_VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
+  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE
 #endif
   void DoRuntimeCall(const Instruction* instr);
 
@@ -3131,9 +3131,9 @@ class Simulator : public DecoderVisitor {
   // code.
   void AssertSupportedFPCR() {
     // No flush-to-zero support.
-    VIXL_ASSERT(ReadFpcr().GetFZ() == 0);
+    SWANSTATION_VIXL_ASSERT(ReadFpcr().GetFZ() == 0);
     // Ties-to-even rounding only.
-    VIXL_ASSERT(ReadFpcr().GetRMode() == FPTieEven);
+    SWANSTATION_VIXL_ASSERT(ReadFpcr().GetRMode() == FPTieEven);
 
     // The simulator does not support half-precision operations so
     // GetFpcr().AHP() is irrelevant, and is not checked here.
@@ -3180,7 +3180,7 @@ class Simulator : public DecoderVisitor {
   // Standard NaN processing.
   template <typename T>
   T FPProcessNaN(T op) {
-    VIXL_ASSERT(IsNaN(op));
+    SWANSTATION_VIXL_ASSERT(IsNaN(op));
     if (IsSignallingNaN(op)) {
       FPProcessException();
     }
@@ -3194,10 +3194,10 @@ class Simulator : public DecoderVisitor {
     } else if (IsSignallingNaN(op2)) {
       return FPProcessNaN(op2);
     } else if (IsNaN(op1)) {
-      VIXL_ASSERT(IsQuietNaN(op1));
+      SWANSTATION_VIXL_ASSERT(IsQuietNaN(op1));
       return FPProcessNaN(op1);
     } else if (IsNaN(op2)) {
-      VIXL_ASSERT(IsQuietNaN(op2));
+      SWANSTATION_VIXL_ASSERT(IsQuietNaN(op2));
       return FPProcessNaN(op2);
     } else {
       return 0.0;
@@ -3213,13 +3213,13 @@ class Simulator : public DecoderVisitor {
     } else if (IsSignallingNaN(op3)) {
       return FPProcessNaN(op3);
     } else if (IsNaN(op1)) {
-      VIXL_ASSERT(IsQuietNaN(op1));
+      SWANSTATION_VIXL_ASSERT(IsQuietNaN(op1));
       return FPProcessNaN(op1);
     } else if (IsNaN(op2)) {
-      VIXL_ASSERT(IsQuietNaN(op2));
+      SWANSTATION_VIXL_ASSERT(IsQuietNaN(op2));
       return FPProcessNaN(op2);
     } else if (IsNaN(op3)) {
-      VIXL_ASSERT(IsQuietNaN(op3));
+      SWANSTATION_VIXL_ASSERT(IsQuietNaN(op3));
       return FPProcessNaN(op3);
     } else {
       return 0.0;
@@ -3242,7 +3242,7 @@ class Simulator : public DecoderVisitor {
   std::vector<CPUFeatures> saved_cpu_features_;
 };
 
-#if defined(VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT) && __cplusplus < 201402L
+#if defined(SWANSTATION_VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT) && __cplusplus < 201402L
 // Base case of the recursive template used to emulate C++14
 // `std::index_sequence`.
 template <size_t... I>
@@ -3251,8 +3251,8 @@ struct Simulator::emulated_make_index_sequence_helper<0, I...>
 #endif
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_INCLUDE_SIMULATOR_AARCH64
+#endif  // SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64
 
-#endif  // VIXL_AARCH64_SIMULATOR_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_SIMULATOR_AARCH64_H_
