@@ -18,6 +18,9 @@ Log_SetChannel(Common::PageFaultHandler);
 #include <signal.h>
 #include <unistd.h>
 #define USE_SIGSEGV 1
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+#include <switch.h>
+#define USE_LIBNX_EXCEPTION 1
 #endif
 
 namespace Common::PageFaultHandler {
@@ -216,6 +219,51 @@ u32 GetHandlerCodeSize()
   return 0;
 }
 
+#elif defined(USE_LIBNX_EXCEPTION)
+
+// Switch/libnx exception handler implementation
+// Uses __libnx_exception_handler which is called by the libnx runtime on exceptions
+// ThreadExceptionDump provides pc, far (fault address), and all CPU registers
+
+static Callback s_libnx_callback = nullptr;
+static bool s_libnx_handler_installed = false;
+
+extern "C" void swanstation_nx_exception_handler(ThreadExceptionDump* ctx)
+{
+  if (!s_libnx_callback || !ctx)
+  {
+    // No handler registered or no context, let libnx handle it (crash)
+    // We can't call the default handler easily, so just return which will crash
+    return;
+  }
+
+  // Get exception info from ThreadExceptionDump
+  void* const exception_pc = reinterpret_cast<void*>(ctx->pc.x);
+  void* const fault_address = reinterpret_cast<void*>(ctx->far.x);
+  const bool is_write = IsStoreInstruction(exception_pc);
+
+  std::lock_guard<std::mutex> guard(m_handler_lock);
+  for (const RegisteredHandler& rh : m_handlers)
+  {
+    if (rh.callback(exception_pc, fault_address, is_write) == HandlerResult::ContinueExecution)
+    {
+      // Handler processed the fault, continue execution
+      // On Switch, we need to call svcReturnFromException(0) to resume
+      svcReturnFromException(0);
+      // svcReturnFromException doesn't return, so this is just for safety
+      return;
+    }
+  }
+
+  // No handler processed the exception - this will cause the app to crash
+  // which is the expected behavior when an unhandled fault occurs
+}
+
+u32 GetHandlerCodeSize()
+{
+  return 0;
+}
+
 #else
 
 u32 GetHandlerCodeSize()
@@ -266,6 +314,12 @@ bool InstallHandler(const void* owner, void* start_pc, u32 code_size, Callback c
     }
 #endif
 
+#elif defined(USE_LIBNX_EXCEPTION)
+    // For libnx, the exception handler is automatically registered via weak symbol
+    // __libnx_exception_handler. We just need to track that we're installed.
+    s_libnx_handler_installed = true;
+    Log_InfoPrint("Installed libnx exception handler for fastmem");
+
 #else
     return false;
 #endif
@@ -308,6 +362,12 @@ bool RemoveHandler(const void* owner)
     }
 
     s_old_sigsegv_action = {};
+
+#elif defined(USE_LIBNX_EXCEPTION)
+    // For libnx, just mark as uninstalled. The weak symbol remains but won't do anything.
+    s_libnx_handler_installed = false;
+    Log_InfoPrint("Removed libnx exception handler");
+
 #else
     return false;
 #endif

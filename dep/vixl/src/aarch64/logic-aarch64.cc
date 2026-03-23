@@ -24,16 +24,16 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef VIXL_INCLUDE_SIMULATOR_AARCH64
+#ifdef SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64
 
 #include <cmath>
 
 #include "simulator-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
-using vixl::internal::SimFloat16;
+using swanstation_vixl::internal::SimFloat16;
 
 template <typename T>
 bool IsFloat64() {
@@ -510,7 +510,7 @@ LogicVRegister Simulator::cmp(VectorFormat vform,
         result = (sa <= sb);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         break;
     }
     dst.SetUint(vform, i, result ? MaxUintFromFormat(vform) : 0);
@@ -1206,7 +1206,7 @@ LogicVRegister Simulator::sminmaxp(VectorFormat vform,
       } else {
         dst_val = (first_val < second_val) ? first_val : second_val;
       }
-      VIXL_ASSERT(((i >> 1) + (j * lanes / 2)) < kMaxLanesPerVector);
+      SWANSTATION_VIXL_ASSERT(((i >> 1) + (j * lanes / 2)) < kMaxLanesPerVector);
       result[(i >> 1) + (j * lanes / 2)] = dst_val;
     }
     src = &src2;
@@ -1235,7 +1235,7 @@ LogicVRegister Simulator::sminp(VectorFormat vform,
 LogicVRegister Simulator::addp(VectorFormat vform,
                                LogicVRegister dst,
                                const LogicVRegister& src) {
-  VIXL_ASSERT(vform == kFormatD);
+  SWANSTATION_VIXL_ASSERT(vform == kFormatD);
 
   uint64_t dst_val = src.Uint(kFormat2D, 0) + src.Uint(kFormat2D, 1);
   dst.ClearForWrite(vform);
@@ -1386,7 +1386,7 @@ LogicVRegister Simulator::uminmaxp(VectorFormat vform,
       } else {
         dst_val = (first_val < second_val) ? first_val : second_val;
       }
-      VIXL_ASSERT(((i >> 1) + (j * lanes / 2)) < kMaxLanesPerVector);
+      SWANSTATION_VIXL_ASSERT(((i >> 1) + (j * lanes / 2)) < kMaxLanesPerVector);
       result[(i >> 1) + (j * lanes / 2)] = dst_val;
     }
     src = &src2;
@@ -1451,7 +1451,7 @@ LogicVRegister Simulator::shl(VectorFormat vform,
                               LogicVRegister dst,
                               const LogicVRegister& src,
                               int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp;
   LogicVRegister shiftreg = dup_immediate(vform, temp, shift);
   return ushl(vform, dst, src, shiftreg);
@@ -1462,7 +1462,7 @@ LogicVRegister Simulator::sshll(VectorFormat vform,
                                 LogicVRegister dst,
                                 const LogicVRegister& src,
                                 int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp1, temp2;
   LogicVRegister shiftreg = dup_immediate(vform, temp1, shift);
   LogicVRegister extendedreg = sxtl(vform, temp2, src);
@@ -1474,7 +1474,7 @@ LogicVRegister Simulator::sshll2(VectorFormat vform,
                                  LogicVRegister dst,
                                  const LogicVRegister& src,
                                  int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp1, temp2;
   LogicVRegister shiftreg = dup_immediate(vform, temp1, shift);
   LogicVRegister extendedreg = sxtl2(vform, temp2, src);
@@ -1502,7 +1502,7 @@ LogicVRegister Simulator::ushll(VectorFormat vform,
                                 LogicVRegister dst,
                                 const LogicVRegister& src,
                                 int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp1, temp2;
   LogicVRegister shiftreg = dup_immediate(vform, temp1, shift);
   LogicVRegister extendedreg = uxtl(vform, temp2, src);
@@ -1514,7 +1514,7 @@ LogicVRegister Simulator::ushll2(VectorFormat vform,
                                  LogicVRegister dst,
                                  const LogicVRegister& src,
                                  int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp1, temp2;
   LogicVRegister shiftreg = dup_immediate(vform, temp1, shift);
   LogicVRegister extendedreg = uxtl2(vform, temp2, src);
@@ -1543,7 +1543,7 @@ LogicVRegister Simulator::sqshl(VectorFormat vform,
                                 LogicVRegister dst,
                                 const LogicVRegister& src,
                                 int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp;
   LogicVRegister shiftreg = dup_immediate(vform, temp, shift);
   return sshl(vform, dst, src, shiftreg).SignedSaturate(vform);
@@ -1554,7 +1554,7 @@ LogicVRegister Simulator::uqshl(VectorFormat vform,
                                 LogicVRegister dst,
                                 const LogicVRegister& src,
                                 int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp;
   LogicVRegister shiftreg = dup_immediate(vform, temp, shift);
   return ushl(vform, dst, src, shiftreg).UnsignedSaturate(vform);
@@ -1565,7 +1565,7 @@ LogicVRegister Simulator::sqshlu(VectorFormat vform,
                                  LogicVRegister dst,
                                  const LogicVRegister& src,
                                  int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp;
   LogicVRegister shiftreg = dup_immediate(vform, temp, shift);
   return sshl(vform, dst, src, shiftreg).UnsignedSaturate(vform);
@@ -1578,7 +1578,7 @@ LogicVRegister Simulator::sri(VectorFormat vform,
                               int shift) {
   dst.ClearForWrite(vform);
   int laneCount = LaneCountFromFormat(vform);
-  VIXL_ASSERT((shift > 0) &&
+  SWANSTATION_VIXL_ASSERT((shift > 0) &&
               (shift <= static_cast<int>(LaneSizeInBitsFromFormat(vform))));
   for (int i = 0; i < laneCount; i++) {
     uint64_t src_lane = src.Uint(vform, i);
@@ -1602,7 +1602,7 @@ LogicVRegister Simulator::ushr(VectorFormat vform,
                                LogicVRegister dst,
                                const LogicVRegister& src,
                                int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp;
   LogicVRegister shiftreg = dup_immediate(vform, temp, -shift);
   return ushl(vform, dst, src, shiftreg);
@@ -1613,7 +1613,7 @@ LogicVRegister Simulator::sshr(VectorFormat vform,
                                LogicVRegister dst,
                                const LogicVRegister& src,
                                int shift) {
-  VIXL_ASSERT(shift >= 0);
+  SWANSTATION_VIXL_ASSERT(shift >= 0);
   SimVRegister temp;
   LogicVRegister shiftreg = dup_immediate(vform, temp, -shift);
   return sshl(vform, dst, src, shiftreg);
@@ -1944,7 +1944,7 @@ LogicVRegister Simulator::extractnarrow(VectorFormat dstform,
       srcform = kFormatD;
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   for (int i = 0; i < LaneCountFromFormat(srcform); i++) {
@@ -2156,8 +2156,8 @@ LogicVRegister Simulator::addlp(VectorFormat vform,
                                 bool is_signed,
                                 bool do_accumulate) {
   VectorFormat vformsrc = VectorFormatHalfWidthDoubleLanes(vform);
-  VIXL_ASSERT(LaneSizeInBitsFromFormat(vformsrc) <= 32);
-  VIXL_ASSERT(LaneCountFromFormat(vform) <= 8);
+  SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vformsrc) <= 32);
+  SWANSTATION_VIXL_ASSERT(LaneCountFromFormat(vform) <= 8);
 
   uint64_t result[8];
   int lane_count = LaneCountFromFormat(vform);
@@ -2256,7 +2256,7 @@ LogicVRegister Simulator::fcadd(VectorFormat vform,
         element3 = FPNeg(src2.Float<T>(e * 2));
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return dst;  // prevents "element(n) may be unintialized" errors
     }
     dst.ClearForWrite(vform);
@@ -2273,11 +2273,11 @@ LogicVRegister Simulator::fcadd(VectorFormat vform,
                                 const LogicVRegister& src2,  // m
                                 int rot) {
   if (LaneSizeInBitsFromFormat(vform) == kHRegSize) {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fcadd<float>(vform, dst, src1, src2, rot);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     fcadd<double>(vform, dst, src1, src2, rot);
   }
   return dst;
@@ -2327,7 +2327,7 @@ LogicVRegister Simulator::fcmla(VectorFormat vform,
         element4 = src1.Float<T>(e * 2 + 1);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return dst;  // prevents "element(n) may be unintialized" errors
     }
     dst.ClearForWrite(vform);
@@ -2381,7 +2381,7 @@ LogicVRegister Simulator::fcmla(VectorFormat vform,
         element4 = src1.Float<T>(e * 2 + 1);
         break;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return dst;  // prevents "element(n) may be unintialized" errors
     }
     dst.ClearForWrite(vform);
@@ -2399,7 +2399,7 @@ LogicVRegister Simulator::fcmla(VectorFormat vform,
                                 const LogicVRegister& src2,  // m
                                 int rot) {
   if (LaneSizeInBitsFromFormat(vform) == kHRegSize) {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fcmla<float>(vform, dst, src1, src2, rot);
   } else {
@@ -2416,7 +2416,7 @@ LogicVRegister Simulator::fcmla(VectorFormat vform,
                                 int index,
                                 int rot) {
   if (LaneSizeInBitsFromFormat(vform) == kHRegSize) {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fcmla<float>(vform, dst, src1, src2, index, rot);
   } else {
@@ -2624,7 +2624,7 @@ LogicVRegister Simulator::Table(VectorFormat vform,
                                 const LogicVRegister* tab2,
                                 const LogicVRegister* tab3,
                                 const LogicVRegister* tab4) {
-  VIXL_ASSERT(tab1 != NULL);
+  SWANSTATION_VIXL_ASSERT(tab1 != NULL);
   const LogicVRegister* tab[4] = {tab1, tab2, tab3, tab4};
   uint64_t result[kMaxLanesPerVector];
   for (int i = 0; i < LaneCountFromFormat(vform); i++) {
@@ -3704,7 +3704,7 @@ T Simulator::FPAdd(T op1, T op2) {
 template <typename T>
 T Simulator::FPSub(T op1, T op2) {
   // NaNs should be handled elsewhere.
-  VIXL_ASSERT(!IsNaN(op1) && !IsNaN(op2));
+  SWANSTATION_VIXL_ASSERT(!IsNaN(op1) && !IsNaN(op2));
 
   if (IsInf(op1) && IsInf(op2) && (op1 == op2)) {
     // inf - inf returns the default NaN.
@@ -3720,7 +3720,7 @@ T Simulator::FPSub(T op1, T op2) {
 template <typename T>
 T Simulator::FPMul(T op1, T op2) {
   // NaNs should be handled elsewhere.
-  VIXL_ASSERT(!IsNaN(op1) && !IsNaN(op2));
+  SWANSTATION_VIXL_ASSERT(!IsNaN(op1) && !IsNaN(op2));
 
   if ((IsInf(op1) && (op2 == 0.0)) || (IsInf(op2) && (op1 == 0.0))) {
     // inf * 0.0 returns the default NaN.
@@ -3779,7 +3779,7 @@ T Simulator::FPMulAdd(T a, T op1, T op2) {
   }
 
   result = FusedMultiplyAdd(op1, op2, a);
-  VIXL_ASSERT(!IsNaN(result));
+  SWANSTATION_VIXL_ASSERT(!IsNaN(result));
 
   // Work around broken fma implementations for rounded zero results: If a is
   // 0.0, the sign of the result is the sign of op1 * op2 before rounding.
@@ -3794,7 +3794,7 @@ T Simulator::FPMulAdd(T a, T op1, T op2) {
 template <typename T>
 T Simulator::FPDiv(T op1, T op2) {
   // NaNs should be handled elsewhere.
-  VIXL_ASSERT(!IsNaN(op1) && !IsNaN(op2));
+  SWANSTATION_VIXL_ASSERT(!IsNaN(op1) && !IsNaN(op2));
 
   if ((IsInf(op1) && IsInf(op2)) || ((op1 == 0.0) && (op2 == 0.0))) {
     // inf / inf and 0.0 / 0.0 return the default NaN.
@@ -3982,9 +3982,9 @@ int32_t Simulator::FPToFixedJS(double value) {
       constrained = int_result - mod_const * round(int_result / mod_const);
     }
 
-    VIXL_ASSERT(std::floor(constrained) == constrained);
-    VIXL_ASSERT(constrained >= INT32_MIN);
-    VIXL_ASSERT(constrained <= INT32_MAX);
+    SWANSTATION_VIXL_ASSERT(std::floor(constrained) == constrained);
+    SWANSTATION_VIXL_ASSERT(constrained >= INT32_MIN);
+    SWANSTATION_VIXL_ASSERT(constrained <= INT32_MAX);
 
     // Take the bottom 32 bits of the result as a 32-bit integer.
     result = static_cast<int32_t>(constrained);
@@ -4070,7 +4070,7 @@ double Simulator::FPRoundInt(double value, FPRounding round_mode) {
       break;
     }
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
   return int_result;
 }
@@ -4175,7 +4175,7 @@ uint64_t Simulator::FPToUInt64(double value, FPRounding rmode) {
     } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {   \
       FN<float>(vform, dst, src1, src2);                         \
     } else {                                                     \
-      VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize); \
+      SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize); \
       FN<double>(vform, dst, src1, src2);                        \
     }                                                            \
     return dst;                                                  \
@@ -4219,7 +4219,7 @@ LogicVRegister Simulator::frecps(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     frecps<float>(vform, dst, src1, src2);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     frecps<double>(vform, dst, src1, src2);
   }
   return dst;
@@ -4251,7 +4251,7 @@ LogicVRegister Simulator::frsqrts(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     frsqrts<float>(vform, dst, src1, src2);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     frsqrts<double>(vform, dst, src1, src2);
   }
   return dst;
@@ -4288,7 +4288,7 @@ LogicVRegister Simulator::fcmp(VectorFormat vform,
           result = (op1 < op2);
           break;
         default:
-          VIXL_UNREACHABLE();
+          SWANSTATION_VIXL_UNREACHABLE();
           break;
       }
     }
@@ -4308,7 +4308,7 @@ LogicVRegister Simulator::fcmp(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fcmp<float>(vform, dst, src1, src2, cond);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     fcmp<double>(vform, dst, src1, src2, cond);
   }
   return dst;
@@ -4328,7 +4328,7 @@ LogicVRegister Simulator::fcmp_zero(VectorFormat vform,
     LogicVRegister zero_reg = dup_immediate(vform, temp, FloatToRawbits(0.0));
     fcmp<float>(vform, dst, src, zero_reg, cond);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     LogicVRegister zero_reg = dup_immediate(vform, temp, DoubleToRawbits(0.0));
     fcmp<double>(vform, dst, src, zero_reg, cond);
   }
@@ -4351,7 +4351,7 @@ LogicVRegister Simulator::fabscmp(VectorFormat vform,
     LogicVRegister abs_src2 = fabs_<float>(vform, temp2, src2);
     fcmp<float>(vform, dst, abs_src1, abs_src2, cond);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     LogicVRegister abs_src1 = fabs_<double>(vform, temp1, src1);
     LogicVRegister abs_src2 = fabs_<double>(vform, temp2, src2);
     fcmp<double>(vform, dst, abs_src1, abs_src2, cond);
@@ -4386,7 +4386,7 @@ LogicVRegister Simulator::fmla(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fmla<float>(vform, dst, src1, src2);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     fmla<double>(vform, dst, src1, src2);
   }
   return dst;
@@ -4419,7 +4419,7 @@ LogicVRegister Simulator::fmls(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fmls<float>(vform, dst, src1, src2);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     fmls<double>(vform, dst, src1, src2);
   }
   return dst;
@@ -4448,7 +4448,7 @@ LogicVRegister Simulator::fneg(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fneg<float>(vform, dst, src);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     fneg<double>(vform, dst, src);
   }
   return dst;
@@ -4479,7 +4479,7 @@ LogicVRegister Simulator::fabs_(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     fabs_<float>(vform, dst, src);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     fabs_<double>(vform, dst, src);
   }
   return dst;
@@ -4512,7 +4512,7 @@ LogicVRegister Simulator::fsqrt(VectorFormat vform,
       dst.SetFloat(i, result);
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       double result = FPSqrt(src.Float<double>(i));
       dst.SetFloat(i, result);
@@ -4545,7 +4545,7 @@ LogicVRegister Simulator::fsqrt(VectorFormat vform,
       float result = OP(src.Float<float>(0), src.Float<float>(1));             \
       dst.SetFloat(0, result);                                                 \
     } else {                                                                   \
-      VIXL_ASSERT(vform == kFormatD);                                          \
+      SWANSTATION_VIXL_ASSERT(vform == kFormatD);                                          \
       double result = OP(src.Float<double>(0), src.Float<double>(1));          \
       dst.SetFloat(0, result);                                                 \
     }                                                                          \
@@ -4560,7 +4560,7 @@ LogicVRegister Simulator::fminmaxv(VectorFormat vform,
                                    LogicVRegister dst,
                                    const LogicVRegister& src,
                                    typename TFPMinMaxOp<T>::type Op) {
-  VIXL_ASSERT((vform == kFormat4H) || (vform == kFormat8H) ||
+  SWANSTATION_VIXL_ASSERT((vform == kFormat4H) || (vform == kFormat8H) ||
               (vform == kFormat4S));
   USE(vform);
   T result1 = (this->*Op)(src.Float<T>(0), src.Float<T>(1));
@@ -4642,7 +4642,7 @@ LogicVRegister Simulator::fmul(VectorFormat vform,
     LogicVRegister index_reg = dup_element(kFormat4S, temp, src2, index);
     fmul<float>(vform, dst, src1, index_reg);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     LogicVRegister index_reg = dup_element(kFormat2D, temp, src2, index);
     fmul<double>(vform, dst, src1, index_reg);
   }
@@ -4664,7 +4664,7 @@ LogicVRegister Simulator::fmla(VectorFormat vform,
     LogicVRegister index_reg = dup_element(kFormat4S, temp, src2, index);
     fmla<float>(vform, dst, src1, index_reg);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     LogicVRegister index_reg = dup_element(kFormat2D, temp, src2, index);
     fmla<double>(vform, dst, src1, index_reg);
   }
@@ -4686,7 +4686,7 @@ LogicVRegister Simulator::fmls(VectorFormat vform,
     LogicVRegister index_reg = dup_element(kFormat4S, temp, src2, index);
     fmls<float>(vform, dst, src1, index_reg);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     LogicVRegister index_reg = dup_element(kFormat2D, temp, src2, index);
     fmls<double>(vform, dst, src1, index_reg);
   }
@@ -4708,7 +4708,7 @@ LogicVRegister Simulator::fmulx(VectorFormat vform,
     LogicVRegister index_reg = dup_element(kFormat4S, temp, src2, index);
     fmulx<float>(vform, dst, src1, index_reg);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     LogicVRegister index_reg = dup_element(kFormat2D, temp, src2, index);
     fmulx<double>(vform, dst, src1, index_reg);
   }
@@ -4741,7 +4741,7 @@ LogicVRegister Simulator::frint(VectorFormat vform,
       dst.SetFloat<float>(i, rounded);
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       double input = src.Float<double>(i);
       double rounded = FPRoundInt(input, rounding_mode);
@@ -4773,7 +4773,7 @@ LogicVRegister Simulator::fcvts(VectorFormat vform,
       dst.SetInt(vform, i, FPToInt32(op, rounding_mode));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       double op = src.Float<double>(i) * std::pow(2.0, fbits);
       dst.SetInt(vform, i, FPToInt64(op, rounding_mode));
@@ -4801,7 +4801,7 @@ LogicVRegister Simulator::fcvtu(VectorFormat vform,
       dst.SetUint(vform, i, FPToUInt32(op, rounding_mode));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       double op = src.Float<double>(i) * std::pow(2.0, fbits);
       dst.SetUint(vform, i, FPToUInt64(op, rounding_mode));
@@ -4822,7 +4822,7 @@ LogicVRegister Simulator::fcvtl(VectorFormat vform,
                              ReadDN()));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = LaneCountFromFormat(vform) - 1; i >= 0; i--) {
       dst.SetFloat(i, FPToDouble(src.Float<float>(i), ReadDN()));
     }
@@ -4844,7 +4844,7 @@ LogicVRegister Simulator::fcvtl2(VectorFormat vform,
                              ReadDN()));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < lane_count; i++) {
       dst.SetFloat(i, FPToDouble(src.Float<float>(i + lane_count), ReadDN()));
     }
@@ -4863,7 +4863,7 @@ LogicVRegister Simulator::fcvtn(VectorFormat vform,
                        FPToFloat16(src.Float<float>(i), FPTieEven, ReadDN())));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       dst.SetFloat(i, FPToFloat(src.Float<double>(i), FPTieEven, ReadDN()));
     }
@@ -4883,7 +4883,7 @@ LogicVRegister Simulator::fcvtn2(VectorFormat vform,
                        FPToFloat16(src.Float<float>(i), FPTieEven, ReadDN())));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
     for (int i = lane_count - 1; i >= 0; i--) {
       dst.SetFloat(i + lane_count,
                    FPToFloat(src.Float<double>(i), FPTieEven, ReadDN()));
@@ -4897,7 +4897,7 @@ LogicVRegister Simulator::fcvtxn(VectorFormat vform,
                                  LogicVRegister dst,
                                  const LogicVRegister& src) {
   dst.ClearForWrite(vform);
-  VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
+  SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
   for (int i = 0; i < LaneCountFromFormat(vform); i++) {
     dst.SetFloat(i, FPToFloat(src.Float<double>(i), FPRoundOdd, ReadDN()));
   }
@@ -4908,7 +4908,7 @@ LogicVRegister Simulator::fcvtxn(VectorFormat vform,
 LogicVRegister Simulator::fcvtxn2(VectorFormat vform,
                                   LogicVRegister dst,
                                   const LogicVRegister& src) {
-  VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
+  SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kSRegSize);
   int lane_count = LaneCountFromFormat(vform) / 2;
   for (int i = lane_count - 1; i >= 0; i--) {
     dst.SetFloat(i + lane_count,
@@ -4967,7 +4967,7 @@ T Simulator::FPRecipSqrtEstimate(T op) {
       fraction = FloatMantissa(op);
       fraction <<= 29;
     } else {
-      VIXL_ASSERT(IsFloat64<T>());
+      SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
       exp = DoubleExp(op);
       fraction = DoubleMantissa(op);
     }
@@ -4992,7 +4992,7 @@ T Simulator::FPRecipSqrtEstimate(T op) {
     } else if (IsFloat32<T>()) {
       result_exp = (380 - exp) / 2;
     } else {
-      VIXL_ASSERT(IsFloat64<T>());
+      SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
       result_exp = (3068 - exp) / 2;
     }
 
@@ -5007,7 +5007,7 @@ T Simulator::FPRecipSqrtEstimate(T op) {
       uint32_t est_bits = static_cast<uint32_t>(Bits(estimate, 51, 29));
       return FloatPack(0, exp_bits, est_bits);
     } else {
-      VIXL_ASSERT(IsFloat64<T>());
+      SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
       return DoublePack(0, Bits(result_exp, 10, 0), Bits(estimate, 51, 0));
     }
   }
@@ -5029,7 +5029,7 @@ LogicVRegister Simulator::frsqrte(VectorFormat vform,
       dst.SetFloat(i, FPRecipSqrtEstimate<float>(input));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       double input = src.Float<double>(i);
       dst.SetFloat(i, FPRecipSqrtEstimate<double>(input));
@@ -5047,7 +5047,7 @@ T Simulator::FPRecipEstimate(T op, FPRounding rounding) {
   } else if (IsFloat32<T>()) {
     sign = FloatSign(op);
   } else {
-    VIXL_ASSERT(IsFloat64<T>());
+    SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
     sign = DoubleSign(op);
   }
 
@@ -5088,7 +5088,7 @@ T Simulator::FPRecipEstimate(T op, FPRounding rounding) {
       } else if (IsFloat32<T>()) {
         return FloatPack(sign, 0xfe, 0x07fffff);
       } else {
-        VIXL_ASSERT(IsFloat64<T>());
+        SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
         return DoublePack(sign, 0x7fe, 0x0fffffffffffffl);
       }
     }
@@ -5108,7 +5108,7 @@ T Simulator::FPRecipEstimate(T op, FPRounding rounding) {
       fraction = FloatMantissa(op);
       fraction <<= 29;
     } else {
-      VIXL_ASSERT(IsFloat64<T>());
+      SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
       sign = DoubleSign(op);
       exp = DoubleExp(op);
       fraction = DoubleMantissa(op);
@@ -5130,7 +5130,7 @@ T Simulator::FPRecipEstimate(T op, FPRounding rounding) {
     } else if (IsFloat32<T>()) {
       result_exp = (253 - exp);  // In range 253-254 = -1 to 253+1 = 254.
     } else {
-      VIXL_ASSERT(IsFloat64<T>());
+      SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
       result_exp = (2045 - exp);  // In range 2045-2046 = -1 to 2045+1 = 2046.
     }
 
@@ -5152,7 +5152,7 @@ T Simulator::FPRecipEstimate(T op, FPRounding rounding) {
       uint32_t frac_bits = static_cast<uint32_t>(Bits(fraction, 51, 29));
       return FloatPack(sign, exp_bits, frac_bits);
     } else {
-      VIXL_ASSERT(IsFloat64<T>());
+      SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
       return DoublePack(sign, Bits(result_exp, 10, 0), Bits(fraction, 51, 0));
     }
   }
@@ -5175,7 +5175,7 @@ LogicVRegister Simulator::frecpe(VectorFormat vform,
       dst.SetFloat(i, FPRecipEstimate<float>(input, round));
     }
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     for (int i = 0; i < LaneCountFromFormat(vform); i++) {
       double input = src.Float<double>(i);
       dst.SetFloat(i, FPRecipEstimate<double>(input, round));
@@ -5263,7 +5263,7 @@ LogicVRegister Simulator::frecpx(VectorFormat vform,
         exp = (exp == 0) ? (0xFF - 1) : static_cast<int>(Bits(~exp, 7, 0));
         result = FloatPack(sign, exp, 0);
       } else {
-        VIXL_ASSERT(IsFloat64<T>());
+        SWANSTATION_VIXL_ASSERT(IsFloat64<T>());
         sign = DoubleSign(op);
         exp = DoubleExp(op);
         exp = (exp == 0) ? (0x7FF - 1) : static_cast<int>(Bits(~exp, 10, 0));
@@ -5284,7 +5284,7 @@ LogicVRegister Simulator::frecpx(VectorFormat vform,
   } else if (LaneSizeInBitsFromFormat(vform) == kSRegSize) {
     frecpx<float>(vform, dst, src);
   } else {
-    VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+    SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
     frecpx<double>(vform, dst, src);
   }
   return dst;
@@ -5303,7 +5303,7 @@ LogicVRegister Simulator::scvtf(VectorFormat vform,
       float result = FixedToFloat(src.Int(kFormatS, i), fbits, round);
       dst.SetFloat<float>(i, result);
     } else {
-      VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+      SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
       double result = FixedToDouble(src.Int(kFormatD, i), fbits, round);
       dst.SetFloat<double>(i, result);
     }
@@ -5325,7 +5325,7 @@ LogicVRegister Simulator::ucvtf(VectorFormat vform,
       float result = UFixedToFloat(src.Uint(kFormatS, i), fbits, round);
       dst.SetFloat<float>(i, result);
     } else {
-      VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
+      SWANSTATION_VIXL_ASSERT(LaneSizeInBitsFromFormat(vform) == kDRegSize);
       double result = UFixedToDouble(src.Uint(kFormatD, i), fbits, round);
       dst.SetFloat<double>(i, result);
     }
@@ -5335,6 +5335,6 @@ LogicVRegister Simulator::ucvtf(VectorFormat vform,
 
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_INCLUDE_SIMULATOR_AARCH64
+#endif  // SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64

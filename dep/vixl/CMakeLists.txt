@@ -24,10 +24,10 @@ target_include_directories(vixl PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/vixl
 )
 target_compile_definitions(vixl PUBLIC
-  VIXL_CODE_BUFFER_MALLOC
+  SWANSTATION_VIXL_CODE_BUFFER_MALLOC
 )
 
-if(${CPU_ARCH} STREQUAL "aarch32")
+if(CPU_ARCH_ARM32)
   target_sources(vixl PRIVATE
     include/vixl/aarch32/assembler-aarch32.h
     include/vixl/aarch32/constants-aarch32.h
@@ -48,11 +48,11 @@ if(${CPU_ARCH} STREQUAL "aarch32")
     ${CMAKE_CURRENT_SOURCE_DIR}/include/vixl/aarch32
   )
   target_compile_definitions(vixl PUBLIC
-    VIXL_INCLUDE_TARGET_A32
+    SWANSTATION_VIXL_INCLUDE_TARGET_A32
   )
 endif()
 
-if(${CPU_ARCH} STREQUAL "aarch64")
+if(CPU_ARCH_ARM64)
   target_sources(vixl PRIVATE
     include/vixl/aarch64/abi-aarch64.h
     include/vixl/aarch64/assembler-aarch64.h
@@ -84,8 +84,12 @@ if(${CPU_ARCH} STREQUAL "aarch64")
     ${CMAKE_CURRENT_SOURCE_DIR}/include/vixl/aarch64
   )
   target_compile_definitions(vixl PUBLIC
-    VIXL_INCLUDE_TARGET_A64
+    SWANSTATION_VIXL_INCLUDE_TARGET_A64
   )
 endif()
 
-
+# Currently disabled becuase the old rec sucks.
+#if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+#  message("Enabling vixl debug assertions")
+#  target_compile_definitions(vixl PUBLIC SWANSTATION_VIXL_DEBUG)
+#endif()

@@ -24,15 +24,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH32_ASSEMBLER_AARCH32_H_
-#define VIXL_AARCH32_ASSEMBLER_AARCH32_H_
+#ifndef SWANSTATION_VIXL_AARCH32_ASSEMBLER_AARCH32_H_
+#define SWANSTATION_VIXL_AARCH32_ASSEMBLER_AARCH32_H_
 
 #include "../assembler-base-vixl.h"
 
 #include "instructions-aarch32.h"
 #include "location-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 class Assembler : public internal::AssemblerBase {
@@ -50,13 +50,13 @@ class Assembler : public internal::AssemblerBase {
   // Check that the condition of the current instruction is consistent with the
   // IT state.
   void CheckIT(Condition condition) {
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
     PerformCheckIT(condition);
 #else
     USE(condition);
 #endif
   }
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
   void PerformCheckIT(Condition condition);
 #endif
   void AdvanceIT() {
@@ -106,13 +106,13 @@ class Assembler : public internal::AssemblerBase {
         has_32_dregs_(true),
         allow_unpredictable_(false),
         allow_strongly_discouraged_(false) {
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
     // Avoid compiler warning.
     USE(isa_);
-    VIXL_ASSERT(isa == A32);
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
+    SWANSTATION_VIXL_ASSERT(isa == A32);
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
     USE(isa_);
-    VIXL_ASSERT(isa == T32);
+    SWANSTATION_VIXL_ASSERT(isa == T32);
 #endif
   }
   explicit Assembler(size_t capacity, InstructionSet isa = kDefaultISA)
@@ -123,10 +123,10 @@ class Assembler : public internal::AssemblerBase {
         has_32_dregs_(true),
         allow_unpredictable_(false),
         allow_strongly_discouraged_(false) {
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
-    VIXL_ASSERT(isa == A32);
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
-    VIXL_ASSERT(isa == T32);
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
+    SWANSTATION_VIXL_ASSERT(isa == A32);
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
+    SWANSTATION_VIXL_ASSERT(isa == T32);
 #endif
   }
   Assembler(byte* buffer, size_t capacity, InstructionSet isa = kDefaultISA)
@@ -137,30 +137,30 @@ class Assembler : public internal::AssemblerBase {
         has_32_dregs_(true),
         allow_unpredictable_(false),
         allow_strongly_discouraged_(false) {
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
-    VIXL_ASSERT(isa == A32);
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
-    VIXL_ASSERT(isa == T32);
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
+    SWANSTATION_VIXL_ASSERT(isa == A32);
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
+    SWANSTATION_VIXL_ASSERT(isa == T32);
 #endif
   }
   virtual ~Assembler() {}
 
   void UseInstructionSet(InstructionSet isa) {
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
     USE(isa);
-    VIXL_ASSERT(isa == A32);
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
+    SWANSTATION_VIXL_ASSERT(isa == A32);
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
     USE(isa);
-    VIXL_ASSERT(isa == T32);
+    SWANSTATION_VIXL_ASSERT(isa == T32);
 #else
-    VIXL_ASSERT((isa_ == isa) || (GetCursorOffset() == 0));
+    SWANSTATION_VIXL_ASSERT((isa_ == isa) || (GetCursorOffset() == 0));
     isa_ = isa;
 #endif
   }
 
-#if defined(VIXL_INCLUDE_TARGET_A32_ONLY)
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY)
   InstructionSet GetInstructionSetInUse() const { return A32; }
-#elif defined(VIXL_INCLUDE_TARGET_T32_ONLY)
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY)
   InstructionSet GetInstructionSetInUse() const { return T32; }
 #else
   InstructionSet GetInstructionSetInUse() const { return isa_; }
@@ -172,7 +172,7 @@ class Assembler : public internal::AssemblerBase {
   bool IsUsingA32() const { return GetInstructionSetInUse() == A32; }
 
   void SetIT(Condition first_condition, uint16_t it_mask) {
-    VIXL_ASSERT(it_mask_ == 0);
+    SWANSTATION_VIXL_ASSERT(it_mask_ == 0);
     first_condition_ = first_condition;
     it_mask_ = it_mask;
   }
@@ -182,13 +182,13 @@ class Assembler : public internal::AssemblerBase {
   bool OutsideITBlockAndAlOrLast(Condition cond) {
     return ((it_mask_ == 0) && cond.Is(al)) || (it_mask_ == 0x8);
   }
-  void CheckNotIT() { VIXL_ASSERT(it_mask_ == 0); }
+  void CheckNotIT() { SWANSTATION_VIXL_ASSERT(it_mask_ == 0); }
   bool Has32DRegs() const { return has_32_dregs_; }
   void SetHas32DRegs(bool has_32_dregs) { has_32_dregs_ = has_32_dregs; }
 
   int32_t GetCursorOffset() const {
     ptrdiff_t offset = buffer_.GetCursorOffset();
-    VIXL_ASSERT(IsInt32(offset));
+    SWANSTATION_VIXL_ASSERT(IsInt32(offset));
     return static_cast<int32_t>(offset);
   }
 
@@ -196,8 +196,8 @@ class Assembler : public internal::AssemblerBase {
 
   // Bind a raw Location that will never be tracked by the pool manager.
   void bind(Location* location) {
-    VIXL_ASSERT(AllowAssembler());
-    VIXL_ASSERT(!location->IsBound());
+    SWANSTATION_VIXL_ASSERT(AllowAssembler());
+    SWANSTATION_VIXL_ASSERT(!location->IsBound());
     location->SetLocation(this, GetCursorOffset());
     location->MarkBound();
   }
@@ -205,13 +205,13 @@ class Assembler : public internal::AssemblerBase {
   // Bind a Label, which may be tracked by the pool manager in the presence of a
   // MacroAssembler.
   void bind(Label* label) {
-    VIXL_ASSERT(AllowAssembler());
+    SWANSTATION_VIXL_ASSERT(AllowAssembler());
     BindHelper(label);
   }
 
   void place(RawLiteral* literal) {
-    VIXL_ASSERT(AllowAssembler());
-    VIXL_ASSERT(literal->IsManuallyPlaced());
+    SWANSTATION_VIXL_ASSERT(AllowAssembler());
+    SWANSTATION_VIXL_ASSERT(literal->IsManuallyPlaced());
     literal->SetLocation(this, GetCursorOffset());
     literal->MarkBound();
     GetBuffer()->EnsureSpaceFor(literal->GetSize());
@@ -219,7 +219,7 @@ class Assembler : public internal::AssemblerBase {
   }
 
   size_t GetSizeOfCodeGeneratedSince(Label* label) const {
-    VIXL_ASSERT(label->IsBound());
+    SWANSTATION_VIXL_ASSERT(label->IsBound());
     return buffer_.GetOffsetFrom(label->GetLocation());
   }
 
@@ -639,7 +639,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rn*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kAdc) || (type == kAdcs) || (type == kAdd) ||
+    SWANSTATION_VIXL_ASSERT((type == kAdc) || (type == kAdcs) || (type == kAdd) ||
                 (type == kAdds) || (type == kAnd) || (type == kAnds) ||
                 (type == kAsr) || (type == kAsrs) || (type == kBic) ||
                 (type == kBics) || (type == kEor) || (type == kEors) ||
@@ -656,7 +656,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rd*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kAdd) || (type == kMovt) || (type == kMovw) ||
+    SWANSTATION_VIXL_ASSERT((type == kAdd) || (type == kMovt) || (type == kMovw) ||
                 (type == kSub) || (type == kSxtb16) || (type == kTeq) ||
                 (type == kUxtb16));
     UnimplementedDelegate(type);
@@ -666,7 +666,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rd*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kAdds) || (type == kSubs));
+    SWANSTATION_VIXL_ASSERT((type == kAdds) || (type == kSubs));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -676,7 +676,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rn*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kAddw) || (type == kOrn) || (type == kOrns) ||
+    SWANSTATION_VIXL_ASSERT((type == kAddw) || (type == kOrn) || (type == kOrns) ||
                 (type == kPkhbt) || (type == kPkhtb) || (type == kRsc) ||
                 (type == kRscs) || (type == kSubw) || (type == kSxtab) ||
                 (type == kSxtab16) || (type == kSxtah) || (type == kUxtab) ||
@@ -690,7 +690,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rd*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kAdr) || (type == kLdr));
+    SWANSTATION_VIXL_ASSERT((type == kAdr) || (type == kLdr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -699,7 +699,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVrinta) || (type == kVrintm) || (type == kVrintn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVrinta) || (type == kVrintm) || (type == kVrintn) ||
                 (type == kVrintp) || (type == kVrintx) || (type == kVrintz));
     UnimplementedDelegate(type);
   }
@@ -709,7 +709,7 @@ class Assembler : public internal::AssemblerBase {
                         EncodingSize /*size*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kB));
+    SWANSTATION_VIXL_ASSERT((type == kB));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -719,7 +719,7 @@ class Assembler : public internal::AssemblerBase {
                         uint32_t /*lsb*/,
                         uint32_t /*width*/) {
     USE(type);
-    VIXL_ASSERT((type == kBfc));
+    SWANSTATION_VIXL_ASSERT((type == kBfc));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -730,7 +730,7 @@ class Assembler : public internal::AssemblerBase {
                         uint32_t /*lsb*/,
                         uint32_t /*width*/) {
     USE(type);
-    VIXL_ASSERT((type == kBfi) || (type == kSbfx) || (type == kUbfx));
+    SWANSTATION_VIXL_ASSERT((type == kBfi) || (type == kSbfx) || (type == kUbfx));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -738,7 +738,7 @@ class Assembler : public internal::AssemblerBase {
                         Condition /*cond*/,
                         uint32_t /*imm*/) {
     USE(type);
-    VIXL_ASSERT((type == kBkpt) || (type == kHlt) || (type == kHvc) ||
+    SWANSTATION_VIXL_ASSERT((type == kBkpt) || (type == kHlt) || (type == kHvc) ||
                 (type == kSvc));
     UnimplementedDelegate(type);
   }
@@ -747,7 +747,7 @@ class Assembler : public internal::AssemblerBase {
                         Condition /*cond*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kBl) || (type == kBlx) || (type == kPld) ||
+    SWANSTATION_VIXL_ASSERT((type == kBl) || (type == kBlx) || (type == kPld) ||
                 (type == kPli));
     UnimplementedDelegate(type);
   }
@@ -756,7 +756,7 @@ class Assembler : public internal::AssemblerBase {
                         Condition /*cond*/,
                         Register /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kBlx) || (type == kBx) || (type == kBxj));
+    SWANSTATION_VIXL_ASSERT((type == kBlx) || (type == kBx) || (type == kBxj));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -764,14 +764,14 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rn*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kCbnz) || (type == kCbz));
+    SWANSTATION_VIXL_ASSERT((type == kCbnz) || (type == kCbz));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
                         InstructionCond /*instruction*/,
                         Condition /*cond*/) {
     USE(type);
-    VIXL_ASSERT((type == kClrex));
+    SWANSTATION_VIXL_ASSERT((type == kClrex));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -780,7 +780,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rd*/,
                         Register /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kClz) || (type == kRbit) || (type == kRrx) ||
+    SWANSTATION_VIXL_ASSERT((type == kClz) || (type == kRbit) || (type == kRrx) ||
                 (type == kRrxs));
     UnimplementedDelegate(type);
   }
@@ -791,7 +791,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rn*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kCmn) || (type == kCmp) || (type == kMov) ||
+    SWANSTATION_VIXL_ASSERT((type == kCmn) || (type == kCmp) || (type == kMov) ||
                 (type == kMovs) || (type == kMvn) || (type == kMvns) ||
                 (type == kSxtb) || (type == kSxth) || (type == kTst) ||
                 (type == kUxtb) || (type == kUxth));
@@ -804,7 +804,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rn*/,
                         Register /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kCrc32b) || (type == kCrc32cb) || (type == kCrc32ch) ||
+    SWANSTATION_VIXL_ASSERT((type == kCrc32b) || (type == kCrc32cb) || (type == kCrc32ch) ||
                 (type == kCrc32cw) || (type == kCrc32h) || (type == kCrc32w) ||
                 (type == kMuls) || (type == kQadd) || (type == kQadd16) ||
                 (type == kQadd8) || (type == kQasx) || (type == kQdadd) ||
@@ -832,7 +832,7 @@ class Assembler : public internal::AssemblerBase {
                         Condition /*cond*/,
                         MemoryBarrier /*option*/) {
     USE(type);
-    VIXL_ASSERT((type == kDmb) || (type == kDsb) || (type == kIsb));
+    SWANSTATION_VIXL_ASSERT((type == kDmb) || (type == kDsb) || (type == kIsb));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -842,7 +842,7 @@ class Assembler : public internal::AssemblerBase {
                         WriteBack /*write_back*/,
                         DRegisterList /*dreglist*/) {
     USE(type);
-    VIXL_ASSERT((type == kFldmdbx) || (type == kFldmiax) ||
+    SWANSTATION_VIXL_ASSERT((type == kFldmdbx) || (type == kFldmiax) ||
                 (type == kFstmdbx) || (type == kFstmiax));
     UnimplementedDelegate(type);
   }
@@ -855,7 +855,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kLda) || (type == kLdab) || (type == kLdaex) ||
+    SWANSTATION_VIXL_ASSERT((type == kLda) || (type == kLdab) || (type == kLdaex) ||
                 (type == kLdaexb) || (type == kLdaexh) || (type == kLdah) ||
                 (type == kLdrex) || (type == kLdrexb) || (type == kLdrexh) ||
                 (type == kStl) || (type == kStlb) || (type == kStlh));
@@ -868,7 +868,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt2*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kLdaexd) || (type == kLdrd) || (type == kLdrexd) ||
+    SWANSTATION_VIXL_ASSERT((type == kLdaexd) || (type == kLdrd) || (type == kLdrexd) ||
                 (type == kStlex) || (type == kStlexb) || (type == kStlexh) ||
                 (type == kStrd) || (type == kStrex) || (type == kStrexb) ||
                 (type == kStrexh));
@@ -882,7 +882,7 @@ class Assembler : public internal::AssemblerBase {
                         WriteBack /*write_back*/,
                         RegisterList /*registers*/) {
     USE(type);
-    VIXL_ASSERT((type == kLdm) || (type == kLdmfd) || (type == kStm) ||
+    SWANSTATION_VIXL_ASSERT((type == kLdm) || (type == kLdmfd) || (type == kStm) ||
                 (type == kStmdb) || (type == kStmea));
     UnimplementedDelegate(type);
   }
@@ -893,7 +893,7 @@ class Assembler : public internal::AssemblerBase {
                         WriteBack /*write_back*/,
                         RegisterList /*registers*/) {
     USE(type);
-    VIXL_ASSERT((type == kLdmda) || (type == kLdmdb) || (type == kLdmea) ||
+    SWANSTATION_VIXL_ASSERT((type == kLdmda) || (type == kLdmdb) || (type == kLdmea) ||
                 (type == kLdmed) || (type == kLdmfa) || (type == kLdmib) ||
                 (type == kStmda) || (type == kStmed) || (type == kStmfa) ||
                 (type == kStmfd) || (type == kStmib));
@@ -906,7 +906,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kLdr) || (type == kLdrb) || (type == kLdrh) ||
+    SWANSTATION_VIXL_ASSERT((type == kLdr) || (type == kLdrb) || (type == kLdrh) ||
                 (type == kLdrsb) || (type == kLdrsh) || (type == kStr) ||
                 (type == kStrb) || (type == kStrh));
     UnimplementedDelegate(type);
@@ -917,7 +917,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kLdrb) || (type == kLdrh) || (type == kLdrsb) ||
+    SWANSTATION_VIXL_ASSERT((type == kLdrb) || (type == kLdrh) || (type == kLdrsb) ||
                 (type == kLdrsh));
     UnimplementedDelegate(type);
   }
@@ -928,7 +928,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt2*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kLdrd));
+    SWANSTATION_VIXL_ASSERT((type == kLdrd));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -939,7 +939,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rm*/,
                         Register /*ra*/) {
     USE(type);
-    VIXL_ASSERT((type == kMla) || (type == kMlas) || (type == kMls) ||
+    SWANSTATION_VIXL_ASSERT((type == kMla) || (type == kMlas) || (type == kMls) ||
                 (type == kSmlabb) || (type == kSmlabt) || (type == kSmlad) ||
                 (type == kSmladx) || (type == kSmlal) || (type == kSmlalbb) ||
                 (type == kSmlalbt) || (type == kSmlald) || (type == kSmlaldx) ||
@@ -959,7 +959,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rd*/,
                         SpecialRegister /*spec_reg*/) {
     USE(type);
-    VIXL_ASSERT((type == kMrs));
+    SWANSTATION_VIXL_ASSERT((type == kMrs));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -968,7 +968,7 @@ class Assembler : public internal::AssemblerBase {
                         MaskedSpecialRegister /*spec_reg*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kMsr));
+    SWANSTATION_VIXL_ASSERT((type == kMsr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -979,7 +979,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rn*/,
                         Register /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kMul));
+    SWANSTATION_VIXL_ASSERT((type == kMul));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -987,7 +987,7 @@ class Assembler : public internal::AssemblerBase {
                         Condition /*cond*/,
                         EncodingSize /*size*/) {
     USE(type);
-    VIXL_ASSERT((type == kNop) || (type == kYield));
+    SWANSTATION_VIXL_ASSERT((type == kNop) || (type == kYield));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -995,7 +995,7 @@ class Assembler : public internal::AssemblerBase {
                         Condition /*cond*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kPld) || (type == kPldw) || (type == kPli));
+    SWANSTATION_VIXL_ASSERT((type == kPld) || (type == kPldw) || (type == kPli));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1004,7 +1004,7 @@ class Assembler : public internal::AssemblerBase {
                         EncodingSize /*size*/,
                         RegisterList /*registers*/) {
     USE(type);
-    VIXL_ASSERT((type == kPop) || (type == kPush));
+    SWANSTATION_VIXL_ASSERT((type == kPop) || (type == kPush));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1013,7 +1013,7 @@ class Assembler : public internal::AssemblerBase {
                         EncodingSize /*size*/,
                         Register /*rt*/) {
     USE(type);
-    VIXL_ASSERT((type == kPop) || (type == kPush));
+    SWANSTATION_VIXL_ASSERT((type == kPop) || (type == kPush));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1023,7 +1023,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rd*/,
                         Register /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kRev) || (type == kRev16) || (type == kRevsh));
+    SWANSTATION_VIXL_ASSERT((type == kRev) || (type == kRev16) || (type == kRevsh));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1033,7 +1033,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rn*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmaxnm) || (type == kVminnm));
+    SWANSTATION_VIXL_ASSERT((type == kVmaxnm) || (type == kVminnm));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1043,7 +1043,7 @@ class Assembler : public internal::AssemblerBase {
                         uint32_t /*imm*/,
                         const Operand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kSsat) || (type == kUsat));
+    SWANSTATION_VIXL_ASSERT((type == kSsat) || (type == kUsat));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1053,7 +1053,7 @@ class Assembler : public internal::AssemblerBase {
                         uint32_t /*imm*/,
                         Register /*rn*/) {
     USE(type);
-    VIXL_ASSERT((type == kSsat16) || (type == kUsat16));
+    SWANSTATION_VIXL_ASSERT((type == kSsat16) || (type == kUsat16));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1064,7 +1064,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt2*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kStlexd) || (type == kStrexd));
+    SWANSTATION_VIXL_ASSERT((type == kStlexd) || (type == kStrexd));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1073,7 +1073,7 @@ class Assembler : public internal::AssemblerBase {
                         EncodingSize /*size*/,
                         uint32_t /*imm*/) {
     USE(type);
-    VIXL_ASSERT((type == kUdf));
+    SWANSTATION_VIXL_ASSERT((type == kUdf));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1084,7 +1084,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rn*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVaba) || (type == kVabd) || (type == kVacge) ||
+    SWANSTATION_VIXL_ASSERT((type == kVaba) || (type == kVabd) || (type == kVacge) ||
                 (type == kVacgt) || (type == kVacle) || (type == kVaclt) ||
                 (type == kVadd) || (type == kVbif) || (type == kVbit) ||
                 (type == kVbsl) || (type == kVceq) || (type == kVcge) ||
@@ -1109,7 +1109,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rn*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVaba) || (type == kVabd) || (type == kVacge) ||
+    SWANSTATION_VIXL_ASSERT((type == kVaba) || (type == kVabd) || (type == kVacge) ||
                 (type == kVacgt) || (type == kVacle) || (type == kVaclt) ||
                 (type == kVadd) || (type == kVbif) || (type == kVbit) ||
                 (type == kVbsl) || (type == kVceq) || (type == kVcge) ||
@@ -1131,7 +1131,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rn*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVabal) || (type == kVabdl) || (type == kVaddl) ||
+    SWANSTATION_VIXL_ASSERT((type == kVabal) || (type == kVabdl) || (type == kVaddl) ||
                 (type == kVmlal) || (type == kVmlsl) || (type == kVmull) ||
                 (type == kVqdmlal) || (type == kVqdmlsl) ||
                 (type == kVqdmull) || (type == kVsubl));
@@ -1144,7 +1144,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVabs) || (type == kVcls) || (type == kVclz) ||
+    SWANSTATION_VIXL_ASSERT((type == kVabs) || (type == kVcls) || (type == kVclz) ||
                 (type == kVcnt) || (type == kVneg) || (type == kVpadal) ||
                 (type == kVpaddl) || (type == kVqabs) || (type == kVqneg) ||
                 (type == kVrecpe) || (type == kVrev16) || (type == kVrev32) ||
@@ -1161,7 +1161,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVabs) || (type == kVcls) || (type == kVclz) ||
+    SWANSTATION_VIXL_ASSERT((type == kVabs) || (type == kVcls) || (type == kVclz) ||
                 (type == kVcnt) || (type == kVneg) || (type == kVpadal) ||
                 (type == kVpaddl) || (type == kVqabs) || (type == kVqneg) ||
                 (type == kVrecpe) || (type == kVrev16) || (type == kVrev32) ||
@@ -1176,7 +1176,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVabs) || (type == kVneg) || (type == kVrintr) ||
+    SWANSTATION_VIXL_ASSERT((type == kVabs) || (type == kVneg) || (type == kVrintr) ||
                 (type == kVrintx) || (type == kVrintz) || (type == kVsqrt));
     UnimplementedDelegate(type);
   }
@@ -1188,7 +1188,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rn*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVadd) || (type == kVdiv) || (type == kVfma) ||
+    SWANSTATION_VIXL_ASSERT((type == kVadd) || (type == kVdiv) || (type == kVfma) ||
                 (type == kVfms) || (type == kVfnma) || (type == kVfnms) ||
                 (type == kVmla) || (type == kVmls) || (type == kVmul) ||
                 (type == kVnmla) || (type == kVnmls) || (type == kVnmul) ||
@@ -1203,7 +1203,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rn*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVaddhn) || (type == kVraddhn) || (type == kVrsubhn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVaddhn) || (type == kVraddhn) || (type == kVrsubhn) ||
                 (type == kVsubhn));
     UnimplementedDelegate(type);
   }
@@ -1215,7 +1215,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rn*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVaddw) || (type == kVsubw));
+    SWANSTATION_VIXL_ASSERT((type == kVaddw) || (type == kVsubw));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1226,7 +1226,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rn*/,
                         const DOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVand) || (type == kVbic) || (type == kVceq) ||
+    SWANSTATION_VIXL_ASSERT((type == kVand) || (type == kVbic) || (type == kVceq) ||
                 (type == kVcge) || (type == kVcgt) || (type == kVcle) ||
                 (type == kVclt) || (type == kVorn) || (type == kVorr) ||
                 (type == kVqshl) || (type == kVqshlu) || (type == kVrshr) ||
@@ -1242,7 +1242,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rn*/,
                         const QOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVand) || (type == kVbic) || (type == kVceq) ||
+    SWANSTATION_VIXL_ASSERT((type == kVand) || (type == kVbic) || (type == kVceq) ||
                 (type == kVcge) || (type == kVcgt) || (type == kVcle) ||
                 (type == kVclt) || (type == kVorn) || (type == kVorr) ||
                 (type == kVqshl) || (type == kVqshlu) || (type == kVrshr) ||
@@ -1257,7 +1257,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         const SOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcmp) || (type == kVcmpe) || (type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVcmp) || (type == kVcmpe) || (type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1267,7 +1267,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         const DOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcmp) || (type == kVcmpe) || (type == kVmov) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcmp) || (type == kVcmpe) || (type == kVmov) ||
                 (type == kVmvn));
     UnimplementedDelegate(type);
   }
@@ -1279,7 +1279,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt) || (type == kVcvtb) || (type == kVcvtt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt) || (type == kVcvtb) || (type == kVcvtt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1290,7 +1290,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt) || (type == kVcvtb) || (type == kVcvtr) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcvt) || (type == kVcvtb) || (type == kVcvtr) ||
                 (type == kVcvtt));
     UnimplementedDelegate(type);
   }
@@ -1303,7 +1303,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rm*/,
                         int32_t /*fbits*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1315,7 +1315,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rm*/,
                         int32_t /*fbits*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1327,7 +1327,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rm*/,
                         int32_t /*fbits*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1338,7 +1338,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1349,7 +1349,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1360,7 +1360,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1371,7 +1371,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt));
+    SWANSTATION_VIXL_ASSERT((type == kVcvt));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1382,7 +1382,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvt) || (type == kVcvtb) || (type == kVcvtr) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcvt) || (type == kVcvtb) || (type == kVcvtr) ||
                 (type == kVcvtt));
     UnimplementedDelegate(type);
   }
@@ -1393,7 +1393,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
                 (type == kVcvtp));
     UnimplementedDelegate(type);
   }
@@ -1404,7 +1404,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
                 (type == kVcvtp));
     UnimplementedDelegate(type);
   }
@@ -1415,7 +1415,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
                 (type == kVcvtp));
     UnimplementedDelegate(type);
   }
@@ -1426,7 +1426,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVcvta) || (type == kVcvtm) || (type == kVcvtn) ||
                 (type == kVcvtp));
     UnimplementedDelegate(type);
   }
@@ -1437,7 +1437,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         Register /*rt*/) {
     USE(type);
-    VIXL_ASSERT((type == kVdup));
+    SWANSTATION_VIXL_ASSERT((type == kVdup));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1447,7 +1447,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         Register /*rt*/) {
     USE(type);
-    VIXL_ASSERT((type == kVdup));
+    SWANSTATION_VIXL_ASSERT((type == kVdup));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1457,7 +1457,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         DRegisterLane /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVdup));
+    SWANSTATION_VIXL_ASSERT((type == kVdup));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1467,7 +1467,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         DRegisterLane /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVdup));
+    SWANSTATION_VIXL_ASSERT((type == kVdup));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1479,7 +1479,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rm*/,
                         const DOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVext));
+    SWANSTATION_VIXL_ASSERT((type == kVext));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1491,7 +1491,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rm*/,
                         const QOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVext));
+    SWANSTATION_VIXL_ASSERT((type == kVext));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1501,7 +1501,7 @@ class Assembler : public internal::AssemblerBase {
                         const NeonRegisterList& /*nreglist*/,
                         const AlignedMemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVld1) || (type == kVld2) || (type == kVld3) ||
+    SWANSTATION_VIXL_ASSERT((type == kVld1) || (type == kVld2) || (type == kVld3) ||
                 (type == kVld4) || (type == kVst1) || (type == kVst2) ||
                 (type == kVst3) || (type == kVst4));
     UnimplementedDelegate(type);
@@ -1513,7 +1513,7 @@ class Assembler : public internal::AssemblerBase {
                         const NeonRegisterList& /*nreglist*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVld3) || (type == kVst3));
+    SWANSTATION_VIXL_ASSERT((type == kVld3) || (type == kVst3));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1524,7 +1524,7 @@ class Assembler : public internal::AssemblerBase {
                         WriteBack /*write_back*/,
                         DRegisterList /*dreglist*/) {
     USE(type);
-    VIXL_ASSERT((type == kVldm) || (type == kVldmdb) || (type == kVldmia) ||
+    SWANSTATION_VIXL_ASSERT((type == kVldm) || (type == kVldmdb) || (type == kVldmia) ||
                 (type == kVstm) || (type == kVstmdb) || (type == kVstmia));
     UnimplementedDelegate(type);
   }
@@ -1536,7 +1536,7 @@ class Assembler : public internal::AssemblerBase {
                         WriteBack /*write_back*/,
                         SRegisterList /*sreglist*/) {
     USE(type);
-    VIXL_ASSERT((type == kVldm) || (type == kVldmdb) || (type == kVldmia) ||
+    SWANSTATION_VIXL_ASSERT((type == kVldm) || (type == kVldmdb) || (type == kVldmia) ||
                 (type == kVstm) || (type == kVstmdb) || (type == kVstmia));
     UnimplementedDelegate(type);
   }
@@ -1547,7 +1547,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kVldr));
+    SWANSTATION_VIXL_ASSERT((type == kVldr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1557,7 +1557,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVldr) || (type == kVstr));
+    SWANSTATION_VIXL_ASSERT((type == kVldr) || (type == kVstr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1567,7 +1567,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         Location* /*location*/) {
     USE(type);
-    VIXL_ASSERT((type == kVldr));
+    SWANSTATION_VIXL_ASSERT((type == kVldr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1577,7 +1577,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         const MemOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVldr) || (type == kVstr));
+    SWANSTATION_VIXL_ASSERT((type == kVldr) || (type == kVstr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1587,7 +1587,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rn*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmaxnm) || (type == kVminnm) || (type == kVseleq) ||
+    SWANSTATION_VIXL_ASSERT((type == kVmaxnm) || (type == kVminnm) || (type == kVseleq) ||
                 (type == kVselge) || (type == kVselgt) || (type == kVselvs));
     UnimplementedDelegate(type);
   }
@@ -1598,7 +1598,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rn*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmaxnm) || (type == kVminnm) || (type == kVseleq) ||
+    SWANSTATION_VIXL_ASSERT((type == kVmaxnm) || (type == kVminnm) || (type == kVseleq) ||
                 (type == kVselge) || (type == kVselgt) || (type == kVselvs));
     UnimplementedDelegate(type);
   }
@@ -1610,7 +1610,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rn*/,
                         DRegisterLane /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmla) || (type == kVmls) || (type == kVqdmulh) ||
+    SWANSTATION_VIXL_ASSERT((type == kVmla) || (type == kVmls) || (type == kVqdmulh) ||
                 (type == kVqrdmulh));
     UnimplementedDelegate(type);
   }
@@ -1622,7 +1622,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rn*/,
                         DRegisterLane /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmla) || (type == kVmls) || (type == kVqdmulh) ||
+    SWANSTATION_VIXL_ASSERT((type == kVmla) || (type == kVmls) || (type == kVqdmulh) ||
                 (type == kVqrdmulh));
     UnimplementedDelegate(type);
   }
@@ -1634,7 +1634,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rn*/,
                         DRegisterLane /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmlal) || (type == kVmlsl) || (type == kVqdmull));
+    SWANSTATION_VIXL_ASSERT((type == kVmlal) || (type == kVmlsl) || (type == kVqdmull));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1643,7 +1643,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         SRegister /*rn*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1652,7 +1652,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rn*/,
                         Register /*rt*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1662,7 +1662,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt2*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1672,7 +1672,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         Register /*rt2*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1683,7 +1683,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rm*/,
                         SRegister /*rm1*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1694,7 +1694,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         Register /*rt2*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1704,7 +1704,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegisterLane /*rd*/,
                         Register /*rt*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1714,7 +1714,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         const QOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov) || (type == kVmvn));
+    SWANSTATION_VIXL_ASSERT((type == kVmov) || (type == kVmvn));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1724,7 +1724,7 @@ class Assembler : public internal::AssemblerBase {
                         Register /*rt*/,
                         DRegisterLane /*rn*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmov));
+    SWANSTATION_VIXL_ASSERT((type == kVmov));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1734,7 +1734,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmovl));
+    SWANSTATION_VIXL_ASSERT((type == kVmovl));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1744,7 +1744,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         QRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmovn) || (type == kVqmovn) || (type == kVqmovun));
+    SWANSTATION_VIXL_ASSERT((type == kVmovn) || (type == kVqmovn) || (type == kVqmovun));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1753,7 +1753,7 @@ class Assembler : public internal::AssemblerBase {
                         RegisterOrAPSR_nzcv /*rt*/,
                         SpecialFPRegister /*spec_reg*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmrs));
+    SWANSTATION_VIXL_ASSERT((type == kVmrs));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1762,7 +1762,7 @@ class Assembler : public internal::AssemblerBase {
                         SpecialFPRegister /*spec_reg*/,
                         Register /*rt*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmsr));
+    SWANSTATION_VIXL_ASSERT((type == kVmsr));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1774,7 +1774,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*dm*/,
                         unsigned /*index*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmul));
+    SWANSTATION_VIXL_ASSERT((type == kVmul));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1786,7 +1786,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*dm*/,
                         unsigned /*index*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmul));
+    SWANSTATION_VIXL_ASSERT((type == kVmul));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1798,7 +1798,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*dm*/,
                         unsigned /*index*/) {
     USE(type);
-    VIXL_ASSERT((type == kVmull) || (type == kVqdmlal) || (type == kVqdmlsl));
+    SWANSTATION_VIXL_ASSERT((type == kVmull) || (type == kVqdmlal) || (type == kVqdmlsl));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1807,7 +1807,7 @@ class Assembler : public internal::AssemblerBase {
                         DataType /*dt*/,
                         DRegisterList /*dreglist*/) {
     USE(type);
-    VIXL_ASSERT((type == kVpop) || (type == kVpush));
+    SWANSTATION_VIXL_ASSERT((type == kVpop) || (type == kVpush));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1816,7 +1816,7 @@ class Assembler : public internal::AssemblerBase {
                         DataType /*dt*/,
                         SRegisterList /*sreglist*/) {
     USE(type);
-    VIXL_ASSERT((type == kVpop) || (type == kVpush));
+    SWANSTATION_VIXL_ASSERT((type == kVpop) || (type == kVpush));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1827,7 +1827,7 @@ class Assembler : public internal::AssemblerBase {
                         QRegister /*rm*/,
                         const QOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVqrshrn) || (type == kVqrshrun) ||
+    SWANSTATION_VIXL_ASSERT((type == kVqrshrn) || (type == kVqrshrun) ||
                 (type == kVqshrn) || (type == kVqshrun) || (type == kVrshrn) ||
                 (type == kVshrn));
     UnimplementedDelegate(type);
@@ -1838,7 +1838,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rd*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVrinta) || (type == kVrintm) || (type == kVrintn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVrinta) || (type == kVrintm) || (type == kVrintn) ||
                 (type == kVrintp));
     UnimplementedDelegate(type);
   }
@@ -1848,7 +1848,7 @@ class Assembler : public internal::AssemblerBase {
                         SRegister /*rd*/,
                         SRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVrinta) || (type == kVrintm) || (type == kVrintn) ||
+    SWANSTATION_VIXL_ASSERT((type == kVrinta) || (type == kVrintm) || (type == kVrintn) ||
                 (type == kVrintp));
     UnimplementedDelegate(type);
   }
@@ -1860,7 +1860,7 @@ class Assembler : public internal::AssemblerBase {
                         DRegister /*rm*/,
                         const DOperand& /*operand*/) {
     USE(type);
-    VIXL_ASSERT((type == kVshll));
+    SWANSTATION_VIXL_ASSERT((type == kVshll));
     UnimplementedDelegate(type);
   }
   virtual void Delegate(InstructionType type,
@@ -1871,7 +1871,7 @@ class Assembler : public internal::AssemblerBase {
                         const NeonRegisterList& /*nreglist*/,
                         DRegister /*rm*/) {
     USE(type);
-    VIXL_ASSERT((type == kVtbl) || (type == kVtbx));
+    SWANSTATION_VIXL_ASSERT((type == kVtbl) || (type == kVtbx));
     UnimplementedDelegate(type);
   }
 
@@ -6145,7 +6145,7 @@ class Assembler : public internal::AssemblerBase {
     std::string error_message(std::string("Ill-formed '") +
                               std::string(ToCString(type)) +
                               std::string("' instruction.\n"));
-    VIXL_ABORT_WITH_MSG(error_message.c_str());
+    SWANSTATION_VIXL_ABORT_WITH_MSG(error_message.c_str());
   }
   virtual bool AllowUnpredictable() { return allow_unpredictable_; }
   virtual bool AllowStronglyDiscouraged() {
@@ -6154,6 +6154,6 @@ class Assembler : public internal::AssemblerBase {
 };
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH32_ASSEMBLER_AARCH32_H_
+#endif  // SWANSTATION_VIXL_AARCH32_ASSEMBLER_AARCH32_H_

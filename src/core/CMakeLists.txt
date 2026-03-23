@@ -37,8 +37,15 @@ add_library(core
     gpu_hw_opengl.h
     gpu_hw_shadergen.cpp
     gpu_hw_shadergen.h
-    gpu_hw_vulkan.cpp
-    gpu_hw_vulkan.h
+    gpu_hw_shadergen.h)
+
+if(ENABLE_VULKAN)
+    target_sources(core PRIVATE
+        gpu_hw_vulkan.cpp
+        gpu_hw_vulkan.h)
+endif()
+
+target_sources(core PRIVATE
     gpu_sw.cpp
     gpu_sw.h
     gpu_sw_backend.cpp
@@ -114,8 +121,11 @@ set(RECOMPILER_SRCS
 
 target_include_directories(core PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_include_directories(core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
-target_link_libraries(core PUBLIC Threads::Threads common zlib libretro-common vulkan-loader)
+target_link_libraries(core PUBLIC Threads::Threads common zlib libretro-common)
 target_link_libraries(core PRIVATE glad stb xxhash)
+if(ENABLE_VULKAN)
+  target_link_libraries(core PUBLIC vulkan-loader)
+endif()
 
 if(WIN32)
   target_sources(core PRIVATE

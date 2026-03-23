@@ -72,31 +72,40 @@ add_library(common
   timer.cpp
   timer.h
   types.h
-  vulkan/builders.cpp
-  vulkan/builders.h
-  vulkan/context.cpp
-  vulkan/context.h
-  vulkan/shader_cache.cpp
-  vulkan/shader_cache.h
-  vulkan/shader_compiler.cpp
-  vulkan/shader_compiler.h
-  vulkan/staging_buffer.cpp
-  vulkan/staging_buffer.h
-  vulkan/staging_texture.cpp
-  vulkan/staging_texture.h
-  vulkan/stream_buffer.cpp
-  vulkan/stream_buffer.h
-  vulkan/texture.cpp
-  vulkan/texture.h
-  vulkan/util.cpp
-  vulkan/util.h
-  window_info.h
 )
+
+if(ENABLE_VULKAN)
+  target_sources(common PRIVATE
+    vulkan/builders.cpp
+    vulkan/builders.h
+    vulkan/context.cpp
+    vulkan/context.h
+    vulkan/shader_cache.cpp
+    vulkan/shader_cache.h
+    vulkan/shader_compiler.cpp
+    vulkan/shader_compiler.h
+    vulkan/staging_buffer.cpp
+    vulkan/staging_buffer.h
+    vulkan/staging_texture.cpp
+    vulkan/staging_texture.h
+    vulkan/stream_buffer.cpp
+    vulkan/stream_buffer.h
+    vulkan/texture.cpp
+    vulkan/texture.h
+    vulkan/util.cpp
+    vulkan/util.h
+  )
+endif()
 
 target_include_directories(common PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_include_directories(common PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_include_directories(common PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../dep/libretro-common/include")
-target_link_libraries(common PRIVATE glad stb Threads::Threads libchdr glslang vulkan-loader zlib)
+target_link_libraries(common PRIVATE glad stb Threads::Threads libchdr zlib)
+if(ENABLE_VULKAN)
+if(ENABLE_VULKAN)
+  target_link_libraries(common PRIVATE vulkan-loader glslang)
+endif()
+endif()
 target_compile_definitions(common PRIVATE -D__LIBRETRO__)
 
 if(WIN32)

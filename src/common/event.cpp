@@ -122,6 +122,45 @@ void Event::Reset()
   pthread_mutex_unlock(&m_mutex);
 }
 
+#elif defined(__SWITCH__)
+
+Event::Event(bool auto_reset /* = false */) : m_auto_reset(auto_reset)
+{
+  mutexInit(&m_mutex);
+  condvarInit(&m_cv);
+}
+
+Event::~Event() = default;
+
+void Event::Signal()
+{
+  mutexLock(&m_mutex);
+  m_signaled.store(true);
+  condvarWakeAll(&m_cv);
+  mutexUnlock(&m_mutex);
+}
+
+void Event::Wait()
+{
+  m_waiters.fetch_add(1);
+
+  mutexLock(&m_mutex);
+  while (!m_signaled.load())
+    condvarWait(&m_cv, &m_mutex);
+
+  if (m_waiters.fetch_sub(1) == 1 && m_auto_reset)
+    m_signaled.store(false);
+
+  mutexUnlock(&m_mutex);
+}
+
+void Event::Reset()
+{
+  mutexLock(&m_mutex);
+  m_signaled.store(false);
+  mutexUnlock(&m_mutex);
+}
+
 #else
 
 Event::Event(bool auto_reset /* = false */) : m_auto_reset(auto_reset) {}

@@ -103,6 +103,8 @@ extern "C" RFILE* rfopen(const char *path, const char *mode)
    if (output && position_to_end)
       filestream_seek(output, 0, RETRO_VFS_SEEK_POSITION_END);
 
+
+
    return output;
 }
 

@@ -122,10 +122,13 @@ void Execute();
 
 #ifdef WITH_RECOMPILER
 using DispatcherFunction = void (*)();
-using SingleBlockDispatcherFunction = void(*)(const CodeBlock::HostCodePointer);
+using SingleBlockDispatcherFunction = void (*)(const CodeBlock::HostCodePointer);
 
 FastMapTable* GetFastMapPointer();
 void ExecuteRecompiler();
+// Debugging: Exposed for direct call
+void FastCompileBlockFunction();
+JitCodeBuffer& GetCodeBuffer();
 #endif
 
 /// Flushes the code cache, forcing all blocks to be recompiled.

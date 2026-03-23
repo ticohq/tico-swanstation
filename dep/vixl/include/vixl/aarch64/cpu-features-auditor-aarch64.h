@@ -24,15 +24,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_CPU_FEATURES_AUDITOR_AARCH64_H_
-#define VIXL_AARCH64_CPU_FEATURES_AUDITOR_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_CPU_FEATURES_AUDITOR_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_CPU_FEATURES_AUDITOR_AARCH64_H_
 
 #include <iostream>
 
 #include "../cpu-features.h"
 #include "decoder-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // This visitor records the CPU features that each decoded instruction requires.
@@ -102,7 +102,7 @@ class CPUFeaturesAuditor : public DecoderVisitor {
 
 // Declare all Visitor functions.
 #define DECLARE(A) \
-  virtual void Visit##A(const Instruction* instr) VIXL_OVERRIDE;
+  virtual void Visit##A(const Instruction* instr) SWANSTATION_VIXL_OVERRIDE;
   VISITOR_LIST(DECLARE)
 #undef DECLARE
 
@@ -120,6 +120,6 @@ class CPUFeaturesAuditor : public DecoderVisitor {
 };
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_CPU_FEATURES_AUDITOR_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_CPU_FEATURES_AUDITOR_AARCH64_H_

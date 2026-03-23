@@ -24,12 +24,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_ASSEMBLER_BASE_H
-#define VIXL_ASSEMBLER_BASE_H
+#ifndef SWANSTATION_VIXL_ASSEMBLER_BASE_H
+#define SWANSTATION_VIXL_ASSEMBLER_BASE_H
 
 #include "code-buffer-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 class CodeBufferCheckScope;
 
@@ -54,7 +54,7 @@ class AssemblerBase {
   // Return the address of the cursor.
   template <typename T>
   T GetCursorAddress() const {
-    VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
     return GetBuffer().GetOffsetAddress<T>(GetCursorOffset());
   }
 
@@ -69,7 +69,7 @@ class AssemblerBase {
   void SetAllowAssembler(bool allow) { allow_assembler_ = allow; }
 
   // CodeBufferCheckScope must be able to temporarily allow the assembler.
-  friend class vixl::CodeBufferCheckScope;
+  friend class swanstation_vixl::CodeBufferCheckScope;
 
   // Buffer where the code is emitted.
   CodeBuffer buffer_;
@@ -82,20 +82,20 @@ class AssemblerBase {
 
   // Return the address of an offset in the buffer.
   template <typename T>
-  VIXL_DEPRECATED("GetBuffer().GetOffsetAddress<T>(offset)",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetOffsetAddress<T>(offset)",
                   T GetOffsetAddress(ptrdiff_t offset) const) {
     return GetBuffer().GetOffsetAddress<T>(offset);
   }
 
   // Return the address of the start of the buffer.
   template <typename T>
-  VIXL_DEPRECATED("GetBuffer().GetStartAddress<T>()",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetStartAddress<T>()",
                   T GetStartAddress() const) {
     return GetBuffer().GetOffsetAddress<T>(0);
   }
 };
 
 }  // namespace internal
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_ASSEMBLER_BASE_H
+#endif  // SWANSTATION_VIXL_ASSEMBLER_BASE_H

@@ -24,13 +24,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef VIXL_INCLUDE_SIMULATOR_AARCH64
+#ifdef SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64
 
 #include "simulator-aarch64.h"
 
 #include "utils-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Randomly generated example keys for simulating only.
@@ -81,7 +81,7 @@ static uint64_t SubstituteNibbles(uint64_t in_data) {
 
 // Rotate nibble to the left by the amount specified.
 static uint64_t RotNibble(uint64_t in_cell, int amount) {
-  VIXL_ASSERT((amount >= 0) && (amount <= 3));
+  SWANSTATION_VIXL_ASSERT((amount >= 0) && (amount <= 3));
 
   in_cell &= 0xf;
   uint64_t temp = (in_cell << 4) | in_cell;
@@ -143,7 +143,7 @@ uint64_t Simulator::AuthPAC(uint64_t ptr,
                             uint64_t context,
                             PACKey key,
                             PointerType type) {
-  VIXL_ASSERT((key.number == 0) || (key.number == 1));
+  SWANSTATION_VIXL_ASSERT((key.number == 0) || (key.number == 1));
 
   uint64_t pac_mask = CalculatePACMask(ptr, type, (ptr >> 55) & 1);
   uint64_t original_ptr =
@@ -169,7 +169,7 @@ uint64_t Simulator::AddPAC(uint64_t ptr,
 
   // TODO: Properly handle the case where extension bits are bad and TBI is
   // turned off, and also test me.
-  VIXL_ASSERT(HasTBI(ptr, type));
+  SWANSTATION_VIXL_ASSERT(HasTBI(ptr, type));
   int ttbr = (ptr >> 55) & 1;
   uint64_t pac_mask = CalculatePACMask(ptr, type, ttbr);
   uint64_t ext_ptr = (ttbr == 0) ? (ptr & ~pac_mask) : (ptr | pac_mask);
@@ -192,6 +192,6 @@ uint64_t Simulator::StripPAC(uint64_t ptr, PointerType type) {
   return ((ptr & kTTBRMask) == 0) ? (ptr & ~pac_mask) : (ptr | pac_mask);
 }
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_INCLUDE_SIMULATOR_AARCH64
+#endif  // SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64

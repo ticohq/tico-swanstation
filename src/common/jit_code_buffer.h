@@ -1,6 +1,10 @@
 #pragma once
 #include "types.h"
 
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+#include <switch.h>
+#endif
+
 class JitCodeBuffer
 {
 public:
@@ -16,7 +20,11 @@ public:
   void Destroy();
   void Reset();
 
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  ALWAYS_INLINE u8* GetCodePointer() const { return m_rx_ptr; }
+#else
   ALWAYS_INLINE u8* GetCodePointer() const { return m_code_ptr; }
+#endif
   ALWAYS_INLINE u32 GetTotalSize() const { return m_total_size; }
 
   ALWAYS_INLINE u8* GetFreeCodePointer() const { return m_free_code_ptr; }
@@ -28,6 +36,24 @@ public:
   ALWAYS_INLINE u32 GetFreeFarCodeSpace() const { return static_cast<u32>(m_far_code_size - m_far_code_used); }
   void CommitFarCode(u32 length);
 
+  ALWAYS_INLINE u8* GetFreeRxCodePointer() const
+  {
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+    return m_rx_ptr + (m_free_code_ptr - m_code_ptr);
+#else
+    return m_free_code_ptr;
+#endif
+  }
+
+  ALWAYS_INLINE u8* GetFreeFarRxCodePointer() const
+  {
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+    return m_rx_ptr + (m_free_far_code_ptr - m_code_ptr);
+#else
+    return m_free_far_code_ptr;
+#endif
+  }
+
   /// Adjusts the free code pointer to the specified alignment, padding with bytes.
   /// Assumes alignment is a power-of-two.
   void Align(u32 alignment, u8 padding_value);
@@ -35,8 +61,10 @@ public:
   /// Flushes the instruction cache on the host for the specified range.
   static void FlushInstructionCache(void* address, u32 size);
 
-  /// For Apple Silicon - Toggles write protection on the JIT space.
-#if defined(__APPLE__) && defined(__aarch64__)
+  /// Switch: Toggles write protection on the JIT space.
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+  void WriteProtect(bool enabled);
+#elif defined(__APPLE__) && defined(__aarch64__)
   static void WriteProtect(bool enabled);
 #else
   ALWAYS_INLINE static void WriteProtect(bool enabled) {}
@@ -58,4 +86,25 @@ private:
   u32 m_guard_size = 0;
   u32 m_old_protection = 0;
   bool m_owns_buffer = false;
+
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+public:
+  // On Switch, GetCodePointer() returns the RX alias so logical usage (offsets/calling) works.
+  // m_code_ptr will point to RW alias for internal writing logic.
+  ALWAYS_INLINE u8* GetRxPointer() const { return m_rx_ptr; }
+
+  // Converts an RX address to its corresponding RW address for writing.
+  // Returns nullptr if address is outside the JIT buffer range.
+  ALWAYS_INLINE void* RxToRw(void* rx_addr) const
+  {
+    u8* rx = static_cast<u8*>(rx_addr);
+    if (rx >= m_rx_ptr && rx < m_rx_ptr + m_total_size)
+      return m_code_ptr + (rx - m_rx_ptr);
+    return nullptr;
+  }
+
+private:
+  Jit m_jit = {};
+  u8* m_rx_ptr = nullptr;
+#endif
 };

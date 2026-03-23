@@ -26,11 +26,11 @@
 
 #include "compiler-intrinsics-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 
 int CountLeadingSignBitsFallBack(int64_t value, int width) {
-  VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
   if (value >= 0) {
     return CountLeadingZeros(value, width) - 1;
   } else {
@@ -40,7 +40,7 @@ int CountLeadingSignBitsFallBack(int64_t value, int width) {
 
 
 int CountLeadingZerosFallBack(uint64_t value, int width) {
-  VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
   if (value == 0) {
     return width;
   }
@@ -75,7 +75,7 @@ int CountLeadingZerosFallBack(uint64_t value, int width) {
 
 
 int CountSetBitsFallBack(uint64_t value, int width) {
-  VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
 
   // Mask out unused bits to ensure that they are not counted.
   value &= (UINT64_C(0xffffffffffffffff) >> (64 - width));
@@ -110,7 +110,7 @@ int CountSetBitsFallBack(uint64_t value, int width) {
 
 
 int CountTrailingZerosFallBack(uint64_t value, int width) {
-  VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(width) && (width <= 64));
   int count = 0;
   value = value << (64 - width);
   if ((value & UINT64_C(0xffffffff)) == 0) {
@@ -141,4 +141,4 @@ int CountTrailingZerosFallBack(uint64_t value, int width) {
 }
 
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
