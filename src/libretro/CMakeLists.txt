@@ -1,4 +1,4 @@
-add_library(swanstation_libretro SHARED
+add_library(swanstation_libretro
   libretro_audio_stream.cpp
   libretro_audio_stream.h
   libretro_game_settings.cpp
@@ -11,7 +11,12 @@ add_library(swanstation_libretro SHARED
   libretro_settings_interface.h
 )
 
-target_link_libraries(swanstation_libretro PRIVATE core common glad vulkan-loader libretro-common)
+target_link_libraries(swanstation_libretro PRIVATE core common glad libretro-common)
+if(ENABLE_VULKAN)
+if(ENABLE_VULKAN)
+  target_link_libraries(swanstation_libretro PRIVATE vulkan-loader)
+endif()
+endif()
 
 # no lib prefix
 set_target_properties(swanstation_libretro PROPERTIES PREFIX "")

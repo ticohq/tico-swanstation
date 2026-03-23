@@ -89,9 +89,9 @@ constexpr u32 CODE_STORAGE_ALIGNMENT = 4096;
 #elif defined(CPU_AARCH32)
 
 using HostReg = unsigned;
-using CodeEmitter = vixl::aarch32::MacroAssembler;
-using LabelType = vixl::aarch32::Label;
-constexpr u32 HostReg_Count = vixl::aarch32::kNumberOfRegisters;
+using CodeEmitter = swanstation_vixl::aarch32::MacroAssembler;
+using LabelType = swanstation_vixl::aarch32::Label;
+constexpr u32 HostReg_Count = swanstation_vixl::aarch32::kNumberOfRegisters;
 constexpr HostReg HostReg_Invalid = static_cast<HostReg>(HostReg_Count);
 constexpr RegSize HostPointerSize = RegSize_32;
 
@@ -105,9 +105,9 @@ constexpr u32 CODE_STORAGE_ALIGNMENT = 4096;
 #elif defined(CPU_AARCH64)
 
 using HostReg = unsigned;
-using CodeEmitter = vixl::aarch64::MacroAssembler;
-using LabelType = vixl::aarch64::Label;
-constexpr u32 HostReg_Count = vixl::aarch64::kNumberOfRegisters;
+using CodeEmitter = swanstation_vixl::aarch64::MacroAssembler;
+using LabelType = swanstation_vixl::aarch64::Label;
+constexpr u32 HostReg_Count = swanstation_vixl::aarch64::kNumberOfRegisters;
 constexpr HostReg HostReg_Invalid = static_cast<HostReg>(HostReg_Count);
 constexpr RegSize HostPointerSize = RegSize_64;
 

@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_GLOBALS_H
-#define VIXL_GLOBALS_H
+#ifndef SWANSTATION_VIXL_GLOBALS_H
+#define SWANSTATION_VIXL_GLOBALS_H
 
 // Get standard C99 macros for integer types.
 #ifndef __STDC_CONSTANT_MACROS
@@ -53,13 +53,13 @@ extern "C" {
 
 #include "platform-vixl.h"
 
-#ifdef VIXL_NEGATIVE_TESTING
+#ifdef SWANSTATION_VIXL_NEGATIVE_TESTING
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #endif
 
-namespace vixl {
+namespace swanstation_vixl {
 
 typedef uint8_t byte;
 
@@ -81,31 +81,31 @@ struct Unsigned<64> {
   typedef uint64_t type;
 };
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
 // Detect the host's pointer size.
 #if (UINTPTR_MAX == UINT32_MAX)
-#define VIXL_HOST_POINTER_32
+#define SWANSTATION_VIXL_HOST_POINTER_32
 #elif (UINTPTR_MAX == UINT64_MAX)
-#define VIXL_HOST_POINTER_64
+#define SWANSTATION_VIXL_HOST_POINTER_64
 #else
 #error "Unsupported host pointer size."
 #endif
 
-#ifdef VIXL_NEGATIVE_TESTING
-#define VIXL_ABORT()                                                         \
+#ifdef SWANSTATION_VIXL_NEGATIVE_TESTING
+#define SWANSTATION_VIXL_ABORT()                                                         \
   do {                                                                       \
     std::ostringstream oss;                                                  \
     oss << "Aborting in " << __FILE__ << ", line " << __LINE__ << std::endl; \
     throw std::runtime_error(oss.str());                                     \
   } while (false)
-#define VIXL_ABORT_WITH_MSG(msg)                                             \
+#define SWANSTATION_VIXL_ABORT_WITH_MSG(msg)                                             \
   do {                                                                       \
     std::ostringstream oss;                                                  \
     oss << (msg) << "in " << __FILE__ << ", line " << __LINE__ << std::endl; \
     throw std::runtime_error(oss.str());                                     \
   } while (false)
-#define VIXL_CHECK(condition)                                \
+#define SWANSTATION_VIXL_CHECK(condition)                                \
   do {                                                       \
     if (!(condition)) {                                      \
       std::ostringstream oss;                                \
@@ -115,17 +115,17 @@ struct Unsigned<64> {
     }                                                        \
   } while (false)
 #else
-#define VIXL_ABORT()                                         \
+#define SWANSTATION_VIXL_ABORT()                                         \
   do {                                                       \
     printf("Aborting in %s, line %i\n", __FILE__, __LINE__); \
     abort();                                                 \
   } while (false)
-#define VIXL_ABORT_WITH_MSG(msg)                             \
+#define SWANSTATION_VIXL_ABORT_WITH_MSG(msg)                             \
   do {                                                       \
     printf("%sin %s, line %i\n", (msg), __FILE__, __LINE__); \
     abort();                                                 \
   } while (false)
-#define VIXL_CHECK(condition)                           \
+#define SWANSTATION_VIXL_CHECK(condition)                           \
   do {                                                  \
     if (!(condition)) {                                 \
       printf("Assertion failed (%s)\nin %s, line %i\n", \
@@ -136,39 +136,39 @@ struct Unsigned<64> {
     }                                                   \
   } while (false)
 #endif
-#ifdef VIXL_DEBUG
-#define VIXL_ASSERT(condition) VIXL_CHECK(condition)
-#define VIXL_UNIMPLEMENTED()               \
+#ifdef SWANSTATION_VIXL_DEBUG
+#define SWANSTATION_VIXL_ASSERT(condition) SWANSTATION_VIXL_CHECK(condition)
+#define SWANSTATION_VIXL_UNIMPLEMENTED()               \
   do {                                     \
-    VIXL_ABORT_WITH_MSG("UNIMPLEMENTED "); \
+    SWANSTATION_VIXL_ABORT_WITH_MSG("UNIMPLEMENTED "); \
   } while (false)
-#define VIXL_UNREACHABLE()               \
+#define SWANSTATION_VIXL_UNREACHABLE()               \
   do {                                   \
-    VIXL_ABORT_WITH_MSG("UNREACHABLE "); \
+    SWANSTATION_VIXL_ABORT_WITH_MSG("UNREACHABLE "); \
   } while (false)
 #else
-#define VIXL_ASSERT(condition) ((void)0)
-#define VIXL_UNIMPLEMENTED() ((void)0)
-#define VIXL_UNREACHABLE() ((void)0)
+#define SWANSTATION_VIXL_ASSERT(condition) ((void)0)
+#define SWANSTATION_VIXL_UNIMPLEMENTED() ((void)0)
+#define SWANSTATION_VIXL_UNREACHABLE() ((void)0)
 #endif
 // This is not as powerful as template based assertions, but it is simple.
 // It assumes that the descriptions are unique. If this starts being a problem,
 // we can switch to a different implemention.
-#define VIXL_CONCAT(a, b) a##b
+#define SWANSTATION_VIXL_CONCAT(a, b) a##b
 #if __cplusplus >= 201103L
-#define VIXL_STATIC_ASSERT_LINE(line_unused, condition, message) \
+#define SWANSTATION_VIXL_STATIC_ASSERT_LINE(line_unused, condition, message) \
   static_assert(condition, message)
 #else
-#define VIXL_STATIC_ASSERT_LINE(line, condition, message_unused)            \
-  typedef char VIXL_CONCAT(STATIC_ASSERT_LINE_, line)[(condition) ? 1 : -1] \
+#define SWANSTATION_VIXL_STATIC_ASSERT_LINE(line, condition, message_unused)            \
+  typedef char SWANSTATION_VIXL_CONCAT(STATIC_ASSERT_LINE_, line)[(condition) ? 1 : -1] \
       __attribute__((unused))
 #endif
-#define VIXL_STATIC_ASSERT(condition) \
-  VIXL_STATIC_ASSERT_LINE(__LINE__, condition, "")
-#define VIXL_STATIC_ASSERT_MESSAGE(condition, message) \
-  VIXL_STATIC_ASSERT_LINE(__LINE__, condition, message)
+#define SWANSTATION_VIXL_STATIC_ASSERT(condition) \
+  SWANSTATION_VIXL_STATIC_ASSERT_LINE(__LINE__, condition, "")
+#define SWANSTATION_VIXL_STATIC_ASSERT_MESSAGE(condition, message) \
+  SWANSTATION_VIXL_STATIC_ASSERT_LINE(__LINE__, condition, message)
 
-#define VIXL_WARNING(message)                                          \
+#define SWANSTATION_VIXL_WARNING(message)                                          \
   do {                                                                 \
     printf("WARNING in %s, line %i: %s", __FILE__, __LINE__, message); \
   } while (false)
@@ -185,10 +185,10 @@ inline void USE(const T1&, const T2&, const T3&) {}
 template <typename T1, typename T2, typename T3, typename T4>
 inline void USE(const T1&, const T2&, const T3&, const T4&) {}
 
-#define VIXL_ALIGNMENT_EXCEPTION()            \
+#define SWANSTATION_VIXL_ALIGNMENT_EXCEPTION()            \
   do {                                        \
     fprintf(stderr, "ALIGNMENT EXCEPTION\t"); \
-    VIXL_ABORT();                             \
+    SWANSTATION_VIXL_ABORT();                             \
   } while (0)
 
 // The clang::fallthrough attribute is used along with the Wimplicit-fallthrough
@@ -201,51 +201,51 @@ inline void USE(const T1&, const T2&, const T3&, const T4&) {}
 
 // Fallthrough annotation for Clang and C++11(201103L).
 #if __has_warning("-Wimplicit-fallthrough") && __cplusplus >= 201103L
-#define VIXL_FALLTHROUGH() [[clang::fallthrough]]
+#define SWANSTATION_VIXL_FALLTHROUGH() [[clang::fallthrough]]
 // Fallthrough annotation for GCC >= 7.
 #elif __GNUC__ >= 7
-#define VIXL_FALLTHROUGH() __attribute__((fallthrough))
+#define SWANSTATION_VIXL_FALLTHROUGH() __attribute__((fallthrough))
 #else
-#define VIXL_FALLTHROUGH() \
+#define SWANSTATION_VIXL_FALLTHROUGH() \
   do {                     \
   } while (0)
 #endif
 
 #if __cplusplus >= 201103L
-#define VIXL_NO_RETURN [[noreturn]]
+#define SWANSTATION_VIXL_NO_RETURN [[noreturn]]
 #else
-#define VIXL_NO_RETURN __attribute__((noreturn))
+#define SWANSTATION_VIXL_NO_RETURN __attribute__((noreturn))
 #endif
-#ifdef VIXL_DEBUG
-#define VIXL_NO_RETURN_IN_DEBUG_MODE VIXL_NO_RETURN
+#ifdef SWANSTATION_VIXL_DEBUG
+#define SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE SWANSTATION_VIXL_NO_RETURN
 #else
-#define VIXL_NO_RETURN_IN_DEBUG_MODE
+#define SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE
 #endif
 
 #if __cplusplus >= 201103L
-#define VIXL_OVERRIDE override
+#define SWANSTATION_VIXL_OVERRIDE override
 #else
-#define VIXL_OVERRIDE
+#define SWANSTATION_VIXL_OVERRIDE
 #endif
 
 // Some functions might only be marked as "noreturn" for the DEBUG build. This
 // macro should be used for such cases (for more details see what
-// VIXL_UNREACHABLE expands to).
-#ifdef VIXL_DEBUG
-#define VIXL_DEBUG_NO_RETURN VIXL_NO_RETURN
+// SWANSTATION_VIXL_UNREACHABLE expands to).
+#ifdef SWANSTATION_VIXL_DEBUG
+#define SWANSTATION_VIXL_DEBUG_NO_RETURN SWANSTATION_VIXL_NO_RETURN
 #else
-#define VIXL_DEBUG_NO_RETURN
+#define SWANSTATION_VIXL_DEBUG_NO_RETURN
 #endif
 
-#ifdef VIXL_INCLUDE_SIMULATOR_AARCH64
-#ifndef VIXL_AARCH64_GENERATE_SIMULATOR_CODE
-#define VIXL_AARCH64_GENERATE_SIMULATOR_CODE 1
+#ifdef SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64
+#ifndef SWANSTATION_VIXL_AARCH64_GENERATE_SIMULATOR_CODE
+#define SWANSTATION_VIXL_AARCH64_GENERATE_SIMULATOR_CODE 1
 #endif
 #else
-#ifndef VIXL_AARCH64_GENERATE_SIMULATOR_CODE
-#define VIXL_AARCH64_GENERATE_SIMULATOR_CODE 0
+#ifndef SWANSTATION_VIXL_AARCH64_GENERATE_SIMULATOR_CODE
+#define SWANSTATION_VIXL_AARCH64_GENERATE_SIMULATOR_CODE 0
 #endif
-#if VIXL_AARCH64_GENERATE_SIMULATOR_CODE
+#if SWANSTATION_VIXL_AARCH64_GENERATE_SIMULATOR_CODE
 #warning "Generating Simulator instructions without Simulator support."
 #endif
 #endif
@@ -253,13 +253,13 @@ inline void USE(const T1&, const T2&, const T3&, const T4&) {}
 // We do not have a simulator for AArch32, although we can pretend we do so that
 // tests that require running natively can be skipped.
 #ifndef __arm__
-#define VIXL_INCLUDE_SIMULATOR_AARCH32
-#ifndef VIXL_AARCH32_GENERATE_SIMULATOR_CODE
-#define VIXL_AARCH32_GENERATE_SIMULATOR_CODE 1
+#define SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH32
+#ifndef SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE
+#define SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE 1
 #endif
 #else
-#ifndef VIXL_AARCH32_GENERATE_SIMULATOR_CODE
-#define VIXL_AARCH32_GENERATE_SIMULATOR_CODE 0
+#ifndef SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE
+#define SWANSTATION_VIXL_AARCH32_GENERATE_SIMULATOR_CODE 0
 #endif
 #endif
 
@@ -268,17 +268,17 @@ inline void USE(const T1&, const T2&, const T3&, const T4&) {}
 #endif
 
 // Target Architecture/ISA
-#ifdef VIXL_INCLUDE_TARGET_A64
-#define VIXL_INCLUDE_TARGET_AARCH64
+#ifdef SWANSTATION_VIXL_INCLUDE_TARGET_A64
+#define SWANSTATION_VIXL_INCLUDE_TARGET_AARCH64
 #endif
 
-#if defined(VIXL_INCLUDE_TARGET_A32) && defined(VIXL_INCLUDE_TARGET_T32)
-#define VIXL_INCLUDE_TARGET_AARCH32
-#elif defined(VIXL_INCLUDE_TARGET_A32)
-#define VIXL_INCLUDE_TARGET_A32_ONLY
+#if defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32) && defined(SWANSTATION_VIXL_INCLUDE_TARGET_T32)
+#define SWANSTATION_VIXL_INCLUDE_TARGET_AARCH32
+#elif defined(SWANSTATION_VIXL_INCLUDE_TARGET_A32)
+#define SWANSTATION_VIXL_INCLUDE_TARGET_A32_ONLY
 #else
-#define VIXL_INCLUDE_TARGET_T32_ONLY
+#define SWANSTATION_VIXL_INCLUDE_TARGET_T32_ONLY
 #endif
 
 
-#endif  // VIXL_GLOBALS_H
+#endif  // SWANSTATION_VIXL_GLOBALS_H

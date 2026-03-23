@@ -25,12 +25,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#ifndef VIXL_COMPILER_INTRINSICS_H
-#define VIXL_COMPILER_INTRINSICS_H
+#ifndef SWANSTATION_VIXL_COMPILER_INTRINSICS_H
+#define SWANSTATION_VIXL_COMPILER_INTRINSICS_H
 
 #include "globals-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 // Helper to check whether the version of GCC used is greater than the specified
 // requirement.
@@ -49,7 +49,7 @@ namespace vixl {
 #endif
 
 
-#if defined(__clang__) && !defined(VIXL_NO_COMPILER_BUILTINS)
+#if defined(__clang__) && !defined(SWANSTATION_VIXL_NO_COMPILER_BUILTINS)
 
 // clang-format off
 #define COMPILER_HAS_BUILTIN_CLRSB    (__has_builtin(__builtin_clrsb))
@@ -59,7 +59,7 @@ namespace vixl {
 #define COMPILER_HAS_BUILTIN_POPCOUNT (__has_builtin(__builtin_popcount))
 // clang-format on
 
-#elif defined(__GNUC__) && !defined(VIXL_NO_COMPILER_BUILTINS)
+#elif defined(__GNUC__) && !defined(SWANSTATION_VIXL_NO_COMPILER_BUILTINS)
 // The documentation for these builtins is available at:
 // https://gcc.gnu.org/onlinedocs/gcc-$MAJOR.$MINOR.$PATCHLEVEL/gcc//Other-Builtins.html
 
@@ -72,7 +72,7 @@ namespace vixl {
 // clang-format on
 
 #else
-// One can define VIXL_NO_COMPILER_BUILTINS to force using the manually
+// One can define SWANSTATION_VIXL_NO_COMPILER_BUILTINS to force using the manually
 // implemented C++ methods.
 
 // clang-format off
@@ -155,6 +155,6 @@ inline int CountTrailingZeros(V value, int width = (sizeof(V) * 8)) {
   return CountTrailingZerosFallBack(value, width);
 }
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_COMPILER_INTRINSICS_H
+#endif  // SWANSTATION_VIXL_COMPILER_INTRINSICS_H

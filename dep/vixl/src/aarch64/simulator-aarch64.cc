@@ -24,7 +24,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef VIXL_INCLUDE_SIMULATOR_AARCH64
+#ifdef SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64
 
 #include <cmath>
 #include <cstring>
@@ -32,20 +32,20 @@
 
 #include "simulator-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
-using vixl::internal::SimFloat16;
+using swanstation_vixl::internal::SimFloat16;
 
 const Instruction* Simulator::kEndOfSimAddress = NULL;
 
 void SimSystemRegister::SetBits(int msb, int lsb, uint32_t bits) {
   int width = msb - lsb + 1;
-  VIXL_ASSERT(IsUintN(width, bits) || IsIntN(width, bits));
+  SWANSTATION_VIXL_ASSERT(IsUintN(width, bits) || IsIntN(width, bits));
 
   bits <<= lsb;
   uint32_t mask = ((1 << width) - 1) << lsb;
-  VIXL_ASSERT((mask & write_ignore_mask_) == 0);
+  SWANSTATION_VIXL_ASSERT((mask & write_ignore_mask_) == 0);
 
   value_ = (value_ & ~mask) | (bits & mask);
 }
@@ -58,7 +58,7 @@ SimSystemRegister SimSystemRegister::DefaultValueFor(SystemRegister id) {
     case FPCR:
       return SimSystemRegister(0x00000000, FPCRWriteIgnoreMask);
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return SimSystemRegister();
   }
 }
@@ -67,8 +67,8 @@ SimSystemRegister SimSystemRegister::DefaultValueFor(SystemRegister id) {
 Simulator::Simulator(Decoder* decoder, FILE* stream)
     : cpu_features_auditor_(decoder, CPUFeatures::All()) {
   // Ensure that shift operations act as the simulator expects.
-  VIXL_ASSERT((static_cast<int32_t>(-1) >> 1) == -1);
-  VIXL_ASSERT((static_cast<uint32_t>(-1) >> 1) == 0x7fffffff);
+  SWANSTATION_VIXL_ASSERT((static_cast<int32_t>(-1) >> 1) == -1);
+  SWANSTATION_VIXL_ASSERT((static_cast<uint32_t>(-1) >> 1) == 0x7fffffff);
 
   instruction_stats_ = false;
 
@@ -129,11 +129,11 @@ void Simulator::ResetState() {
   uint64_t nan_bits[] = {
       UINT64_C(0x7ff00cab7f8ba9e1), UINT64_C(0x7ff0dead7f8beef1),
   };
-  VIXL_ASSERT(IsSignallingNaN(RawbitsToDouble(nan_bits[0] & kDRegMask)));
-  VIXL_ASSERT(IsSignallingNaN(RawbitsToFloat(nan_bits[0] & kSRegMask)));
+  SWANSTATION_VIXL_ASSERT(IsSignallingNaN(RawbitsToDouble(nan_bits[0] & kDRegMask)));
+  SWANSTATION_VIXL_ASSERT(IsSignallingNaN(RawbitsToFloat(nan_bits[0] & kSRegMask)));
 
   qreg_t q_bits;
-  VIXL_ASSERT(sizeof(q_bits) == sizeof(nan_bits));
+  SWANSTATION_VIXL_ASSERT(sizeof(q_bits) == sizeof(nan_bits));
   memcpy(&q_bits, nan_bits, sizeof(nan_bits));
 
   for (unsigned i = 0; i < kNumberOfVRegisters; i++) {
@@ -216,7 +216,7 @@ const char* Simulator::vreg_names[] = {"v0",  "v1",  "v2",  "v3",  "v4",  "v5",
 
 
 const char* Simulator::WRegNameForCode(unsigned code, Reg31Mode mode) {
-  VIXL_ASSERT(code < kNumberOfRegisters);
+  SWANSTATION_VIXL_ASSERT(code < kNumberOfRegisters);
   // If the code represents the stack pointer, index the name after zr.
   if ((code == kZeroRegCode) && (mode == Reg31IsStackPointer)) {
     code = kZeroRegCode + 1;
@@ -226,7 +226,7 @@ const char* Simulator::WRegNameForCode(unsigned code, Reg31Mode mode) {
 
 
 const char* Simulator::XRegNameForCode(unsigned code, Reg31Mode mode) {
-  VIXL_ASSERT(code < kNumberOfRegisters);
+  SWANSTATION_VIXL_ASSERT(code < kNumberOfRegisters);
   // If the code represents the stack pointer, index the name after zr.
   if ((code == kZeroRegCode) && (mode == Reg31IsStackPointer)) {
     code = kZeroRegCode + 1;
@@ -236,25 +236,25 @@ const char* Simulator::XRegNameForCode(unsigned code, Reg31Mode mode) {
 
 
 const char* Simulator::HRegNameForCode(unsigned code) {
-  VIXL_ASSERT(code < kNumberOfFPRegisters);
+  SWANSTATION_VIXL_ASSERT(code < kNumberOfFPRegisters);
   return hreg_names[code];
 }
 
 
 const char* Simulator::SRegNameForCode(unsigned code) {
-  VIXL_ASSERT(code < kNumberOfFPRegisters);
+  SWANSTATION_VIXL_ASSERT(code < kNumberOfFPRegisters);
   return sreg_names[code];
 }
 
 
 const char* Simulator::DRegNameForCode(unsigned code) {
-  VIXL_ASSERT(code < kNumberOfFPRegisters);
+  SWANSTATION_VIXL_ASSERT(code < kNumberOfFPRegisters);
   return dreg_names[code];
 }
 
 
 const char* Simulator::VRegNameForCode(unsigned code) {
-  VIXL_ASSERT(code < kNumberOfVRegisters);
+  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
   return vreg_names[code];
 }
 
@@ -334,8 +334,8 @@ uint64_t Simulator::AddWithCarry(unsigned reg_size,
                                  uint64_t left,
                                  uint64_t right,
                                  int carry_in) {
-  VIXL_ASSERT((carry_in == 0) || (carry_in == 1));
-  VIXL_ASSERT((reg_size == kXRegSize) || (reg_size == kWRegSize));
+  SWANSTATION_VIXL_ASSERT((carry_in == 0) || (carry_in == 1));
+  SWANSTATION_VIXL_ASSERT((reg_size == kXRegSize) || (reg_size == kWRegSize));
 
   uint64_t max_uint = (reg_size == kWRegSize) ? kWMaxUInt : kXMaxUInt;
   uint64_t reg_mask = (reg_size == kWRegSize) ? kWRegMask : kXRegMask;
@@ -372,7 +372,7 @@ int64_t Simulator::ShiftOperand(unsigned reg_size,
                                 int64_t value,
                                 Shift shift_type,
                                 unsigned amount) const {
-  VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
+  SWANSTATION_VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
   if (amount == 0) {
     return value;
   }
@@ -403,7 +403,7 @@ int64_t Simulator::ShiftOperand(unsigned reg_size,
       break;
     }
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       return 0;
   }
   uvalue &= mask;
@@ -450,7 +450,7 @@ int64_t Simulator::ExtendValue(unsigned reg_size,
     case SXTX:
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   return ShiftOperand(reg_size, value, LSL, left_shift);
 }
@@ -475,7 +475,7 @@ void Simulator::FPCompare(double val0, double val1, FPTrapFlags trap) {
   } else if (val0 == val1) {
     ReadNzcv().SetRawValue(FPEqualFlag);
   } else {
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
   }
   LogSystemRegister(NZCV);
   if (process_exception) FPProcessException();
@@ -483,12 +483,12 @@ void Simulator::FPCompare(double val0, double val1, FPTrapFlags trap) {
 
 
 uint64_t Simulator::ComputeMemOperandAddress(const MemOperand& mem_op) const {
-  VIXL_ASSERT(mem_op.IsValid());
+  SWANSTATION_VIXL_ASSERT(mem_op.IsValid());
   int64_t base = ReadRegister<int64_t>(mem_op.GetBaseRegister());
   if (mem_op.IsImmediateOffset()) {
     return base + mem_op.GetOffset();
   } else {
-    VIXL_ASSERT(mem_op.GetRegisterOffset().IsValid());
+    SWANSTATION_VIXL_ASSERT(mem_op.GetRegisterOffset().IsValid());
     int64_t offset = ReadRegister<int64_t>(mem_op.GetRegisterOffset());
     unsigned shift_amount = mem_op.GetShiftAmount();
     if (mem_op.GetShift() != NO_SHIFT) {
@@ -504,13 +504,13 @@ uint64_t Simulator::ComputeMemOperandAddress(const MemOperand& mem_op) const {
 
 Simulator::PrintRegisterFormat Simulator::GetPrintRegisterFormatForSize(
     unsigned reg_size, unsigned lane_size) {
-  VIXL_ASSERT(reg_size >= lane_size);
+  SWANSTATION_VIXL_ASSERT(reg_size >= lane_size);
 
   uint32_t format = 0;
   if (reg_size != lane_size) {
     switch (reg_size) {
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         break;
       case kQRegSizeInBytes:
         format = kPrintRegAsQVector;
@@ -523,7 +523,7 @@ Simulator::PrintRegisterFormat Simulator::GetPrintRegisterFormatForSize(
 
   switch (lane_size) {
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       break;
     case kQRegSizeInBytes:
       format |= kPrintReg1Q;
@@ -542,10 +542,10 @@ Simulator::PrintRegisterFormat Simulator::GetPrintRegisterFormatForSize(
       break;
   }
   // These sizes would be duplicate case labels.
-  VIXL_STATIC_ASSERT(kXRegSizeInBytes == kDRegSizeInBytes);
-  VIXL_STATIC_ASSERT(kWRegSizeInBytes == kSRegSizeInBytes);
-  VIXL_STATIC_ASSERT(kPrintXReg == kPrintReg1D);
-  VIXL_STATIC_ASSERT(kPrintWReg == kPrintReg1S);
+  SWANSTATION_VIXL_STATIC_ASSERT(kXRegSizeInBytes == kDRegSizeInBytes);
+  SWANSTATION_VIXL_STATIC_ASSERT(kWRegSizeInBytes == kSRegSizeInBytes);
+  SWANSTATION_VIXL_STATIC_ASSERT(kPrintXReg == kPrintReg1D);
+  SWANSTATION_VIXL_STATIC_ASSERT(kPrintWReg == kPrintReg1S);
 
   return static_cast<PrintRegisterFormat>(format);
 }
@@ -555,7 +555,7 @@ Simulator::PrintRegisterFormat Simulator::GetPrintRegisterFormat(
     VectorFormat vform) {
   switch (vform) {
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kPrintReg16B;
     case kFormat16B:
       return kPrintReg16B;
@@ -590,7 +590,7 @@ Simulator::PrintRegisterFormat Simulator::GetPrintRegisterFormatFP(
     VectorFormat vform) {
   switch (vform) {
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kPrintReg16B;
     case kFormat8H:
       return kPrintReg8HFP;
@@ -692,12 +692,12 @@ void Simulator::PrintRegisterRawHelper(unsigned code,
       padding_chars -= strlen(suffix);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   fprintf(stream_, "# %s%5s%s: ", clr_reg_name, name, suffix);
 
   // Print leading padding spaces.
-  VIXL_ASSERT(padding_chars < (kXRegSizeInBytes * 2));
+  SWANSTATION_VIXL_ASSERT(padding_chars < (kXRegSizeInBytes * 2));
   for (unsigned i = 0; i < padding_chars; i++) {
     putc(' ', stream_);
   }
@@ -705,7 +705,7 @@ void Simulator::PrintRegisterRawHelper(unsigned code,
   // Print the specified bits in hexadecimal format.
   uint64_t bits = ReadRegister<uint64_t>(code, r31mode);
   bits &= kXRegMask >> ((kXRegSizeInBytes - size_in_bytes) * 8);
-  VIXL_STATIC_ASSERT(sizeof(bits) == kXRegSizeInBytes);
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(bits) == kXRegSizeInBytes);
 
   int chars = size_in_bytes * 2;
   fprintf(stream_,
@@ -791,12 +791,12 @@ void Simulator::PrintVRegisterFPHelper(unsigned code,
                                        unsigned lane_size_in_bytes,
                                        int lane_count,
                                        int rightmost_lane) {
-  VIXL_ASSERT((lane_size_in_bytes == kHRegSizeInBytes) ||
+  SWANSTATION_VIXL_ASSERT((lane_size_in_bytes == kHRegSizeInBytes) ||
               (lane_size_in_bytes == kSRegSizeInBytes) ||
               (lane_size_in_bytes == kDRegSizeInBytes));
 
   unsigned msb = ((lane_count + rightmost_lane) * lane_size_in_bytes);
-  VIXL_ASSERT(msb <= kQRegSizeInBytes);
+  SWANSTATION_VIXL_ASSERT(msb <= kQRegSizeInBytes);
 
   // For scalar types ((lane_count == 1) && (rightmost_lane == 0)), a register
   // name is used:
@@ -823,7 +823,7 @@ void Simulator::PrintVRegisterFPHelper(unsigned code,
         break;
       default:
         name = NULL;
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
     }
     fprintf(stream_, " (%s%s: ", clr_vreg_name, name);
   } else {
@@ -851,7 +851,7 @@ void Simulator::PrintVRegisterFPHelper(unsigned code,
         break;
       default:
         value = 0.0;
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
     }
     if (IsNaN(value)) {
       // The output for NaNs is implementation defined. Always print `nan`, so
@@ -927,7 +927,7 @@ void Simulator::PrintSystemRegister(SystemRegister id) {
                                     "0b01 (Round towards Plus Infinity)",
                                     "0b10 (Round towards Minus Infinity)",
                                     "0b11 (Round towards Zero)"};
-      VIXL_ASSERT(ReadFpcr().GetRMode() < ArrayLength(rmode));
+      SWANSTATION_VIXL_ASSERT(ReadFpcr().GetRMode() < ArrayLength(rmode));
       fprintf(stream_,
               "# %sFPCR: %sAHP:%d DN:%d FZ:%d RMode:%s%s\n",
               clr_flag_name,
@@ -940,7 +940,7 @@ void Simulator::PrintSystemRegister(SystemRegister id) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
@@ -987,7 +987,7 @@ void Simulator::PrintVRead(uintptr_t address,
 void Simulator::PrintWrite(uintptr_t address,
                            unsigned reg_code,
                            PrintRegisterFormat format) {
-  VIXL_ASSERT(GetPrintRegLaneCount(format) == 1);
+  SWANSTATION_VIXL_ASSERT(GetPrintRegLaneCount(format) == 1);
 
   // The template is "# v{code}: 0x{value} -> {address}". To keep the trace tidy
   // and readable, the value is aligned with the values in the register trace.
@@ -1044,7 +1044,7 @@ void Simulator::VisitUnimplemented(const Instruction* instr) {
   printf("Unimplemented instruction at %p: 0x%08" PRIx32 "\n",
          reinterpret_cast<const void*>(instr),
          instr->GetInstructionBits());
-  VIXL_UNIMPLEMENTED();
+  SWANSTATION_VIXL_UNIMPLEMENTED();
 }
 
 
@@ -1052,12 +1052,12 @@ void Simulator::VisitUnallocated(const Instruction* instr) {
   printf("Unallocated instruction at %p: 0x%08" PRIx32 "\n",
          reinterpret_cast<const void*>(instr),
          instr->GetInstructionBits());
-  VIXL_UNIMPLEMENTED();
+  SWANSTATION_VIXL_UNIMPLEMENTED();
 }
 
 
 void Simulator::VisitPCRelAddressing(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(PCRelAddressingMask) == ADR) ||
+  SWANSTATION_VIXL_ASSERT((instr->Mask(PCRelAddressingMask) == ADR) ||
               (instr->Mask(PCRelAddressingMask) == ADRP));
 
   WriteRegister(instr->GetRd(), instr->GetImmPCOffsetTarget());
@@ -1068,18 +1068,18 @@ void Simulator::VisitUnconditionalBranch(const Instruction* instr) {
   switch (instr->Mask(UnconditionalBranchMask)) {
     case BL:
       WriteLr(instr->GetNextInstruction());
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case B:
       WritePc(instr->GetImmPCOffsetTarget());
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
 
 void Simulator::VisitConditionalBranch(const Instruction* instr) {
-  VIXL_ASSERT(instr->Mask(ConditionalBranchMask) == B_cond);
+  SWANSTATION_VIXL_ASSERT(instr->Mask(ConditionalBranchMask) == B_cond);
   if (ConditionPassed(instr->GetConditionBranch())) {
     WritePc(instr->GetImmPCOffsetTarget());
   }
@@ -1096,7 +1096,7 @@ void Simulator::VisitUnconditionalBranchToRegister(const Instruction* instr) {
   switch (instr->Mask(UnconditionalBranchToRegisterMask)) {
     case BLR:
       link = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case BR:
     case RET:
       addr = ReadXRegister(instr->GetRn());
@@ -1105,7 +1105,7 @@ void Simulator::VisitUnconditionalBranchToRegister(const Instruction* instr) {
     case BLRAAZ:
     case BLRABZ:
       link = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case BRAAZ:
     case BRABZ:
       authenticate = true;
@@ -1115,7 +1115,7 @@ void Simulator::VisitUnconditionalBranchToRegister(const Instruction* instr) {
     case BLRAA:
     case BLRAB:
       link = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case BRAA:
     case BRAB:
       authenticate = true;
@@ -1130,7 +1130,7 @@ void Simulator::VisitUnconditionalBranchToRegister(const Instruction* instr) {
       context = ReadXRegister(31, Reg31IsStackPointer);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   if (link) {
@@ -1143,7 +1143,7 @@ void Simulator::VisitUnconditionalBranchToRegister(const Instruction* instr) {
 
     int error_lsb = GetTopPACBit(addr, kInstructionPointer) - 2;
     if (((addr >> error_lsb) & 0x3) != 0x0) {
-      VIXL_ABORT_WITH_MSG("Failed to authenticate pointer.");
+      SWANSTATION_VIXL_ABORT_WITH_MSG("Failed to authenticate pointer.");
     }
   }
 
@@ -1165,7 +1165,7 @@ void Simulator::VisitTestBranch(const Instruction* instr) {
       take_branch = !bit_zero;
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
   if (take_branch) {
     WritePc(instr->GetImmPCOffsetTarget());
@@ -1190,7 +1190,7 @@ void Simulator::VisitCompareBranch(const Instruction* instr) {
       take_branch = (ReadXRegister(rt) != 0);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
   if (take_branch) {
     WritePc(instr->GetImmPCOffsetTarget());
@@ -1227,7 +1227,7 @@ void Simulator::AddSubHelper(const Instruction* instr, int64_t op2) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   WriteRegister(reg_size,
@@ -1316,7 +1316,7 @@ void Simulator::LogicalHelper(const Instruction* instr, int64_t op2) {
   switch (instr->Mask(LogicalOpMask & ~NOT)) {
     case ANDS:
       update_flags = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case AND:
       result = op1 & op2;
       break;
@@ -1327,7 +1327,7 @@ void Simulator::LogicalHelper(const Instruction* instr, int64_t op2) {
       result = op1 ^ op2;
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   if (update_flags) {
@@ -1368,7 +1368,7 @@ void Simulator::ConditionalCompareHelper(const Instruction* instr,
     if (instr->Mask(ConditionalCompareMask) == CCMP) {
       AddWithCarry(reg_size, true, op1, ~op2, 1);
     } else {
-      VIXL_ASSERT(instr->Mask(ConditionalCompareMask) == CCMN);
+      SWANSTATION_VIXL_ASSERT(instr->Mask(ConditionalCompareMask) == CCMN);
       AddWithCarry(reg_size, true, op1, op2, 0);
     }
   } else {
@@ -1402,7 +1402,7 @@ void Simulator::VisitLoadStorePostIndex(const Instruction* instr) {
 
 void Simulator::VisitLoadStoreRegisterOffset(const Instruction* instr) {
   Extend ext = static_cast<Extend>(instr->GetExtendMode());
-  VIXL_ASSERT((ext == UXTW) || (ext == UXTX) || (ext == SXTW) || (ext == SXTX));
+  SWANSTATION_VIXL_ASSERT((ext == UXTW) || (ext == UXTX) || (ext == SXTW) || (ext == SXTX));
   unsigned shift_amount = instr->GetImmShiftLS() * instr->GetSizeLS();
 
   int64_t offset =
@@ -1495,7 +1495,7 @@ void Simulator::LoadStoreHelper(const Instruction* instr,
       break;
 
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   unsigned access_size = 1 << instr->GetSizeLS();
@@ -1516,7 +1516,7 @@ void Simulator::LoadStoreHelper(const Instruction* instr,
       LogWrite(address, srcdst, GetPrintRegisterFormatForSize(access_size));
     }
   } else {
-    VIXL_ASSERT(op == PRFM);
+    SWANSTATION_VIXL_ASSERT(op == PRFM);
   }
 
   local_monitor_.MaybeClear();
@@ -1556,7 +1556,7 @@ void Simulator::LoadStorePairHelper(const Instruction* instr,
       static_cast<LoadStorePairOp>(instr->Mask(LoadStorePairMask));
 
   // 'rt' and 'rt2' can only be aliased for stores.
-  VIXL_ASSERT(((op & LoadStorePairLBit) == 0) || (rt != rt2));
+  SWANSTATION_VIXL_ASSERT(((op & LoadStorePairLBit) == 0) || (rt != rt2));
 
   switch (op) {
     // Use NoRegLog to suppress the register trace (LOG_REGS, LOG_FP_REGS). We
@@ -1617,7 +1617,7 @@ void Simulator::LoadStorePairHelper(const Instruction* instr,
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   // Print a detailed trace (including the memory address) instead of the basic
@@ -1702,12 +1702,12 @@ void Simulator::CompareAndSwapHelper(const Instruction* instr) {
 
 template <typename T>
 void Simulator::CompareAndSwapPairHelper(const Instruction* instr) {
-  VIXL_ASSERT((sizeof(T) == 4) || (sizeof(T) == 8));
+  SWANSTATION_VIXL_ASSERT((sizeof(T) == 4) || (sizeof(T) == 8));
   unsigned rs = instr->GetRs();
   unsigned rt = instr->GetRt();
   unsigned rn = instr->GetRn();
 
-  VIXL_ASSERT((rs % 2 == 0) && (rs % 2 == 0));
+  SWANSTATION_VIXL_ASSERT((rs % 2 == 0) && (rs % 2 == 0));
 
   unsigned element_size = sizeof(T);
   uint64_t address = ReadRegister<uint64_t>(rn, Reg31IsStackPointer);
@@ -1779,16 +1779,16 @@ void Simulator::VisitLoadStoreExclusive(const Instruction* instr) {
   uint64_t address = ReadRegister<uint64_t>(rn, Reg31IsStackPointer);
 
   // Verify that the address is available to the host.
-  VIXL_ASSERT(address == static_cast<uintptr_t>(address));
+  SWANSTATION_VIXL_ASSERT(address == static_cast<uintptr_t>(address));
 
   // Check the alignment of `address`.
   if (AlignDown(address, access_size) != address) {
-    VIXL_ALIGNMENT_EXCEPTION();
+    SWANSTATION_VIXL_ALIGNMENT_EXCEPTION();
   }
 
   // The sp must be aligned to 16 bytes when it is accessed.
   if ((rn == 31) && (AlignDown(address, 16) != address)) {
-    VIXL_ALIGNMENT_EXCEPTION();
+    SWANSTATION_VIXL_ALIGNMENT_EXCEPTION();
   }
 
 
@@ -1882,7 +1882,7 @@ void Simulator::VisitLoadStoreExclusive(const Instruction* instr) {
                            NoRegLog);
             break;
           default:
-            VIXL_UNREACHABLE();
+            SWANSTATION_VIXL_UNREACHABLE();
         }
 
         if (is_acquire_release) {
@@ -1955,7 +1955,7 @@ void Simulator::VisitLoadStoreExclusive(const Instruction* instr) {
                                       ReadXRegister(rt2));
               break;
             default:
-              VIXL_UNREACHABLE();
+              SWANSTATION_VIXL_UNREACHABLE();
           }
 
           LogWrite(address, rt, GetPrintRegisterFormatForSize(element_size));
@@ -1982,7 +1982,7 @@ void Simulator::AtomicMemorySimpleHelper(const Instruction* instr) {
   uint64_t address = ReadRegister<uint64_t>(rn, Reg31IsStackPointer);
 
   // Verify that the address is available to the host.
-  VIXL_ASSERT(address == static_cast<uintptr_t>(address));
+  SWANSTATION_VIXL_ASSERT(address == static_cast<uintptr_t>(address));
 
   T value = ReadRegister<T>(rs);
 
@@ -1999,15 +1999,15 @@ void Simulator::AtomicMemorySimpleHelper(const Instruction* instr) {
       result = data + value;
       break;
     case LDCLROp:
-      VIXL_ASSERT(!std::numeric_limits<T>::is_signed);
+      SWANSTATION_VIXL_ASSERT(!std::numeric_limits<T>::is_signed);
       result = data & ~value;
       break;
     case LDEOROp:
-      VIXL_ASSERT(!std::numeric_limits<T>::is_signed);
+      SWANSTATION_VIXL_ASSERT(!std::numeric_limits<T>::is_signed);
       result = data ^ value;
       break;
     case LDSETOp:
-      VIXL_ASSERT(!std::numeric_limits<T>::is_signed);
+      SWANSTATION_VIXL_ASSERT(!std::numeric_limits<T>::is_signed);
       result = data | value;
       break;
 
@@ -2047,7 +2047,7 @@ void Simulator::AtomicMemorySwapHelper(const Instruction* instr) {
   uint64_t address = ReadRegister<uint64_t>(rn, Reg31IsStackPointer);
 
   // Verify that the address is available to the host.
-  VIXL_ASSERT(address == static_cast<uintptr_t>(address));
+  SWANSTATION_VIXL_ASSERT(address == static_cast<uintptr_t>(address));
 
   T data = Memory::Read<T>(address);
   if (is_acquire) {
@@ -2076,7 +2076,7 @@ void Simulator::LoadAcquireRCpcHelper(const Instruction* instr) {
   uint64_t address = ReadRegister<uint64_t>(rn, Reg31IsStackPointer);
 
   // Verify that the address is available to the host.
-  VIXL_ASSERT(address == static_cast<uintptr_t>(address));
+  SWANSTATION_VIXL_ASSERT(address == static_cast<uintptr_t>(address));
   WriteRegister<T>(rt, Memory::Read<T>(address));
 
   // Approximate load-acquire by issuing a full barrier after the load.
@@ -2192,7 +2192,7 @@ void Simulator::VisitLoadLiteral(const Instruction* instr) {
   uint64_t address = instr->GetLiteralAddress<uint64_t>();
 
   // Verify that the calculated address is available to the host.
-  VIXL_ASSERT(address == static_cast<uintptr_t>(address));
+  SWANSTATION_VIXL_ASSERT(address == static_cast<uintptr_t>(address));
 
   switch (instr->Mask(LoadLiteralMask)) {
     // Use NoRegLog to suppress the register trace (LOG_REGS, LOG_VREGS), then
@@ -2227,7 +2227,7 @@ void Simulator::VisitLoadLiteral(const Instruction* instr) {
       break;
 
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   local_monitor_.MaybeClear();
@@ -2243,11 +2243,11 @@ uintptr_t Simulator::AddressModeHelper(unsigned addr_reg,
     // When the base register is SP the stack pointer is required to be
     // quadword aligned prior to the address calculation and write-backs.
     // Misalignment will cause a stack alignment fault.
-    VIXL_ALIGNMENT_EXCEPTION();
+    SWANSTATION_VIXL_ALIGNMENT_EXCEPTION();
   }
 
   if ((addrmode == PreIndex) || (addrmode == PostIndex)) {
-    VIXL_ASSERT(offset != 0);
+    SWANSTATION_VIXL_ASSERT(offset != 0);
     // Only preindex should log the register update here. For Postindex, the
     // update will be printed automatically by LogWrittenRegisters _after_ the
     // memory access itself is logged.
@@ -2260,7 +2260,7 @@ uintptr_t Simulator::AddressModeHelper(unsigned addr_reg,
   }
 
   // Verify that the calculated address is available to the host.
-  VIXL_ASSERT(address == static_cast<uintptr_t>(address));
+  SWANSTATION_VIXL_ASSERT(address == static_cast<uintptr_t>(address));
 
   return static_cast<uintptr_t>(address);
 }
@@ -2273,7 +2273,7 @@ void Simulator::VisitMoveWideImmediate(const Instruction* instr) {
 
   bool is_64_bits = instr->GetSixtyFourBits() == 1;
   // Shift is limited for W operations.
-  VIXL_ASSERT(is_64_bits || (instr->GetShiftMoveWide() < 2));
+  SWANSTATION_VIXL_ASSERT(is_64_bits || (instr->GetShiftMoveWide() < 2));
 
   // Get the shifted immediate.
   int64_t shift = instr->GetShiftMoveWide() * 16;
@@ -2302,7 +2302,7 @@ void Simulator::VisitMoveWideImmediate(const Instruction* instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   // Update the destination register.
@@ -2332,7 +2332,7 @@ void Simulator::VisitConditionalSelect(const Instruction* instr) {
         new_val = -new_val;
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   }
   unsigned reg_size = instr->GetSixtyFourBits() ? kXRegSize : kWRegSize;
@@ -2412,13 +2412,13 @@ void Simulator::VisitDataProcessing1Source(const Instruction* instr) {
       WriteXRegister(dst, CountLeadingSignBits(ReadXRegister(src)));
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
 
 uint32_t Simulator::Poly32Mod2(unsigned n, uint64_t data, uint32_t poly) {
-  VIXL_ASSERT((n > 32) && (n <= 64));
+  SWANSTATION_VIXL_ASSERT((n > 32) && (n <= 64));
   for (unsigned i = (n - 1); i >= 32; i--) {
     if (((data >> i) & 1) != 0) {
       uint64_t polysh32 = (uint64_t)poly << (i - 32);
@@ -2433,7 +2433,7 @@ uint32_t Simulator::Poly32Mod2(unsigned n, uint64_t data, uint32_t poly) {
 template <typename T>
 uint32_t Simulator::Crc32Checksum(uint32_t acc, T val, uint32_t poly) {
   unsigned size = sizeof(val) * 8;  // Number of bits in type T.
-  VIXL_ASSERT((size == 8) || (size == 16) || (size == 32));
+  SWANSTATION_VIXL_ASSERT((size == 8) || (size == 16) || (size == 32));
   uint64_t tempacc = static_cast<uint64_t>(ReverseBits(acc)) << size;
   uint64_t tempval = static_cast<uint64_t>(ReverseBits(val)) << 32;
   return ReverseBits(Poly32Mod2(32 + size, tempacc ^ tempval, poly));
@@ -2577,7 +2577,7 @@ void Simulator::VisitDataProcessing2Source(const Instruction* instr) {
       break;
     }
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   if (shift_op != NO_SHIFT) {
@@ -2605,8 +2605,8 @@ static int64_t MultiplyHigh(T u, T v) {
     sign_ext = UINT64_C(0xffffffff00000000);
   }
 
-  VIXL_ASSERT(sizeof(u) == sizeof(uint64_t));
-  VIXL_ASSERT(sizeof(u) == sizeof(u0));
+  SWANSTATION_VIXL_ASSERT(sizeof(u) == sizeof(uint64_t));
+  SWANSTATION_VIXL_ASSERT(sizeof(u) == sizeof(u0));
 
   u0 = u & 0xffffffff;
   u1 = u >> 32 | (((u & sign_mask) != 0) ? sign_ext : 0);
@@ -2671,7 +2671,7 @@ void Simulator::VisitDataProcessing3Source(const Instruction* instr) {
                             ReadXRegister(instr->GetRm()));
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
   WriteRegister(reg_size, instr->GetRd(), result);
 }
@@ -2712,7 +2712,7 @@ void Simulator::VisitBitfield(const Instruction* instr) {
       inzero = true;
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   uint64_t dst = inzero ? 0 : ReadRegister(reg_size, instr->GetRd());
@@ -2756,7 +2756,7 @@ void Simulator::VisitFPImmediate(const Instruction* instr) {
       WriteDRegister(dest, instr->GetImmFP64());
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
@@ -3030,7 +3030,7 @@ void Simulator::VisitFPIntegerConvert(const Instruction* instr) {
     }
 
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
@@ -3156,7 +3156,7 @@ void Simulator::VisitFPFixedPointConvert(const Instruction* instr) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
@@ -3168,7 +3168,7 @@ void Simulator::VisitFPCompare(const Instruction* instr) {
   switch (instr->Mask(FPCompareMask)) {
     case FCMPE_h:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_h:
       FPCompare(ReadHRegister(instr->GetRn()),
                 ReadHRegister(instr->GetRm()),
@@ -3176,7 +3176,7 @@ void Simulator::VisitFPCompare(const Instruction* instr) {
       break;
     case FCMPE_s:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_s:
       FPCompare(ReadSRegister(instr->GetRn()),
                 ReadSRegister(instr->GetRm()),
@@ -3184,7 +3184,7 @@ void Simulator::VisitFPCompare(const Instruction* instr) {
       break;
     case FCMPE_d:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_d:
       FPCompare(ReadDRegister(instr->GetRn()),
                 ReadDRegister(instr->GetRm()),
@@ -3192,24 +3192,24 @@ void Simulator::VisitFPCompare(const Instruction* instr) {
       break;
     case FCMPE_h_zero:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_h_zero:
       FPCompare(ReadHRegister(instr->GetRn()), SimFloat16(0.0), trap);
       break;
     case FCMPE_s_zero:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_s_zero:
       FPCompare(ReadSRegister(instr->GetRn()), 0.0f, trap);
       break;
     case FCMPE_d_zero:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCMP_d_zero:
       FPCompare(ReadDRegister(instr->GetRn()), 0.0, trap);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3221,7 +3221,7 @@ void Simulator::VisitFPConditionalCompare(const Instruction* instr) {
   switch (instr->Mask(FPConditionalCompareMask)) {
     case FCCMPE_h:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCCMP_h:
       if (ConditionPassed(instr->GetCondition())) {
         FPCompare(ReadHRegister(instr->GetRn()),
@@ -3234,7 +3234,7 @@ void Simulator::VisitFPConditionalCompare(const Instruction* instr) {
       break;
     case FCCMPE_s:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCCMP_s:
       if (ConditionPassed(instr->GetCondition())) {
         FPCompare(ReadSRegister(instr->GetRn()),
@@ -3247,7 +3247,7 @@ void Simulator::VisitFPConditionalCompare(const Instruction* instr) {
       break;
     case FCCMPE_d:
       trap = EnableTrap;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case FCCMP_d:
       if (ConditionPassed(instr->GetCondition())) {
         FPCompare(ReadDRegister(instr->GetRn()),
@@ -3259,7 +3259,7 @@ void Simulator::VisitFPConditionalCompare(const Instruction* instr) {
       }
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3285,7 +3285,7 @@ void Simulator::VisitFPConditionalSelect(const Instruction* instr) {
       WriteDRegister(instr->GetRd(), ReadDRegister(selected));
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3297,7 +3297,7 @@ void Simulator::VisitFPDataProcessing1Source(const Instruction* instr) {
   VectorFormat vform;
   switch (instr->Mask(FPTypeMask)) {
     default:
-      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
     case FP64:
       vform = kFormatD;
       break;
@@ -3404,7 +3404,7 @@ void Simulator::VisitFPDataProcessing1Source(const Instruction* instr) {
       fpcr_rounding = FPZero;
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   // Only FRINT* instructions fall through the switch above.
@@ -3420,7 +3420,7 @@ void Simulator::VisitFPDataProcessing2Source(const Instruction* instr) {
   VectorFormat vform;
   switch (instr->Mask(FPTypeMask)) {
     default:
-      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
     case FP64:
       vform = kFormatD;
       break;
@@ -3482,7 +3482,7 @@ void Simulator::VisitFPDataProcessing2Source(const Instruction* instr) {
       fminnm(vform, rd, rn, rm);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   // Explicitly log the register update whilst we have type information.
   LogVRegister(instr->GetRd(), GetPrintRegisterFormatFP(vform));
@@ -3573,7 +3573,7 @@ void Simulator::VisitFPDataProcessing3Source(const Instruction* instr) {
                               ReadDRegister(fm)));
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3597,8 +3597,8 @@ bool Simulator::FPProcessNaNs(const Instruction* instr) {
       done = true;
     }
   } else {
-    VIXL_ASSERT(instr->Mask(FP16) == FP16);
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_ASSERT(instr->Mask(FP16) == FP16);
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   return done;
@@ -3619,7 +3619,7 @@ void Simulator::SysOp_W(int op, int64_t val) {
       break;
     }
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3661,7 +3661,7 @@ void Simulator::VisitSystem(const Instruction* instr) {
     }
   } else if (instr->Mask(SystemExclusiveMonitorFMask) ==
              SystemExclusiveMonitorFixed) {
-    VIXL_ASSERT(instr->Mask(SystemExclusiveMonitorMask) == CLREX);
+    SWANSTATION_VIXL_ASSERT(instr->Mask(SystemExclusiveMonitorMask) == CLREX);
     switch (instr->Mask(SystemExclusiveMonitorMask)) {
       case CLREX: {
         PrintExclusiveAccessWarning();
@@ -3680,7 +3680,7 @@ void Simulator::VisitSystem(const Instruction* instr) {
             WriteXRegister(instr->GetRt(), ReadFpcr().GetRawValue());
             break;
           default:
-            VIXL_UNIMPLEMENTED();
+            SWANSTATION_VIXL_UNIMPLEMENTED();
         }
         break;
       }
@@ -3695,20 +3695,20 @@ void Simulator::VisitSystem(const Instruction* instr) {
             LogSystemRegister(FPCR);
             break;
           default:
-            VIXL_UNIMPLEMENTED();
+            SWANSTATION_VIXL_UNIMPLEMENTED();
         }
         break;
       }
     }
   } else if (instr->Mask(SystemHintFMask) == SystemHintFixed) {
-    VIXL_ASSERT(instr->Mask(SystemHintMask) == HINT);
+    SWANSTATION_VIXL_ASSERT(instr->Mask(SystemHintMask) == HINT);
     switch (instr->GetImmHint()) {
       case NOP:
       case ESB:
       case CSDB:
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else if (instr->Mask(MemBarrierFMask) == MemBarrierFixed) {
     __sync_synchronize();
@@ -3718,10 +3718,10 @@ void Simulator::VisitSystem(const Instruction* instr) {
         SysOp_W(instr->GetSysOp(), ReadXRegister(instr->GetRt()));
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3764,7 +3764,7 @@ void Simulator::VisitException(const Instruction* instr) {
       HostBreakpoint();
       return;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -3879,7 +3879,7 @@ void Simulator::VisitNEON2RegMisc(const Instruction* instr) {
             rbit(vf, rd, rn);
             break;
           default:
-            VIXL_UNIMPLEMENTED();
+            SWANSTATION_VIXL_UNIMPLEMENTED();
         }
         break;
     }
@@ -4033,10 +4033,10 @@ void Simulator::VisitNEON2RegMisc(const Instruction* instr) {
               }
               return;
             default:
-              VIXL_UNIMPLEMENTED();
+              SWANSTATION_VIXL_UNIMPLEMENTED();
           }
         } else {
-          VIXL_UNIMPLEMENTED();
+          SWANSTATION_VIXL_UNIMPLEMENTED();
         }
     }
 
@@ -4145,7 +4145,7 @@ void Simulator::VisitNEON2RegMiscFP16(const Instruction* instr) {
       fcmp_zero(fpf, rd, rn, lt);
       return;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       return;
   }
 }
@@ -4185,7 +4185,7 @@ void Simulator::VisitNEON3Same(const Instruction* instr) {
         bsl(vf, rd, rn, rm);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else if (instr->Mask(NEON3SameFPFMask) == NEON3SameFPFixed) {
     VectorFormat vf = nfd.GetVectorFormat(nfd.FPFormatMap());
@@ -4263,7 +4263,7 @@ void Simulator::VisitNEON3Same(const Instruction* instr) {
         fminnmp(vf, rd, rn, rm);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else {
     VectorFormat vf = nfd.GetVectorFormat();
@@ -4404,7 +4404,7 @@ void Simulator::VisitNEON3Same(const Instruction* instr) {
         sub(vf, rd, rn, rm).Halve(vf);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   }
 }
@@ -4458,7 +4458,7 @@ void Simulator::VisitNEON3SameFP16(const Instruction* instr) {
       fabscmp(vf, rd, rn, rm, gt);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       break;
   }
 }
@@ -4491,7 +4491,7 @@ void Simulator::VisitNEON3SameExtra(const Instruction* instr) {
         sqrdmlsh(vf, rd, rn, rm);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
         break;
     }
   }
@@ -4665,7 +4665,7 @@ void Simulator::VisitNEON3Different(const Instruction* instr) {
       rsubhn2(vf, rd, rn, rm);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -4694,7 +4694,7 @@ void Simulator::VisitNEONAcrossLanes(const Instruction* instr) {
         fminnmv(vf, rd, rn);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else if (instr->Mask(NEONAcrossLanesFPFMask) == NEONAcrossLanesFPFixed) {
     // The input operand's VectorFormat is passed for these instructions.
@@ -4714,7 +4714,7 @@ void Simulator::VisitNEONAcrossLanes(const Instruction* instr) {
         fminnmv(vf, rd, rn);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else {
     VectorFormat vf = nfd.GetVectorFormat();
@@ -4742,7 +4742,7 @@ void Simulator::VisitNEONAcrossLanes(const Instruction* instr) {
         uaddlv(vf, rd, rn);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   }
 }
@@ -4881,25 +4881,25 @@ void Simulator::VisitNEONByIndexedElement(const Instruction* instr) {
       switch (instr->Mask(NEONByIndexedElementFPMask)) {
         case NEON_FMUL_H_byelement:
           vf = vf_half;
-          VIXL_FALLTHROUGH();
+          SWANSTATION_VIXL_FALLTHROUGH();
         case NEON_FMUL_byelement:
           Op = &Simulator::fmul;
           break;
         case NEON_FMLA_H_byelement:
           vf = vf_half;
-          VIXL_FALLTHROUGH();
+          SWANSTATION_VIXL_FALLTHROUGH();
         case NEON_FMLA_byelement:
           Op = &Simulator::fmla;
           break;
         case NEON_FMLS_H_byelement:
           vf = vf_half;
-          VIXL_FALLTHROUGH();
+          SWANSTATION_VIXL_FALLTHROUGH();
         case NEON_FMLS_byelement:
           Op = &Simulator::fmls;
           break;
         case NEON_FMULX_H_byelement:
           vf = vf_half;
-          VIXL_FALLTHROUGH();
+          SWANSTATION_VIXL_FALLTHROUGH();
         case NEON_FMULX_byelement:
           Op = &Simulator::fmulx;
           break;
@@ -4919,7 +4919,7 @@ void Simulator::VisitNEONByIndexedElement(const Instruction* instr) {
                     instr->GetImmRotFcmlaSca());
               return;
             default:
-              VIXL_UNIMPLEMENTED();
+              SWANSTATION_VIXL_UNIMPLEMENTED();
           }
       }
   }
@@ -4960,7 +4960,7 @@ void Simulator::VisitNEONCopy(const Instruction* instr) {
   } else if (instr->Mask(NEONCopyDupGeneralMask) == NEON_DUP_GENERAL) {
     dup_immediate(vf, rd, ReadXRegister(instr->GetRn()));
   } else {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -4975,7 +4975,7 @@ void Simulator::VisitNEONExtract(const Instruction* instr) {
     int index = instr->GetImmNEONExt();
     ext(vf, rd, rn, rm, index);
   } else {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -5001,7 +5001,7 @@ void Simulator::NEONLoadStoreMultiStructHelper(const Instruction* instr,
   // In offset mode, bits 20 to 16 should be zero; these bits encode the
   // register or immediate in post-index mode.
   if ((instr->ExtractBit(23) == 0) && (instr->ExtractBits(20, 16) != 0)) {
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
   }
 
   // We use the PostIndex mask here, as it works in this case for both Offset
@@ -5011,17 +5011,17 @@ void Simulator::NEONLoadStoreMultiStructHelper(const Instruction* instr,
     case NEON_LD1_4v_post:
       ld1(vf, ReadVRegister(reg[3]), addr[3]);
       count++;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_LD1_3v:
     case NEON_LD1_3v_post:
       ld1(vf, ReadVRegister(reg[2]), addr[2]);
       count++;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_LD1_2v:
     case NEON_LD1_2v_post:
       ld1(vf, ReadVRegister(reg[1]), addr[1]);
       count++;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_LD1_1v:
     case NEON_LD1_1v_post:
       ld1(vf, ReadVRegister(reg[0]), addr[0]);
@@ -5030,17 +5030,17 @@ void Simulator::NEONLoadStoreMultiStructHelper(const Instruction* instr,
     case NEON_ST1_4v_post:
       st1(vf, ReadVRegister(reg[3]), addr[3]);
       count++;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_ST1_3v:
     case NEON_ST1_3v_post:
       st1(vf, ReadVRegister(reg[2]), addr[2]);
       count++;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_ST1_2v:
     case NEON_ST1_2v_post:
       st1(vf, ReadVRegister(reg[1]), addr[1]);
       count++;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_ST1_1v:
     case NEON_ST1_1v_post:
       st1(vf, ReadVRegister(reg[0]), addr[0]);
@@ -5098,7 +5098,7 @@ void Simulator::NEONLoadStoreMultiStructHelper(const Instruction* instr,
       count = 4;
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   // Explicitly log the register update whilst we have type information.
@@ -5122,7 +5122,7 @@ void Simulator::NEONLoadStoreMultiStructHelper(const Instruction* instr,
                             : ReadXRegister(rm);
     WriteXRegister(instr->GetRn(), addr_base);
   } else {
-    VIXL_ASSERT(addr_mode == Offset);
+    SWANSTATION_VIXL_ASSERT(addr_mode == Offset);
   }
 }
 
@@ -5147,7 +5147,7 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
   // In offset mode, bits 20 to 16 should be zero; these bits encode the
   // register or immediate in post-index mode.
   if ((instr->ExtractBit(23) == 0) && (instr->ExtractBits(20, 16) != 0)) {
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
   }
 
   // We use the PostIndex mask here, as it works in this case for both Offset
@@ -5168,7 +5168,7 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
     case NEON_LD4_b:
     case NEON_LD4_b_post:
       do_load = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_ST1_b:
     case NEON_ST1_b_post:
     case NEON_ST2_b:
@@ -5188,7 +5188,7 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
     case NEON_LD4_h:
     case NEON_LD4_h_post:
       do_load = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_ST1_h:
     case NEON_ST1_h_post:
     case NEON_ST2_h:
@@ -5208,7 +5208,7 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
     case NEON_LD4_s:
     case NEON_LD4_s_post:
       do_load = true;
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case NEON_ST1_s:
     case NEON_ST1_s_post:
     case NEON_ST2_s:
@@ -5217,11 +5217,11 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
     case NEON_ST3_s_post:
     case NEON_ST4_s:
     case NEON_ST4_s_post: {
-      VIXL_STATIC_ASSERT((NEON_LD1_s | (1 << NEONLSSize_offset)) == NEON_LD1_d);
-      VIXL_STATIC_ASSERT((NEON_LD1_s_post | (1 << NEONLSSize_offset)) ==
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_LD1_s | (1 << NEONLSSize_offset)) == NEON_LD1_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_LD1_s_post | (1 << NEONLSSize_offset)) ==
                          NEON_LD1_d_post);
-      VIXL_STATIC_ASSERT((NEON_ST1_s | (1 << NEONLSSize_offset)) == NEON_ST1_d);
-      VIXL_STATIC_ASSERT((NEON_ST1_s_post | (1 << NEONLSSize_offset)) ==
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_ST1_s | (1 << NEONLSSize_offset)) == NEON_ST1_d);
+      SWANSTATION_VIXL_STATIC_ASSERT((NEON_ST1_s_post | (1 << NEONLSSize_offset)) ==
                          NEON_ST1_d_post);
       vf = ((instr->GetNEONLSSize() & 1) == 0) ? kFormat4S : kFormat2D;
       break;
@@ -5270,7 +5270,7 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
       break;
     }
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   PrintRegisterFormat print_format =
@@ -5362,7 +5362,7 @@ void Simulator::NEONLoadStoreSingleStructHelper(const Instruction* instr,
       }
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 
   if (addr_mode == PostIndex) {
@@ -5445,13 +5445,13 @@ void Simulator::VisitNEONModifiedImmediate(const Instruction* instr) {
           vform = kFormat2D;
           imm = DoubleToRawbits(instr->GetImmNEONFP64());
         } else {
-          VIXL_ASSERT((q == 0) && (op_bit == 1) && (cmode == 0xf));
+          SWANSTATION_VIXL_ASSERT((q == 0) && (op_bit == 1) && (cmode == 0xf));
           VisitUnallocated(instr);
         }
       }
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       break;
   }
 
@@ -5543,7 +5543,7 @@ void Simulator::VisitNEONScalar2RegMisc(const Instruction* instr) {
         usqadd(vf, rd, rn);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
         break;
     }
   } else {
@@ -5616,7 +5616,7 @@ void Simulator::VisitNEONScalar2RegMisc(const Instruction* instr) {
       case NEON_FCVTXN_scalar:
         // Unlike all of the other FP instructions above, fcvtxn encodes dest
         // size S as size<0>=1. There's only one case, so we ignore the form.
-        VIXL_ASSERT(instr->ExtractBit(22) == 1);
+        SWANSTATION_VIXL_ASSERT(instr->ExtractBit(22) == 1);
         fcvtxn(kFormatS, rd, rn);
         break;
       default:
@@ -5631,7 +5631,7 @@ void Simulator::VisitNEONScalar2RegMisc(const Instruction* instr) {
             sqxtun(vf, rd, rn);
             break;
           default:
-            VIXL_UNIMPLEMENTED();
+            SWANSTATION_VIXL_UNIMPLEMENTED();
         }
     }
   }
@@ -5728,7 +5728,7 @@ void Simulator::VisitNEONScalar3Diff(const Instruction* instr) {
       sqdmull(vf, rd, rn, rm);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -5772,7 +5772,7 @@ void Simulator::VisitNEONScalar3Same(const Instruction* instr) {
         fabd(vf, rd, rn, rm);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   } else {
     switch (instr->Mask(NEONScalar3SameMask)) {
@@ -5843,7 +5843,7 @@ void Simulator::VisitNEONScalar3Same(const Instruction* instr) {
         sshl(vf, rd, rn, rm).Round(vf).SignedSaturate(vf);
         break;
       default:
-        VIXL_UNIMPLEMENTED();
+        SWANSTATION_VIXL_UNIMPLEMENTED();
     }
   }
 }
@@ -5882,7 +5882,7 @@ void Simulator::VisitNEONScalar3SameFP16(const Instruction* instr) {
       frsqrts(kFormatH, rd, rn, rm);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 }
 
@@ -5903,7 +5903,7 @@ void Simulator::VisitNEONScalar3SameExtra(const Instruction* instr) {
       sqrdmlsh(vf, rd, rn, rm);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -5977,7 +5977,7 @@ void Simulator::VisitNEONScalarByIndexedElement(const Instruction* instr) {
           Op = &Simulator::fmulx;
           break;
         default:
-          VIXL_UNIMPLEMENTED();
+          SWANSTATION_VIXL_UNIMPLEMENTED();
       }
   }
 
@@ -5998,7 +5998,7 @@ void Simulator::VisitNEONScalarCopy(const Instruction* instr) {
     int rn_index = imm5 >> (tz + 1);
     dup_element(vf, rd, rn, rn_index);
   } else {
-    VIXL_UNIMPLEMENTED();
+    SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -6038,7 +6038,7 @@ void Simulator::VisitNEONScalarPairwise(const Instruction* instr) {
       fminnmp(vf, rd, rn);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -6146,7 +6146,7 @@ void Simulator::VisitNEONScalarShiftImmediate(const Instruction* instr) {
       ucvtf(vf, rd, rn, right_shift, fpcr_rounding);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -6309,7 +6309,7 @@ void Simulator::VisitNEONShiftImmediate(const Instruction* instr) {
       }
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -6351,7 +6351,7 @@ void Simulator::VisitNEONTable(const Instruction* instr) {
       tbx(vf, rd, rn, rn2, rn3, rn4, rm);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -6384,13 +6384,13 @@ void Simulator::VisitNEONPerm(const Instruction* instr) {
       zip2(vf, rd, rn, rm);
       break;
     default:
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
   }
 }
 
 
 void Simulator::DoUnreachable(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
+  SWANSTATION_VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
               (instr->GetImmException() == kUnreachableOpcode));
 
   fprintf(stream_,
@@ -6401,14 +6401,14 @@ void Simulator::DoUnreachable(const Instruction* instr) {
 
 
 void Simulator::DoTrace(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
+  SWANSTATION_VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
               (instr->GetImmException() == kTraceOpcode));
 
   // Read the arguments encoded inline in the instruction stream.
   uint32_t parameters;
   uint32_t command;
 
-  VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
   memcpy(&parameters, instr + kTraceParamsOffset, sizeof(parameters));
   memcpy(&command, instr + kTraceCommandOffset, sizeof(command));
 
@@ -6420,7 +6420,7 @@ void Simulator::DoTrace(const Instruction* instr) {
       SetTraceParameters(GetTraceParameters() & ~parameters);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
 
   WritePc(instr->GetInstructionAtOffset(kTraceLength));
@@ -6428,17 +6428,17 @@ void Simulator::DoTrace(const Instruction* instr) {
 
 
 void Simulator::DoLog(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
+  SWANSTATION_VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
               (instr->GetImmException() == kLogOpcode));
 
   // Read the arguments encoded inline in the instruction stream.
   uint32_t parameters;
 
-  VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
   memcpy(&parameters, instr + kTraceParamsOffset, sizeof(parameters));
 
   // We don't support a one-shot LOG_DISASM.
-  VIXL_ASSERT((parameters & LOG_DISASM) == 0);
+  SWANSTATION_VIXL_ASSERT((parameters & LOG_DISASM) == 0);
   // Print the requested information.
   if (parameters & LOG_SYSREGS) PrintSystemRegisters();
   if (parameters & LOG_REGS) PrintRegisters();
@@ -6449,20 +6449,20 @@ void Simulator::DoLog(const Instruction* instr) {
 
 
 void Simulator::DoPrintf(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
+  SWANSTATION_VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
               (instr->GetImmException() == kPrintfOpcode));
 
   // Read the arguments encoded inline in the instruction stream.
   uint32_t arg_count;
   uint32_t arg_pattern_list;
-  VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
+  SWANSTATION_VIXL_STATIC_ASSERT(sizeof(*instr) == 1);
   memcpy(&arg_count, instr + kPrintfArgCountOffset, sizeof(arg_count));
   memcpy(&arg_pattern_list,
          instr + kPrintfArgPatternListOffset,
          sizeof(arg_pattern_list));
 
-  VIXL_ASSERT(arg_count <= kPrintfMaxArgCount);
-  VIXL_ASSERT((arg_pattern_list >> (kPrintfArgPatternBits * arg_count)) == 0);
+  SWANSTATION_VIXL_ASSERT(arg_count <= kPrintfMaxArgCount);
+  SWANSTATION_VIXL_ASSERT((arg_pattern_list >> (kPrintfArgPatternBits * arg_count)) == 0);
 
   // We need to call the host printf function with a set of arguments defined by
   // arg_pattern_list. Because we don't know the types and sizes of the
@@ -6474,7 +6474,7 @@ void Simulator::DoPrintf(const Instruction* instr) {
   // Leave enough space for one extra character per expected argument (plus the
   // '\0' termination).
   const char* format_base = ReadRegister<const char*>(0);
-  VIXL_ASSERT(format_base != NULL);
+  SWANSTATION_VIXL_ASSERT(format_base != NULL);
   size_t length = strlen(format_base) + 1;
   char* const format = new char[length + arg_count];
 
@@ -6496,7 +6496,7 @@ void Simulator::DoPrintf(const Instruction* instr) {
         // need to escape '%' characters in those chunks.
         if (placeholder_count > 0) *format_scratch++ = format_base[i];
       } else {
-        VIXL_CHECK(placeholder_count < arg_count);
+        SWANSTATION_VIXL_CHECK(placeholder_count < arg_count);
         // Insert '\0' before placeholders, and store their locations.
         *format_scratch++ = '\0';
         chunks[placeholder_count++] = format_scratch;
@@ -6504,7 +6504,7 @@ void Simulator::DoPrintf(const Instruction* instr) {
       }
     }
   }
-  VIXL_CHECK(placeholder_count == arg_count);
+  SWANSTATION_VIXL_CHECK(placeholder_count == arg_count);
 
   // Finally, call printf with each chunk, passing the appropriate register
   // argument. Normally, printf returns the number of bytes transmitted, so we
@@ -6535,7 +6535,7 @@ void Simulator::DoPrintf(const Instruction* instr) {
           part_result = printf(chunks[i], ReadDRegister(pcs_f++));
           break;
         default:
-          VIXL_UNREACHABLE();
+          SWANSTATION_VIXL_UNREACHABLE();
       }
 
       if (part_result < 0) {
@@ -6563,9 +6563,9 @@ void Simulator::DoPrintf(const Instruction* instr) {
 }
 
 
-#ifdef VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
+#ifdef SWANSTATION_VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
 void Simulator::DoRuntimeCall(const Instruction* instr) {
-  VIXL_STATIC_ASSERT(kRuntimeCallAddressSize == sizeof(uintptr_t));
+  SWANSTATION_VIXL_STATIC_ASSERT(kRuntimeCallAddressSize == sizeof(uintptr_t));
   // The appropriate `Simulator::SimulateRuntimeCall()` wrapper and the function
   // to call are passed inlined in the assembly.
   uintptr_t call_wrapper_address =
@@ -6588,16 +6588,16 @@ void Simulator::DoRuntimeCall(const Instruction* instr) {
 #else
 void Simulator::DoRuntimeCall(const Instruction* instr) {
   USE(instr);
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
 }
 #endif
 
 
 void Simulator::DoConfigureCPUFeatures(const Instruction* instr) {
-  VIXL_ASSERT(instr->Mask(ExceptionMask) == HLT);
+  SWANSTATION_VIXL_ASSERT(instr->Mask(ExceptionMask) == HLT);
 
   typedef ConfigureCPUFeaturesElementType ElementType;
-  VIXL_ASSERT(CPUFeatures::kNumberOfFeatures <
+  SWANSTATION_VIXL_ASSERT(CPUFeatures::kNumberOfFeatures <
               std::numeric_limits<ElementType>::max());
 
   // k{Set,Enable,Disable}CPUFeatures have the same parameter encoding.
@@ -6625,7 +6625,7 @@ void Simulator::DoConfigureCPUFeatures(const Instruction* instr) {
       GetCPUFeatures()->Remove(parameters);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       break;
   }
 
@@ -6634,7 +6634,7 @@ void Simulator::DoConfigureCPUFeatures(const Instruction* instr) {
 
 
 void Simulator::DoSaveCPUFeatures(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
+  SWANSTATION_VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
               (instr->GetImmException() == kSaveCPUFeaturesOpcode));
   USE(instr);
 
@@ -6643,7 +6643,7 @@ void Simulator::DoSaveCPUFeatures(const Instruction* instr) {
 
 
 void Simulator::DoRestoreCPUFeatures(const Instruction* instr) {
-  VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
+  SWANSTATION_VIXL_ASSERT((instr->Mask(ExceptionMask) == HLT) &&
               (instr->GetImmException() == kRestoreCPUFeaturesOpcode));
   USE(instr);
 
@@ -6653,6 +6653,6 @@ void Simulator::DoRestoreCPUFeatures(const Instruction* instr) {
 
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_INCLUDE_SIMULATOR_AARCH64
+#endif  // SWANSTATION_VIXL_INCLUDE_SIMULATOR_AARCH64

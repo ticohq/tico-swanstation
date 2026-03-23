@@ -29,7 +29,7 @@
 
 #include "decoder-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 void Decoder::DecodeInstruction(const Instruction* instr) {
@@ -147,7 +147,7 @@ void Decoder::InsertVisitorBefore(DecoderVisitor* new_visitor,
   }
   // We reached the end of the list. The last element must be
   // registered_visitor.
-  VIXL_ASSERT(*it == registered_visitor);
+  SWANSTATION_VIXL_ASSERT(*it == registered_visitor);
   visitors_.insert(it, new_visitor);
 }
 
@@ -164,7 +164,7 @@ void Decoder::InsertVisitorAfter(DecoderVisitor* new_visitor,
   }
   // We reached the end of the list. The last element must be
   // registered_visitor.
-  VIXL_ASSERT(*it == registered_visitor);
+  SWANSTATION_VIXL_ASSERT(*it == registered_visitor);
   visitors_.push_back(new_visitor);
 }
 
@@ -175,16 +175,16 @@ void Decoder::RemoveVisitor(DecoderVisitor* visitor) {
 
 
 void Decoder::DecodePCRelAddressing(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x0);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x0);
   // We know bit 28 is set, as <b28:b27> = 0 is filtered out at the top level
   // decode.
-  VIXL_ASSERT(instr->ExtractBit(28) == 0x1);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBit(28) == 0x1);
   VisitPCRelAddressing(instr);
 }
 
 
 void Decoder::DecodeBranchSystemException(const Instruction* instr) {
-  VIXL_ASSERT((instr->ExtractBits(27, 24) == 0x4) ||
+  SWANSTATION_VIXL_ASSERT((instr->ExtractBits(27, 24) == 0x4) ||
               (instr->ExtractBits(27, 24) == 0x5) ||
               (instr->ExtractBits(27, 24) == 0x6) ||
               (instr->ExtractBits(27, 24) == 0x7));
@@ -281,7 +281,7 @@ void Decoder::DecodeBranchSystemException(const Instruction* instr) {
 
 
 void Decoder::DecodeLoadStore(const Instruction* instr) {
-  VIXL_ASSERT((instr->ExtractBits(27, 24) == 0x8) ||
+  SWANSTATION_VIXL_ASSERT((instr->ExtractBits(27, 24) == 0x8) ||
               (instr->ExtractBits(27, 24) == 0x9) ||
               (instr->ExtractBits(27, 24) == 0xC) ||
               (instr->ExtractBits(27, 24) == 0xD));
@@ -298,7 +298,7 @@ void Decoder::DecodeLoadStore(const Instruction* instr) {
         if (instr->ExtractBit(26) == 0) {
           VisitLoadStoreExclusive(instr);
         } else {
-          VIXL_UNREACHABLE();
+          SWANSTATION_VIXL_UNREACHABLE();
         }
       } else {
         if ((instr->ExtractBits(31, 30) == 0x3) ||
@@ -426,7 +426,7 @@ void Decoder::DecodeLoadStore(const Instruction* instr) {
 
 
 void Decoder::DecodeLogical(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x2);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x2);
 
   if (instr->Mask(0x80400000) == 0x00400000) {
     VisitUnallocated(instr);
@@ -445,7 +445,7 @@ void Decoder::DecodeLogical(const Instruction* instr) {
 
 
 void Decoder::DecodeBitfieldExtract(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x3);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x3);
 
   if ((instr->Mask(0x80400000) == 0x80000000) ||
       (instr->Mask(0x80400000) == 0x00400000) ||
@@ -470,7 +470,7 @@ void Decoder::DecodeBitfieldExtract(const Instruction* instr) {
 
 
 void Decoder::DecodeAddSubImmediate(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x1);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(27, 24) == 0x1);
   if (instr->ExtractBit(23) == 1) {
     VisitUnallocated(instr);
   } else {
@@ -480,7 +480,7 @@ void Decoder::DecodeAddSubImmediate(const Instruction* instr) {
 
 
 void Decoder::DecodeDataProcessing(const Instruction* instr) {
-  VIXL_ASSERT((instr->ExtractBits(27, 24) == 0xA) ||
+  SWANSTATION_VIXL_ASSERT((instr->ExtractBits(27, 24) == 0xA) ||
               (instr->ExtractBits(27, 24) == 0xB));
 
   if (instr->ExtractBit(24) == 0) {
@@ -523,7 +523,7 @@ void Decoder::DecodeDataProcessing(const Instruction* instr) {
         case 6: {
           if (instr->ExtractBit(29) == 0x1) {
             VisitUnallocated(instr);
-            VIXL_FALLTHROUGH();
+            SWANSTATION_VIXL_FALLTHROUGH();
           } else {
             if (instr->ExtractBit(30) == 0) {
               if ((instr->ExtractBit(15) == 0x1) ||
@@ -602,7 +602,7 @@ void Decoder::DecodeDataProcessing(const Instruction* instr) {
 
 
 void Decoder::DecodeFP(const Instruction* instr) {
-  VIXL_ASSERT((instr->ExtractBits(27, 24) == 0xE) ||
+  SWANSTATION_VIXL_ASSERT((instr->ExtractBits(27, 24) == 0xE) ||
               (instr->ExtractBits(27, 24) == 0xF));
   if (instr->ExtractBit(28) == 0) {
     DecodeNEONVectorDataProcessing(instr);
@@ -705,14 +705,14 @@ void Decoder::DecodeFP(const Instruction* instr) {
                     break;
                   }
                   default:
-                    VIXL_UNREACHABLE();
+                    SWANSTATION_VIXL_UNREACHABLE();
                 }
               }
             }
           }
         } else {
           // Bit 30 == 1 has been handled earlier.
-          VIXL_ASSERT(instr->ExtractBit(30) == 0);
+          SWANSTATION_VIXL_ASSERT(instr->ExtractBit(30) == 0);
           if ((instr->Mask(0xA0000000) != 0) ||
               (instr->ExtractBits(23, 22) == 0x2)) {
             VisitUnallocated(instr);
@@ -729,7 +729,7 @@ void Decoder::DecodeFP(const Instruction* instr) {
 
 
 void Decoder::DecodeNEONLoadStore(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(29, 25) == 0x6);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(29, 25) == 0x6);
   if (instr->ExtractBit(31) == 0) {
     if ((instr->ExtractBit(24) == 0) && (instr->ExtractBit(21) == 1)) {
       VisitUnallocated(instr);
@@ -760,7 +760,7 @@ void Decoder::DecodeNEONLoadStore(const Instruction* instr) {
 
 
 void Decoder::DecodeNEONVectorDataProcessing(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(28, 25) == 0x7);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(28, 25) == 0x7);
   if (instr->ExtractBit(31) == 0) {
     if (instr->ExtractBit(24) == 0) {
       if (instr->ExtractBit(21) == 0) {
@@ -897,7 +897,7 @@ void Decoder::DecodeNEONVectorDataProcessing(const Instruction* instr) {
 
 
 void Decoder::DecodeNEONScalarDataProcessing(const Instruction* instr) {
-  VIXL_ASSERT(instr->ExtractBits(28, 25) == 0xF);
+  SWANSTATION_VIXL_ASSERT(instr->ExtractBits(28, 25) == 0xF);
   if (instr->ExtractBit(24) == 0) {
     if (instr->ExtractBit(21) == 0) {
       if (instr->ExtractBit(15) == 0) {
@@ -1016,7 +1016,7 @@ void Decoder::DecodeNEONScalarDataProcessing(const Instruction* instr) {
 
 #define DEFINE_VISITOR_CALLERS(A)                               \
   void Decoder::Visit##A(const Instruction* instr) {            \
-    VIXL_ASSERT(((A##FMask == 0) && (A##Fixed == 0)) ||         \
+    SWANSTATION_VIXL_ASSERT(((A##FMask == 0) && (A##Fixed == 0)) ||         \
                 (instr->Mask(A##FMask) == A##Fixed));           \
     std::list<DecoderVisitor*>::iterator it;                    \
     for (it = visitors_.begin(); it != visitors_.end(); it++) { \
@@ -1026,4 +1026,4 @@ void Decoder::DecodeNEONScalarDataProcessing(const Instruction* instr) {
 VISITOR_LIST(DEFINE_VISITOR_CALLERS)
 #undef DEFINE_VISITOR_CALLERS
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl

@@ -27,15 +27,15 @@
 #include "instructions-aarch64.h"
 #include "assembler-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 static uint64_t RepeatBitsAcrossReg(unsigned reg_size,
                                     uint64_t value,
                                     unsigned width) {
-  VIXL_ASSERT((width == 2) || (width == 4) || (width == 8) || (width == 16) ||
+  SWANSTATION_VIXL_ASSERT((width == 2) || (width == 4) || (width == 8) || (width == 16) ||
               (width == 32));
-  VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
+  SWANSTATION_VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
   uint64_t result = value & ((UINT64_C(1) << width) - 1);
   for (unsigned i = width; i < reg_size; i *= 2) {
     result |= (result << i);
@@ -152,7 +152,7 @@ uint64_t Instruction::GetImmLogical() const {
       }
     }
   }
-  VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_UNREACHABLE();
   return 0;
 }
 
@@ -229,7 +229,7 @@ double Instruction::GetImmNEONFP64() const {
 
 
 unsigned CalcLSDataSize(LoadStoreOp op) {
-  VIXL_ASSERT((LSSize_offset + LSSize_width) == (kInstructionSize * 8));
+  SWANSTATION_VIXL_ASSERT((LSSize_offset + LSSize_width) == (kInstructionSize * 8));
   unsigned size = static_cast<Instr>(op) >> LSSize_offset;
   if ((op & LSVector_mask) != 0) {
     // Vector register memory operations encode the access size in the "size"
@@ -243,8 +243,8 @@ unsigned CalcLSDataSize(LoadStoreOp op) {
 
 
 unsigned CalcLSPairDataSize(LoadStorePairOp op) {
-  VIXL_STATIC_ASSERT(kXRegSizeInBytes == kDRegSizeInBytes);
-  VIXL_STATIC_ASSERT(kWRegSizeInBytes == kSRegSizeInBytes);
+  SWANSTATION_VIXL_STATIC_ASSERT(kXRegSizeInBytes == kDRegSizeInBytes);
+  SWANSTATION_VIXL_STATIC_ASSERT(kWRegSizeInBytes == kSRegSizeInBytes);
   switch (op) {
     case STP_q:
     case LDP_q:
@@ -271,7 +271,7 @@ int Instruction::GetImmBranchRangeBitwidth(ImmBranchType branch_type) {
     case TestBranchType:
       return ImmTestBranch_width;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 0;
   }
 }
@@ -299,11 +299,11 @@ const Instruction* Instruction::GetImmPCOffsetTarget() const {
       base = AlignDown(base, kPageSize);
       offset *= kPageSize;
     } else {
-      VIXL_ASSERT(Mask(PCRelAddressingMask) == ADR);
+      SWANSTATION_VIXL_ASSERT(Mask(PCRelAddressingMask) == ADR);
     }
   } else {
     // All PC-relative branches.
-    VIXL_ASSERT(GetBranchType() != UnknownBranchType);
+    SWANSTATION_VIXL_ASSERT(GetBranchType() != UnknownBranchType);
     // Relative branch offsets are instruction-size-aligned.
     offset = GetImmBranch() * static_cast<int>(kInstructionSize);
   }
@@ -322,7 +322,7 @@ int Instruction::GetImmBranch() const {
     case TestBranchType:
       return GetImmTestBranch();
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   return 0;
 }
@@ -342,7 +342,7 @@ void Instruction::SetPCRelImmTarget(const Instruction* target) {
   if ((Mask(PCRelAddressingMask) == ADR)) {
     imm21 = target - this;
   } else {
-    VIXL_ASSERT(Mask(PCRelAddressingMask) == ADRP);
+    SWANSTATION_VIXL_ASSERT(Mask(PCRelAddressingMask) == ADRP);
     uintptr_t this_page = reinterpret_cast<uintptr_t>(this) / kPageSize;
     uintptr_t target_page = reinterpret_cast<uintptr_t>(target) / kPageSize;
     imm21 = target_page - this_page;
@@ -354,7 +354,7 @@ void Instruction::SetPCRelImmTarget(const Instruction* target) {
 
 
 void Instruction::SetBranchImmTarget(const Instruction* target) {
-  VIXL_ASSERT(((target - this) & 3) == 0);
+  SWANSTATION_VIXL_ASSERT(((target - this) & 3) == 0);
   Instr branch_imm = 0;
   uint32_t imm_mask = 0;
   int offset = static_cast<int>((target - this) >> kInstructionSizeLog2);
@@ -380,14 +380,14 @@ void Instruction::SetBranchImmTarget(const Instruction* target) {
       break;
     }
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
   }
   SetInstructionBits(Mask(~imm_mask) | branch_imm);
 }
 
 
 void Instruction::SetImmLLiteral(const Instruction* source) {
-  VIXL_ASSERT(IsWordAligned(source));
+  SWANSTATION_VIXL_ASSERT(IsWordAligned(source));
   ptrdiff_t offset = (source - this) >> kLiteralEntrySizeLog2;
   Instr imm = Assembler::ImmLLiteral(static_cast<int>(offset));
   Instr mask = ImmLLiteral_mask;
@@ -397,7 +397,7 @@ void Instruction::SetImmLLiteral(const Instruction* source) {
 
 
 VectorFormat VectorFormatHalfWidth(VectorFormat vform) {
-  VIXL_ASSERT(vform == kFormat8H || vform == kFormat4S || vform == kFormat2D ||
+  SWANSTATION_VIXL_ASSERT(vform == kFormat8H || vform == kFormat4S || vform == kFormat2D ||
               vform == kFormatH || vform == kFormatS || vform == kFormatD);
   switch (vform) {
     case kFormat8H:
@@ -413,14 +413,14 @@ VectorFormat VectorFormatHalfWidth(VectorFormat vform) {
     case kFormatD:
       return kFormatS;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
 
 
 VectorFormat VectorFormatDoubleWidth(VectorFormat vform) {
-  VIXL_ASSERT(vform == kFormat8B || vform == kFormat4H || vform == kFormat2S ||
+  SWANSTATION_VIXL_ASSERT(vform == kFormat8B || vform == kFormat4H || vform == kFormat2S ||
               vform == kFormatB || vform == kFormatH || vform == kFormatS);
   switch (vform) {
     case kFormat8B:
@@ -436,7 +436,7 @@ VectorFormat VectorFormatDoubleWidth(VectorFormat vform) {
     case kFormatS:
       return kFormatD;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
@@ -461,7 +461,7 @@ VectorFormat VectorFormatFillQ(VectorFormat vform) {
     case kFormat2D:
       return kFormat2D;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
@@ -481,13 +481,13 @@ VectorFormat VectorFormatHalfWidthDoubleLanes(VectorFormat vform) {
     case kFormat2D:
       return kFormat4S;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
 
 VectorFormat VectorFormatDoubleLanes(VectorFormat vform) {
-  VIXL_ASSERT(vform == kFormat8B || vform == kFormat4H || vform == kFormat2S);
+  SWANSTATION_VIXL_ASSERT(vform == kFormat8B || vform == kFormat4H || vform == kFormat2S);
   switch (vform) {
     case kFormat8B:
       return kFormat16B;
@@ -496,14 +496,14 @@ VectorFormat VectorFormatDoubleLanes(VectorFormat vform) {
     case kFormat2S:
       return kFormat4S;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
 
 
 VectorFormat VectorFormatHalfLanes(VectorFormat vform) {
-  VIXL_ASSERT(vform == kFormat16B || vform == kFormat8H || vform == kFormat4S);
+  SWANSTATION_VIXL_ASSERT(vform == kFormat16B || vform == kFormat8H || vform == kFormat4S);
   switch (vform) {
     case kFormat16B:
       return kFormat8B;
@@ -512,7 +512,7 @@ VectorFormat VectorFormatHalfLanes(VectorFormat vform) {
     case kFormat4S:
       return kFormat2S;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
@@ -529,7 +529,7 @@ VectorFormat ScalarFormatFromLaneSize(int laneSize) {
     case 64:
       return kFormatD;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return kFormatUndefined;
   }
 }
@@ -541,7 +541,7 @@ VectorFormat ScalarFormatFromFormat(VectorFormat vform) {
 
 
 unsigned RegisterSizeInBitsFromFormat(VectorFormat vform) {
-  VIXL_ASSERT(vform != kFormatUndefined);
+  SWANSTATION_VIXL_ASSERT(vform != kFormatUndefined);
   switch (vform) {
     case kFormatB:
       return kBRegSize;
@@ -569,7 +569,7 @@ unsigned RegisterSizeInBytesFromFormat(VectorFormat vform) {
 
 
 unsigned LaneSizeInBitsFromFormat(VectorFormat vform) {
-  VIXL_ASSERT(vform != kFormatUndefined);
+  SWANSTATION_VIXL_ASSERT(vform != kFormatUndefined);
   switch (vform) {
     case kFormatB:
     case kFormat8B:
@@ -589,7 +589,7 @@ unsigned LaneSizeInBitsFromFormat(VectorFormat vform) {
     case kFormat2D:
       return 64;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 0;
   }
 }
@@ -601,7 +601,7 @@ int LaneSizeInBytesFromFormat(VectorFormat vform) {
 
 
 int LaneSizeInBytesLog2FromFormat(VectorFormat vform) {
-  VIXL_ASSERT(vform != kFormatUndefined);
+  SWANSTATION_VIXL_ASSERT(vform != kFormatUndefined);
   switch (vform) {
     case kFormatB:
     case kFormat8B:
@@ -621,14 +621,14 @@ int LaneSizeInBytesLog2FromFormat(VectorFormat vform) {
     case kFormat2D:
       return 3;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 0;
   }
 }
 
 
 int LaneCountFromFormat(VectorFormat vform) {
-  VIXL_ASSERT(vform != kFormatUndefined);
+  SWANSTATION_VIXL_ASSERT(vform != kFormatUndefined);
   switch (vform) {
     case kFormat16B:
       return 16;
@@ -649,14 +649,14 @@ int LaneCountFromFormat(VectorFormat vform) {
     case kFormatD:
       return 1;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 0;
   }
 }
 
 
 int MaxLaneCountFromFormat(VectorFormat vform) {
-  VIXL_ASSERT(vform != kFormatUndefined);
+  SWANSTATION_VIXL_ASSERT(vform != kFormatUndefined);
   switch (vform) {
     case kFormatB:
     case kFormat8B:
@@ -675,7 +675,7 @@ int MaxLaneCountFromFormat(VectorFormat vform) {
     case kFormat2D:
       return 2;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return 0;
   }
 }
@@ -683,7 +683,7 @@ int MaxLaneCountFromFormat(VectorFormat vform) {
 
 // Does 'vform' indicate a vector format or a scalar format?
 bool IsVectorFormat(VectorFormat vform) {
-  VIXL_ASSERT(vform != kFormatUndefined);
+  SWANSTATION_VIXL_ASSERT(vform != kFormatUndefined);
   switch (vform) {
     case kFormatB:
     case kFormatH:
@@ -710,4 +710,4 @@ uint64_t MaxUintFromFormat(VectorFormat vform) {
   return UINT64_MAX >> (64 - LaneSizeInBitsFromFormat(vform));
 }
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl

@@ -42,7 +42,7 @@ public:
   std::optional<View> CreateView(size_t offset, size_t size, bool writable, bool executable,
                                  void* fixed_address = nullptr);
 
-  std::optional<View> CreateReservedView(size_t size,  void* fixed_address = nullptr);
+  std::optional<View> CreateReservedView(size_t size, void* fixed_address = nullptr);
 
   void* CreateViewPtr(size_t offset, size_t size, bool writable, bool executable, void* fixed_address = nullptr);
   bool FlushViewPtr(void* address, size_t size);
@@ -58,6 +58,8 @@ private:
   void* m_file_handle = nullptr;
 #elif defined(__linux__) || defined(ANDROID) || defined(__APPLE__) || defined(__FreeBSD__)
   int m_shmem_fd = -1;
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  void* m_buffer = nullptr; // Backing buffer for Switch
 #endif
 
   std::atomic_size_t m_num_views{0};

@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_MACRO_ASSEMBLER_AARCH64_H_
-#define VIXL_AARCH64_MACRO_ASSEMBLER_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_MACRO_ASSEMBLER_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_MACRO_ASSEMBLER_AARCH64_H_
 
 #include <algorithm>
 #include <limits>
@@ -63,7 +63,7 @@
   V(Stp, CPURegister&, rt, rt2, StorePairOpFor(rt, rt2)) \
   V(Ldpsw, CPURegister&, rt, rt2, LDPSW_x)
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Forward declaration
@@ -90,7 +90,7 @@ class Pool {
 
   void SetNextCheckpoint(ptrdiff_t checkpoint);
   ptrdiff_t GetCheckpoint() const { return checkpoint_; }
-  VIXL_DEPRECATED("GetCheckpoint", ptrdiff_t checkpoint() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetCheckpoint", ptrdiff_t checkpoint() const) {
     return GetCheckpoint();
   }
 
@@ -115,13 +115,13 @@ class LiteralPool : public Pool {
   void AddEntry(RawLiteral* literal);
   bool IsEmpty() const { return entries_.empty(); }
   size_t GetSize() const;
-  VIXL_DEPRECATED("GetSize", size_t Size() const) { return GetSize(); }
+  SWANSTATION_VIXL_DEPRECATED("GetSize", size_t Size() const) { return GetSize(); }
 
   size_t GetMaxSize() const;
-  VIXL_DEPRECATED("GetMaxSize", size_t MaxSize() const) { return GetMaxSize(); }
+  SWANSTATION_VIXL_DEPRECATED("GetMaxSize", size_t MaxSize() const) { return GetMaxSize(); }
 
   size_t GetOtherPoolsMaxSize() const;
-  VIXL_DEPRECATED("GetOtherPoolsMaxSize", size_t OtherPoolsMaxSize() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetOtherPoolsMaxSize", size_t OtherPoolsMaxSize() const) {
     return GetOtherPoolsMaxSize();
   }
 
@@ -133,7 +133,7 @@ class LiteralPool : public Pool {
 
   void SetNextRecommendedCheckpoint(ptrdiff_t offset);
   ptrdiff_t GetNextRecommendedCheckpoint();
-  VIXL_DEPRECATED("GetNextRecommendedCheckpoint",
+  SWANSTATION_VIXL_DEPRECATED("GetNextRecommendedCheckpoint",
                   ptrdiff_t NextRecommendedCheckpoint()) {
     return GetNextRecommendedCheckpoint();
   }
@@ -222,19 +222,19 @@ class VeneerPool : public Pool {
 
     // We must provide comparison operators to work with InvalSet.
     bool operator==(const BranchInfo& other) const {
-      VIXL_ASSERT(IsValidComparison(*this, other));
+      SWANSTATION_VIXL_ASSERT(IsValidComparison(*this, other));
       return pc_offset_ == other.pc_offset_;
     }
     bool operator<(const BranchInfo& other) const {
-      VIXL_ASSERT(IsValidComparison(*this, other));
+      SWANSTATION_VIXL_ASSERT(IsValidComparison(*this, other));
       return pc_offset_ < other.pc_offset_;
     }
     bool operator<=(const BranchInfo& other) const {
-      VIXL_ASSERT(IsValidComparison(*this, other));
+      SWANSTATION_VIXL_ASSERT(IsValidComparison(*this, other));
       return pc_offset_ <= other.pc_offset_;
     }
     bool operator>(const BranchInfo& other) const {
-      VIXL_ASSERT(IsValidComparison(*this, other));
+      SWANSTATION_VIXL_ASSERT(IsValidComparison(*this, other));
       return pc_offset_ > other.pc_offset_;
     }
 
@@ -279,7 +279,7 @@ class VeneerPool : public Pool {
   int GetNumberOfPotentialVeneers() const {
     return static_cast<int>(unresolved_branches_.GetSize());
   }
-  VIXL_DEPRECATED("GetNumberOfPotentialVeneers",
+  SWANSTATION_VIXL_DEPRECATED("GetNumberOfPotentialVeneers",
                   int NumberOfPotentialVeneers() const) {
     return GetNumberOfPotentialVeneers();
   }
@@ -288,10 +288,10 @@ class VeneerPool : public Pool {
     return kPoolNonVeneerCodeSize +
            unresolved_branches_.GetSize() * kVeneerCodeSize;
   }
-  VIXL_DEPRECATED("GetMaxSize", size_t MaxSize() const) { return GetMaxSize(); }
+  SWANSTATION_VIXL_DEPRECATED("GetMaxSize", size_t MaxSize() const) { return GetMaxSize(); }
 
   size_t GetOtherPoolsMaxSize() const;
-  VIXL_DEPRECATED("GetOtherPoolsMaxSize", size_t OtherPoolsMaxSize() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetOtherPoolsMaxSize", size_t OtherPoolsMaxSize() const) {
     return GetOtherPoolsMaxSize();
   }
 
@@ -320,7 +320,7 @@ class VeneerPool : public Pool {
       }
       return GetMinElementKey();
     }
-    VIXL_DEPRECATED("GetFirstLimit", ptrdiff_t FirstLimit()) {
+    SWANSTATION_VIXL_DEPRECATED("GetFirstLimit", ptrdiff_t FirstLimit()) {
       return GetFirstLimit();
     }
   };
@@ -340,7 +340,7 @@ class VeneerPool : public Pool {
    public:
     void insert(BranchInfo branch_info) {
       ImmBranchType type = branch_info.branch_type_;
-      VIXL_ASSERT(IsValidBranchType(type));
+      SWANSTATION_VIXL_ASSERT(IsValidBranchType(type));
       typed_set_[BranchIndexFromType(type)].insert(branch_info);
     }
 
@@ -359,7 +359,7 @@ class VeneerPool : public Pool {
       }
       return res;
     }
-    VIXL_DEPRECATED("GetSize", size_t size() const) { return GetSize(); }
+    SWANSTATION_VIXL_DEPRECATED("GetSize", size_t size() const) { return GetSize(); }
 
     bool IsEmpty() const {
       for (int i = 0; i < kNumberOfTrackedBranchTypes; i++) {
@@ -369,7 +369,7 @@ class VeneerPool : public Pool {
       }
       return true;
     }
-    VIXL_DEPRECATED("IsEmpty", bool empty() const) { return IsEmpty(); }
+    SWANSTATION_VIXL_DEPRECATED("IsEmpty", bool empty() const) { return IsEmpty(); }
 
     ptrdiff_t GetFirstLimit() {
       ptrdiff_t res = kInvalidOffset;
@@ -378,7 +378,7 @@ class VeneerPool : public Pool {
       }
       return res;
     }
-    VIXL_DEPRECATED("GetFirstLimit", ptrdiff_t FirstLimit()) {
+    SWANSTATION_VIXL_DEPRECATED("GetFirstLimit", ptrdiff_t FirstLimit()) {
       return GetFirstLimit();
     }
 
@@ -397,7 +397,7 @@ class VeneerPool : public Pool {
         case 2:
           return TestBranchType;
         default:
-          VIXL_UNREACHABLE();
+          SWANSTATION_VIXL_UNREACHABLE();
           return UnknownBranchType;
       }
     }
@@ -410,7 +410,7 @@ class VeneerPool : public Pool {
         case TestBranchType:
           return 2;
         default:
-          VIXL_UNREACHABLE();
+          SWANSTATION_VIXL_UNREACHABLE();
           return 0;
       }
     }
@@ -443,19 +443,19 @@ class VeneerPool : public Pool {
           return sub_iterator_[i].Current();
         }
       }
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return NULL;
     }
 
     void Advance() {
-      VIXL_ASSERT(!Done());
+      SWANSTATION_VIXL_ASSERT(!Done());
       for (int i = 0; i < BranchInfoSet::kNumberOfTrackedBranchTypes; i++) {
         if (!sub_iterator_[i].Done()) {
           sub_iterator_[i].Advance();
           return;
         }
       }
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
     }
 
     bool Done() const {
@@ -466,14 +466,14 @@ class VeneerPool : public Pool {
     }
 
     void AdvanceToNextType() {
-      VIXL_ASSERT(!Done());
+      SWANSTATION_VIXL_ASSERT(!Done());
       for (int i = 0; i < BranchInfoSet::kNumberOfTrackedBranchTypes; i++) {
         if (!sub_iterator_[i].Done()) {
           sub_iterator_[i].Finish();
           return;
         }
       }
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
     }
 
     void DeleteCurrentAndAdvance() {
@@ -498,7 +498,7 @@ class VeneerPool : public Pool {
       return unresolved_branches_.GetFirstLimit();
     }
   }
-  VIXL_DEPRECATED("GetNextCheckPoint", ptrdiff_t NextCheckPoint()) {
+  SWANSTATION_VIXL_DEPRECATED("GetNextCheckPoint", ptrdiff_t NextCheckPoint()) {
     return GetNextCheckPoint();
   }
 
@@ -604,15 +604,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     kUnreachable   // Anything generated after calling Finalize is unreachable.
   };
 
-  virtual vixl::internal::AssemblerBase* AsAssemblerBase() VIXL_OVERRIDE {
+  virtual swanstation_vixl::internal::AssemblerBase* AsAssemblerBase() SWANSTATION_VIXL_OVERRIDE {
     return this;
   }
 
   // TODO(pools): implement these functions.
-  virtual void EmitPoolHeader() VIXL_OVERRIDE {}
-  virtual void EmitPoolFooter() VIXL_OVERRIDE {}
-  virtual void EmitPaddingBytes(int n) VIXL_OVERRIDE { USE(n); }
-  virtual void EmitNopBytes(int n) VIXL_OVERRIDE { USE(n); }
+  virtual void EmitPoolHeader() SWANSTATION_VIXL_OVERRIDE {}
+  virtual void EmitPoolFooter() SWANSTATION_VIXL_OVERRIDE {}
+  virtual void EmitPaddingBytes(int n) SWANSTATION_VIXL_OVERRIDE { USE(n); }
+  virtual void EmitNopBytes(int n) SWANSTATION_VIXL_OVERRIDE { USE(n); }
 
   // Start generating code from the beginning of the buffer, discarding any code
   // and data that has already been emitted into the buffer.
@@ -969,35 +969,35 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   // Remaining instructions are simple pass-through calls to the assembler.
   void Adr(const Register& rd, Label* label) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     adr(rd, label);
   }
   void Adrp(const Register& rd, Label* label) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     adrp(rd, label);
   }
   void Asr(const Register& rd, const Register& rn, unsigned shift) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     asr(rd, rn, shift);
   }
   void Asr(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     asrv(rd, rn, rm);
   }
 
   // Branch type inversion relies on these relations.
-  VIXL_STATIC_ASSERT((reg_zero == (reg_not_zero ^ 1)) &&
+  SWANSTATION_VIXL_STATIC_ASSERT((reg_zero == (reg_not_zero ^ 1)) &&
                      (reg_bit_clear == (reg_bit_set ^ 1)) &&
                      (always == (never ^ 1)));
 
@@ -1019,9 +1019,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const Register& rn,
            unsigned immr,
            unsigned imms) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     bfm(rd, rn, immr, imms);
   }
@@ -1029,15 +1029,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const Register& rn,
            unsigned lsb,
            unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     bfi(rd, rn, lsb, width);
   }
   void Bfc(const Register& rd, unsigned lsb, unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     bfc(rd, lsb, width);
   }
@@ -1045,9 +1045,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rn,
              unsigned lsb,
              unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     bfxil(rd, rn, lsb, width);
   }
@@ -1055,90 +1055,90 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   // Bind a label to a specified offset from the start of the buffer.
   void BindToOffset(Label* label, ptrdiff_t offset);
   void Bl(Label* label) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     bl(label);
   }
   void Blr(const Register& xn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!xn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!xn.IsZero());
     SingleEmissionCheckScope guard(this);
     blr(xn);
   }
   void Br(const Register& xn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!xn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!xn.IsZero());
     SingleEmissionCheckScope guard(this);
     br(xn);
   }
   void Braaz(const Register& xn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     braaz(xn);
   }
   void Brabz(const Register& xn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     brabz(xn);
   }
   void Blraaz(const Register& xn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     blraaz(xn);
   }
   void Blrabz(const Register& xn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     blrabz(xn);
   }
   void Retaa() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     retaa();
   }
   void Retab() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     retab();
   }
   void Braa(const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     braa(xn, xm);
   }
   void Brab(const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     brab(xn, xm);
   }
   void Blraa(const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     blraa(xn, xm);
   }
   void Blrab(const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     blrab(xn, xm);
   }
   void Brk(int code = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     brk(code);
   }
   void Cbnz(const Register& rt, Label* label);
   void Cbz(const Register& rt, Label* label);
   void Cinc(const Register& rd, const Register& rn, Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     cinc(rd, rn, cond);
   }
   void Cinv(const Register& rd, const Register& rn, Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     cinv(rd, rn, cond);
   }
@@ -1151,12 +1151,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNCS(SUFFIX)      \
   void Paci##SUFFIX() {                     \
-    VIXL_ASSERT(allow_macro_instructions_); \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_); \
     SingleEmissionCheckScope guard(this);   \
     paci##SUFFIX();                         \
   }                                         \
   void Auti##SUFFIX() {                     \
-    VIXL_ASSERT(allow_macro_instructions_); \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_); \
     SingleEmissionCheckScope guard(this);   \
     auti##SUFFIX();                         \
   }
@@ -1183,83 +1183,83 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   //     __ Mov(x16, modifier);
   //     __ Pacia1716();
   void Pacia1716() {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
     SingleEmissionCheckScope guard(this);
     pacia1716();
   }
   void Pacib1716() {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
     SingleEmissionCheckScope guard(this);
     pacib1716();
   }
   void Autia1716() {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
     SingleEmissionCheckScope guard(this);
     autia1716();
   }
   void Autib1716() {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x16));
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(x17));
     SingleEmissionCheckScope guard(this);
     autib1716();
   }
   void Xpaclri() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     xpaclri();
   }
   void Clrex() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     clrex();
   }
   void Cls(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     cls(rd, rn);
   }
   void Clz(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     clz(rd, rn);
   }
   void Cneg(const Register& rd, const Register& rn, Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     cneg(rd, rn, cond);
   }
   void Esb() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     esb();
   }
   void Csdb() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     csdb();
   }
   void Cset(const Register& rd, Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     cset(rd, cond);
   }
   void Csetm(const Register& rd, Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     csetm(rd, cond);
   }
@@ -1267,11 +1267,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rn,
              const Register& rm,
              Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT((cond != al) && (cond != nv));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT((cond != al) && (cond != nv));
     SingleEmissionCheckScope guard(this);
     csinc(rd, rn, rm, cond);
   }
@@ -1279,11 +1279,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rn,
              const Register& rm,
              Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT((cond != al) && (cond != nv));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT((cond != al) && (cond != nv));
     SingleEmissionCheckScope guard(this);
     csinv(rd, rn, rm, cond);
   }
@@ -1291,21 +1291,21 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rn,
              const Register& rm,
              Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT((cond != al) && (cond != nv));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT((cond != al) && (cond != nv));
     SingleEmissionCheckScope guard(this);
     csneg(rd, rn, rm, cond);
   }
   void Dmb(BarrierDomain domain, BarrierType type) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     dmb(domain, type);
   }
   void Dsb(BarrierDomain domain, BarrierType type) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     dsb(domain, type);
   }
@@ -1313,15 +1313,15 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             const Register& rm,
             unsigned lsb) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     extr(rd, rn, rm, lsb);
   }
   void Fadd(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fadd(vd, vn, vm);
   }
@@ -1330,8 +1330,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              StatusFlags nzcv,
              Condition cond,
              FPTrapFlags trap = DisableTrap) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT((cond != al) && (cond != nv));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT((cond != al) && (cond != nv));
     SingleEmissionCheckScope guard(this);
     FPCCompareMacro(vn, vm, nzcv, cond, trap);
   }
@@ -1344,7 +1344,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Fcmp(const VRegister& vn,
             const VRegister& vm,
             FPTrapFlags trap = DisableTrap) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     FPCompareMacro(vn, vm, trap);
   }
@@ -1357,139 +1357,139 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const VRegister& vn,
              const VRegister& vm,
              Condition cond) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT((cond != al) && (cond != nv));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT((cond != al) && (cond != nv));
     SingleEmissionCheckScope guard(this);
     fcsel(vd, vn, vm, cond);
   }
   void Fcvt(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvt(vd, vn);
   }
   void Fcvtl(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtl(vd, vn);
   }
   void Fcvtl2(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtl2(vd, vn);
   }
   void Fcvtn(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtn(vd, vn);
   }
   void Fcvtn2(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtn2(vd, vn);
   }
   void Fcvtxn(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtxn(vd, vn);
   }
   void Fcvtxn2(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtxn2(vd, vn);
   }
   void Fcvtas(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtas(rd, vn);
   }
   void Fcvtau(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtau(rd, vn);
   }
   void Fcvtms(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtms(rd, vn);
   }
   void Fcvtmu(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtmu(rd, vn);
   }
   void Fcvtns(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtns(rd, vn);
   }
   void Fcvtnu(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtnu(rd, vn);
   }
   void Fcvtps(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtps(rd, vn);
   }
   void Fcvtpu(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtpu(rd, vn);
   }
   void Fcvtzs(const Register& rd, const VRegister& vn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtzs(rd, vn, fbits);
   }
   void Fjcvtzs(const Register& rd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fjcvtzs(rd, vn);
   }
   void Fcvtzu(const Register& rd, const VRegister& vn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fcvtzu(rd, vn, fbits);
   }
   void Fdiv(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fdiv(vd, vn, vm);
   }
   void Fmax(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmax(vd, vn, vm);
   }
   void Fmaxnm(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmaxnm(vd, vn, vm);
   }
   void Fmin(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmin(vd, vn, vm);
   }
   void Fminnm(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fminnm(vd, vn, vm);
   }
   void Fmov(const VRegister& vd, const VRegister& vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     // Only emit an instruction if vd and vn are different, and they are both D
     // registers. fmov(s0, s0) is not a no-op because it clears the top word of
@@ -1500,8 +1500,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Fmov(const VRegister& vd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     fmov(vd, rn);
   }
@@ -1512,12 +1512,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     Fmov(vd, Register(wn));
   }
   void Fmov(const VRegister& vd, int index, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmov(vd, index, rn);
   }
   void Fmov(const Register& rd, const VRegister& vn, int index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmov(rd, vn, index);
   }
@@ -1532,22 +1532,22 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   // Provide a template to allow other types to be converted automatically.
   template <typename T>
   void Fmov(VRegister vd, T imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     Fmov(vd, static_cast<double>(imm));
   }
   void Fmov(Register rd, VRegister vn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     fmov(rd, vn);
   }
   void Fmul(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmul(vd, vn, vm);
   }
   void Fnmul(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fnmul(vd, vn, vm);
   }
@@ -1555,7 +1555,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const VRegister& vn,
              const VRegister& vm,
              const VRegister& va) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmadd(vd, vn, vm, va);
   }
@@ -1563,7 +1563,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const VRegister& vn,
              const VRegister& vm,
              const VRegister& va) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fmsub(vd, vn, vm, va);
   }
@@ -1571,7 +1571,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               const VRegister& vn,
               const VRegister& vm,
               const VRegister& va) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fnmadd(vd, vn, vm, va);
   }
@@ -1579,83 +1579,83 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               const VRegister& vn,
               const VRegister& vm,
               const VRegister& va) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fnmsub(vd, vn, vm, va);
   }
   void Fsub(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fsub(vd, vn, vm);
   }
   void Hint(SystemHint code) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     hint(code);
   }
   void Hint(int imm7) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     hint(imm7);
   }
   void Hlt(int code) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     hlt(code);
   }
   void Isb() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     isb();
   }
   void Ldar(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldar(rt, src);
   }
   void Ldarb(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldarb(rt, src);
   }
   void Ldarh(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldarh(rt, src);
   }
   void Ldlar(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldlar(rt, src);
   }
   void Ldlarb(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldlarb(rt, src);
   }
   void Ldlarh(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldlarh(rt, src);
   }
   void Ldaxp(const Register& rt, const Register& rt2, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rt.Aliases(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rt.Aliases(rt2));
     SingleEmissionCheckScope guard(this);
     ldaxp(rt, rt2, src);
   }
   void Ldaxr(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldaxr(rt, src);
   }
   void Ldaxrb(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldaxrb(rt, src);
   }
   void Ldaxrh(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldaxrh(rt, src);
   }
@@ -1678,7 +1678,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNC(ASM, MASM)                                     \
   void MASM(const Register& rs, const Register& rt, const MemOperand& src) { \
-    VIXL_ASSERT(allow_macro_instructions_);                                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                                  \
     SingleEmissionCheckScope guard(this);                                    \
     ASM(rs, rt, src);                                                        \
   }
@@ -1700,7 +1700,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rt,             \
             const Register& rt2,            \
             const MemOperand& src) {        \
-    VIXL_ASSERT(allow_macro_instructions_); \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_); \
     SingleEmissionCheckScope guard(this);   \
     ASM(rs, rs2, rt, rt2, src);             \
   }
@@ -1741,13 +1741,13 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_LOAD_ASM_FUNC(MASM, ASM)                                \
   void MASM(const Register& rs, const Register& rt, const MemOperand& src) { \
-    VIXL_ASSERT(allow_macro_instructions_);                                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                                  \
     SingleEmissionCheckScope guard(this);                                    \
     ASM(rs, rt, src);                                                        \
   }
 #define DEFINE_MACRO_STORE_ASM_FUNC(MASM, ASM)           \
   void MASM(const Register& rs, const MemOperand& src) { \
-    VIXL_ASSERT(allow_macro_instructions_);              \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);              \
     SingleEmissionCheckScope guard(this);                \
     ASM(rs, src);                                        \
   }
@@ -1763,7 +1763,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_SWP_ASM_FUNC(MASM, ASM)                                 \
   void MASM(const Register& rs, const Register& rt, const MemOperand& src) { \
-    VIXL_ASSERT(allow_macro_instructions_);                                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                                  \
     SingleEmissionCheckScope guard(this);                                    \
     ASM(rs, rt, src);                                                        \
   }
@@ -1775,19 +1775,19 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 #undef DEFINE_MACRO_SWP_ASM_FUNC
 
   void Ldaprb(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldaprb(rt, src);
   }
 
   void Ldaprh(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldaprh(rt, src);
   }
 
   void Ldapr(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldapr(rt, src);
   }
@@ -1795,7 +1795,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void Ldnp(const CPURegister& rt,
             const CPURegister& rt2,
             const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldnp(rt, rt2, src);
   }
@@ -1804,7 +1804,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   // preserved when the immediate matches the format of fd. Most systems convert
   // signalling NaNs to quiet NaNs when converting between float and double.
   void Ldr(const VRegister& vt, double imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     RawLiteral* literal;
     if (vt.IsD()) {
@@ -1819,7 +1819,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     ldr(vt, literal);
   }
   void Ldr(const VRegister& vt, float imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     RawLiteral* literal;
     if (vt.IsS()) {
@@ -1834,8 +1834,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     ldr(vt, literal);
   }
   void Ldr(const VRegister& vt, uint64_t high64, uint64_t low64) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(vt.IsQ());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(vt.IsQ());
     SingleEmissionCheckScope guard(this);
     ldr(vt,
         new Literal<uint64_t>(high64,
@@ -1844,8 +1844,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                               RawLiteral::kDeletedOnPlacementByPool));
   }
   void Ldr(const Register& rt, uint64_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rt.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rt.IsZero());
     SingleEmissionCheckScope guard(this);
     RawLiteral* literal;
     if (rt.Is64Bits()) {
@@ -1853,8 +1853,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                                       &literal_pool_,
                                       RawLiteral::kDeletedOnPlacementByPool);
     } else {
-      VIXL_ASSERT(rt.Is32Bits());
-      VIXL_ASSERT(IsUint32(imm) || IsInt32(imm));
+      SWANSTATION_VIXL_ASSERT(rt.Is32Bits());
+      SWANSTATION_VIXL_ASSERT(IsUint32(imm) || IsInt32(imm));
       literal = new Literal<uint32_t>(static_cast<uint32_t>(imm),
                                       &literal_pool_,
                                       RawLiteral::kDeletedOnPlacementByPool);
@@ -1862,8 +1862,8 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     ldr(rt, literal);
   }
   void Ldrsw(const Register& rt, uint32_t imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rt.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rt.IsZero());
     SingleEmissionCheckScope guard(this);
     ldrsw(rt,
           new Literal<uint32_t>(imm,
@@ -1871,63 +1871,63 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
                                 RawLiteral::kDeletedOnPlacementByPool));
   }
   void Ldr(const CPURegister& rt, RawLiteral* literal) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldr(rt, literal);
   }
   void Ldrsw(const Register& rt, RawLiteral* literal) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldrsw(rt, literal);
   }
   void Ldxp(const Register& rt, const Register& rt2, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rt.Aliases(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rt.Aliases(rt2));
     SingleEmissionCheckScope guard(this);
     ldxp(rt, rt2, src);
   }
   void Ldxr(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldxr(rt, src);
   }
   void Ldxrb(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldxrb(rt, src);
   }
   void Ldxrh(const Register& rt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ldxrh(rt, src);
   }
   void Lsl(const Register& rd, const Register& rn, unsigned shift) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     lsl(rd, rn, shift);
   }
   void Lsl(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     lslv(rd, rn, rm);
   }
   void Lsr(const Register& rd, const Register& rn, unsigned shift) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     lsr(rd, rn, shift);
   }
   void Lsr(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     lsrv(rd, rn, rm);
   }
@@ -1935,26 +1935,26 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             const Register& rm,
             const Register& ra) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT(!ra.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!ra.IsZero());
     SingleEmissionCheckScope guard(this);
     madd(rd, rn, rm, ra);
   }
   void Mneg(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     mneg(rd, rn, rm);
   }
   void Mov(const Register& rd,
            const Register& rn,
            DiscardMoveMode discard_mode = kDontDiscardForSameWReg) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     // Emit a register move only if the registers are distinct, or if they are
     // not X registers.
     //
@@ -1971,35 +1971,35 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Movk(const Register& rd, uint64_t imm, int shift = -1) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     SingleEmissionCheckScope guard(this);
     movk(rd, imm, shift);
   }
   void Mrs(const Register& rt, SystemRegister sysreg) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rt.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rt.IsZero());
     SingleEmissionCheckScope guard(this);
     mrs(rt, sysreg);
   }
   void Msr(SystemRegister sysreg, const Register& rt) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rt.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rt.IsZero());
     SingleEmissionCheckScope guard(this);
     msr(sysreg, rt);
   }
   void Sys(int op1, int crn, int crm, int op2, const Register& rt = xzr) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     sys(op1, crn, crm, op2, rt);
   }
   void Dc(DataCacheOp op, const Register& rt) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     dc(op, rt);
   }
   void Ic(InstructionCacheOp op, const Register& rt) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ic(op, rt);
   }
@@ -2007,65 +2007,65 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             const Register& rm,
             const Register& ra) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT(!ra.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!ra.IsZero());
     SingleEmissionCheckScope guard(this);
     msub(rd, rn, rm, ra);
   }
   void Mul(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     mul(rd, rn, rm);
   }
   void Nop() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     nop();
   }
   void Rbit(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     rbit(rd, rn);
   }
   void Ret(const Register& xn = lr) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!xn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!xn.IsZero());
     SingleEmissionCheckScope guard(this);
     ret(xn);
   }
   void Rev(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     rev(rd, rn);
   }
   void Rev16(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     rev16(rd, rn);
   }
   void Rev32(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     rev32(rd, rn);
   }
   void Rev64(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     rev64(rd, rn);
   }
@@ -2078,22 +2078,22 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNCS(MASM_PRE, ASM_PRE)            \
   void MASM_PRE##a(const Register& xd, const Register& xn) { \
-    VIXL_ASSERT(allow_macro_instructions_);                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                  \
     SingleEmissionCheckScope guard(this);                    \
     ASM_PRE##a(xd, xn);                                      \
   }                                                          \
   void MASM_PRE##za(const Register& xd) {                    \
-    VIXL_ASSERT(allow_macro_instructions_);                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                  \
     SingleEmissionCheckScope guard(this);                    \
     ASM_PRE##za(xd);                                         \
   }                                                          \
   void MASM_PRE##b(const Register& xd, const Register& xn) { \
-    VIXL_ASSERT(allow_macro_instructions_);                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                  \
     SingleEmissionCheckScope guard(this);                    \
     ASM_PRE##b(xd, xn);                                      \
   }                                                          \
   void MASM_PRE##zb(const Register& xd) {                    \
-    VIXL_ASSERT(allow_macro_instructions_);                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                  \
     SingleEmissionCheckScope guard(this);                    \
     ASM_PRE##zb(xd);                                         \
   }
@@ -2102,34 +2102,34 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 #undef DEFINE_MACRO_ASM_FUNCS
 
   void Pacga(const Register& xd, const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     pacga(xd, xn, xm);
   }
 
   void Xpaci(const Register& xd) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     xpaci(xd);
   }
 
   void Xpacd(const Register& xd) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     xpacd(xd);
   }
   void Ror(const Register& rd, const Register& rs, unsigned shift) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rs.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rs.IsZero());
     SingleEmissionCheckScope guard(this);
     ror(rd, rs, shift);
   }
   void Ror(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     rorv(rd, rn, rm);
   }
@@ -2137,9 +2137,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rn,
              unsigned lsb,
              unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     sbfiz(rd, rn, lsb, width);
   }
@@ -2147,9 +2147,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             unsigned immr,
             unsigned imms) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     sbfm(rd, rn, immr, imms);
   }
@@ -2157,23 +2157,23 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             unsigned lsb,
             unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     sbfx(rd, rn, lsb, width);
   }
   void Scvtf(const VRegister& vd, const Register& rn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     scvtf(vd, rn, fbits);
   }
   void Sdiv(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     sdiv(rd, rn, rm);
   }
@@ -2181,11 +2181,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               const Register& rn,
               const Register& rm,
               const Register& ra) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT(!ra.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!ra.IsZero());
     SingleEmissionCheckScope guard(this);
     smaddl(rd, rn, rm, ra);
   }
@@ -2193,57 +2193,57 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               const Register& rn,
               const Register& rm,
               const Register& ra) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT(!ra.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!ra.IsZero());
     SingleEmissionCheckScope guard(this);
     smsubl(rd, rn, rm, ra);
   }
   void Smull(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     smull(rd, rn, rm);
   }
   void Smulh(const Register& xd, const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!xd.IsZero());
-    VIXL_ASSERT(!xn.IsZero());
-    VIXL_ASSERT(!xm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!xd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!xn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!xm.IsZero());
     SingleEmissionCheckScope guard(this);
     smulh(xd, xn, xm);
   }
   void Stlr(const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stlr(rt, dst);
   }
   void Stlrb(const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stlrb(rt, dst);
   }
   void Stlrh(const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stlrh(rt, dst);
   }
   void Stllr(const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stllr(rt, dst);
   }
   void Stllrb(const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stllrb(rt, dst);
   }
   void Stllrh(const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stllrh(rt, dst);
   }
@@ -2251,38 +2251,38 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rt,
              const Register& rt2,
              const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
-    VIXL_ASSERT(!rs.Aliases(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt2));
     SingleEmissionCheckScope guard(this);
     stlxp(rs, rt, rt2, dst);
   }
   void Stlxr(const Register& rs, const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stlxr(rs, rt, dst);
   }
   void Stlxrb(const Register& rs, const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stlxrb(rs, rt, dst);
   }
   void Stlxrh(const Register& rs, const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stlxrh(rs, rt, dst);
   }
   void Stnp(const CPURegister& rt,
             const CPURegister& rt2,
             const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     stnp(rt, rt2, dst);
   }
@@ -2290,62 +2290,62 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rt,
             const Register& rt2,
             const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
-    VIXL_ASSERT(!rs.Aliases(rt2));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt2));
     SingleEmissionCheckScope guard(this);
     stxp(rs, rt, rt2, dst);
   }
   void Stxr(const Register& rs, const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stxr(rs, rt, dst);
   }
   void Stxrb(const Register& rs, const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stxrb(rs, rt, dst);
   }
   void Stxrh(const Register& rs, const Register& rt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
-    VIXL_ASSERT(!rs.Aliases(rt));
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(dst.GetBaseRegister()));
+    SWANSTATION_VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stxrh(rs, rt, dst);
   }
   void Svc(int code) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     svc(code);
   }
   void Sxtb(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     sxtb(rd, rn);
   }
   void Sxth(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     sxth(rd, rn);
   }
   void Sxtw(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     sxtw(rd, rn);
   }
   void Tbl(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbl(vd, vn, vm);
   }
@@ -2353,7 +2353,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn,
            const VRegister& vn2,
            const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbl(vd, vn, vn2, vm);
   }
@@ -2362,7 +2362,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn2,
            const VRegister& vn3,
            const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbl(vd, vn, vn2, vn3, vm);
   }
@@ -2372,12 +2372,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn3,
            const VRegister& vn4,
            const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbl(vd, vn, vn2, vn3, vn4, vm);
   }
   void Tbx(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbx(vd, vn, vm);
   }
@@ -2385,7 +2385,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn,
            const VRegister& vn2,
            const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbx(vd, vn, vn2, vm);
   }
@@ -2394,7 +2394,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn2,
            const VRegister& vn3,
            const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbx(vd, vn, vn2, vn3, vm);
   }
@@ -2404,7 +2404,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn3,
            const VRegister& vn4,
            const VRegister& vm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     tbx(vd, vn, vn2, vn3, vn4, vm);
   }
@@ -2414,9 +2414,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const Register& rn,
              unsigned lsb,
              unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     ubfiz(rd, rn, lsb, width);
   }
@@ -2424,9 +2424,9 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             unsigned immr,
             unsigned imms) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     ubfm(rd, rn, immr, imms);
   }
@@ -2434,23 +2434,23 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const Register& rn,
             unsigned lsb,
             unsigned width) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     ubfx(rd, rn, lsb, width);
   }
   void Ucvtf(const VRegister& vd, const Register& rn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     ucvtf(vd, rn, fbits);
   }
   void Udiv(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     udiv(rd, rn, rm);
   }
@@ -2458,27 +2458,27 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               const Register& rn,
               const Register& rm,
               const Register& ra) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT(!ra.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!ra.IsZero());
     SingleEmissionCheckScope guard(this);
     umaddl(rd, rn, rm, ra);
   }
   void Umull(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     SingleEmissionCheckScope guard(this);
     umull(rd, rn, rm);
   }
   void Umulh(const Register& xd, const Register& xn, const Register& xm) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!xd.IsZero());
-    VIXL_ASSERT(!xn.IsZero());
-    VIXL_ASSERT(!xm.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!xd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!xn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!xm.IsZero());
     SingleEmissionCheckScope guard(this);
     umulh(xd, xn, xm);
   }
@@ -2486,16 +2486,16 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
               const Register& rn,
               const Register& rm,
               const Register& ra) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
-    VIXL_ASSERT(!rm.IsZero());
-    VIXL_ASSERT(!ra.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!ra.IsZero());
     SingleEmissionCheckScope guard(this);
     umsubl(rd, rn, rm, ra);
   }
   void Unreachable() {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     if (generate_simulator_code_) {
       hlt(kUnreachableOpcode);
@@ -2506,23 +2506,23 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     }
   }
   void Uxtb(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     uxtb(rd, rn);
   }
   void Uxth(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     uxth(rd, rn);
   }
   void Uxtw(const Register& rd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
-    VIXL_ASSERT(!rd.IsZero());
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     SingleEmissionCheckScope guard(this);
     uxtw(rd, rn);
   }
@@ -2663,7 +2663,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNC(ASM, MASM)                                     \
   void MASM(const VRegister& vd, const VRegister& vn, const VRegister& vm) { \
-    VIXL_ASSERT(allow_macro_instructions_);                                  \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                                  \
     SingleEmissionCheckScope guard(this);                                    \
     ASM(vd, vn, vm);                                                         \
   }
@@ -2747,7 +2747,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNC(ASM, MASM)                \
   void MASM(const VRegister& vd, const VRegister& vn) { \
-    VIXL_ASSERT(allow_macro_instructions_);             \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);             \
     SingleEmissionCheckScope guard(this);               \
     ASM(vd, vn);                                        \
   }
@@ -2764,7 +2764,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNC(ASM, MASM)                            \
   void MASM(const VRegister& vd, const VRegister& vn, double imm) { \
-    VIXL_ASSERT(allow_macro_instructions_);                         \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                         \
     SingleEmissionCheckScope guard(this);                           \
     ASM(vd, vn, imm);                                               \
   }
@@ -2810,7 +2810,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const VRegister& vn,            \
             const VRegister& vm,            \
             int vm_index) {                 \
-    VIXL_ASSERT(allow_macro_instructions_); \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_); \
     SingleEmissionCheckScope guard(this);   \
     ASM(vd, vn, vm, vm_index);              \
   }
@@ -2857,7 +2857,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
 #define DEFINE_MACRO_ASM_FUNC(ASM, MASM)                           \
   void MASM(const VRegister& vd, const VRegister& vn, int shift) { \
-    VIXL_ASSERT(allow_macro_instructions_);                        \
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);                        \
     SingleEmissionCheckScope guard(this);                          \
     ASM(vd, vn, shift);                                            \
   }
@@ -2865,42 +2865,42 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 #undef DEFINE_MACRO_ASM_FUNC
 
   void Bic(const VRegister& vd, const int imm8, const int left_shift = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     bic(vd, imm8, left_shift);
   }
   void Cmeq(const VRegister& vd, const VRegister& vn, int imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     cmeq(vd, vn, imm);
   }
   void Cmge(const VRegister& vd, const VRegister& vn, int imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     cmge(vd, vn, imm);
   }
   void Cmgt(const VRegister& vd, const VRegister& vn, int imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     cmgt(vd, vn, imm);
   }
   void Cmle(const VRegister& vd, const VRegister& vn, int imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     cmle(vd, vn, imm);
   }
   void Cmlt(const VRegister& vd, const VRegister& vn, int imm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     cmlt(vd, vn, imm);
   }
   void Dup(const VRegister& vd, const VRegister& vn, int index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     dup(vd, vn, index);
   }
   void Dup(const VRegister& vd, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     dup(vd, rn);
   }
@@ -2908,7 +2908,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vn,
            const VRegister& vm,
            int index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ext(vd, vn, vm, index);
   }
@@ -2916,7 +2916,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const VRegister& vn,
              const VRegister& vm,
              int rot) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcadd(vd, vn, vm, rot);
   }
@@ -2925,7 +2925,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const VRegister& vm,
              int vm_index,
              int rot) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcmla(vd, vn, vm, vm_index, rot);
   }
@@ -2933,7 +2933,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
              const VRegister& vn,
              const VRegister& vm,
              int rot) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcmla(vd, vn, vm, rot);
   }
@@ -2941,22 +2941,22 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            int vd_index,
            const VRegister& vn,
            int vn_index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ins(vd, vd_index, vn, vn_index);
   }
   void Ins(const VRegister& vd, int vd_index, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ins(vd, vd_index, rn);
   }
   void Ld1(const VRegister& vt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld1(vt, src);
   }
   void Ld1(const VRegister& vt, const VRegister& vt2, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld1(vt, vt2, src);
   }
@@ -2964,7 +2964,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld1(vt, vt2, vt3, src);
   }
@@ -2973,22 +2973,22 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld1(vt, vt2, vt3, vt4, src);
   }
   void Ld1(const VRegister& vt, int lane, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld1(vt, lane, src);
   }
   void Ld1r(const VRegister& vt, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld1r(vt, src);
   }
   void Ld2(const VRegister& vt, const VRegister& vt2, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld2(vt, vt2, src);
   }
@@ -2996,12 +2996,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt2,
            int lane,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld2(vt, vt2, lane, src);
   }
   void Ld2r(const VRegister& vt, const VRegister& vt2, const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld2r(vt, vt2, src);
   }
@@ -3009,7 +3009,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld3(vt, vt2, vt3, src);
   }
@@ -3018,7 +3018,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt3,
            int lane,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld3(vt, vt2, vt3, lane, src);
   }
@@ -3026,7 +3026,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const VRegister& vt2,
             const VRegister& vt3,
             const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld3r(vt, vt2, vt3, src);
   }
@@ -3035,7 +3035,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld4(vt, vt2, vt3, vt4, src);
   }
@@ -3045,7 +3045,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt4,
            int lane,
            const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld4(vt, vt2, vt3, vt4, lane, src);
   }
@@ -3054,7 +3054,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const VRegister& vt3,
             const VRegister& vt4,
             const MemOperand& src) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ld4r(vt, vt2, vt3, vt4, src);
   }
@@ -3062,22 +3062,22 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            int vd_index,
            const VRegister& vn,
            int vn_index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     mov(vd, vd_index, vn, vn_index);
   }
   void Mov(const VRegister& vd, const VRegister& vn, int index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     mov(vd, vn, index);
   }
   void Mov(const VRegister& vd, int vd_index, const Register& rn) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     mov(vd, vd_index, rn);
   }
   void Mov(const Register& rd, const VRegister& vn, int vn_index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     mov(rd, vn, vn_index);
   }
@@ -3090,42 +3090,42 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
             const int imm8,
             Shift shift = LSL,
             const int shift_amount = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     mvni(vd, imm8, shift, shift_amount);
   }
   void Orr(const VRegister& vd, const int imm8, const int left_shift = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     orr(vd, imm8, left_shift);
   }
   void Scvtf(const VRegister& vd, const VRegister& vn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     scvtf(vd, vn, fbits);
   }
   void Ucvtf(const VRegister& vd, const VRegister& vn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     ucvtf(vd, vn, fbits);
   }
   void Fcvtzs(const VRegister& vd, const VRegister& vn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtzs(vd, vn, fbits);
   }
   void Fcvtzu(const VRegister& vd, const VRegister& vn, int fbits = 0) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     fcvtzu(vd, vn, fbits);
   }
   void St1(const VRegister& vt, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st1(vt, dst);
   }
   void St1(const VRegister& vt, const VRegister& vt2, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st1(vt, vt2, dst);
   }
@@ -3133,7 +3133,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st1(vt, vt2, vt3, dst);
   }
@@ -3142,17 +3142,17 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st1(vt, vt2, vt3, vt4, dst);
   }
   void St1(const VRegister& vt, int lane, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st1(vt, lane, dst);
   }
   void St2(const VRegister& vt, const VRegister& vt2, const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st2(vt, vt2, dst);
   }
@@ -3160,7 +3160,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st3(vt, vt2, vt3, dst);
   }
@@ -3169,7 +3169,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st4(vt, vt2, vt3, vt4, dst);
   }
@@ -3177,7 +3177,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt2,
            int lane,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st2(vt, vt2, lane, dst);
   }
@@ -3186,7 +3186,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt3,
            int lane,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st3(vt, vt2, vt3, lane, dst);
   }
@@ -3196,57 +3196,57 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
            const VRegister& vt4,
            int lane,
            const MemOperand& dst) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     st4(vt, vt2, vt3, vt4, lane, dst);
   }
   void Smov(const Register& rd, const VRegister& vn, int vn_index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     smov(rd, vn, vn_index);
   }
   void Umov(const Register& rd, const VRegister& vn, int vn_index) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     umov(rd, vn, vn_index);
   }
   void Crc32b(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32b(rd, rn, rm);
   }
   void Crc32h(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32h(rd, rn, rm);
   }
   void Crc32w(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32w(rd, rn, rm);
   }
   void Crc32x(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32x(rd, rn, rm);
   }
   void Crc32cb(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32cb(rd, rn, rm);
   }
   void Crc32ch(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32ch(rd, rn, rm);
   }
   void Crc32cw(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32cw(rd, rn, rm);
   }
   void Crc32cx(const Register& rd, const Register& rn, const Register& rm) {
-    VIXL_ASSERT(allow_macro_instructions_);
+    SWANSTATION_VIXL_ASSERT(allow_macro_instructions_);
     SingleEmissionCheckScope guard(this);
     crc32cx(rd, rn, rm);
   }
@@ -3281,11 +3281,11 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   // one instruction. Refer to the implementation for details.
   void BumpSystemStackPointer(const Operand& space);
 
-  virtual bool AllowMacroInstructions() const VIXL_OVERRIDE {
+  virtual bool AllowMacroInstructions() const SWANSTATION_VIXL_OVERRIDE {
     return allow_macro_instructions_;
   }
 
-  virtual bool ArePoolsBlocked() const VIXL_OVERRIDE {
+  virtual bool ArePoolsBlocked() const SWANSTATION_VIXL_OVERRIDE {
     return IsLiteralPoolBlocked() && IsVeneerPoolBlocked();
   }
 
@@ -3296,17 +3296,17 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   bool GenerateSimulatorCode() const { return generate_simulator_code_; }
 
   size_t GetLiteralPoolSize() const { return literal_pool_.GetSize(); }
-  VIXL_DEPRECATED("GetLiteralPoolSize", size_t LiteralPoolSize() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteralPoolSize", size_t LiteralPoolSize() const) {
     return GetLiteralPoolSize();
   }
 
   size_t GetLiteralPoolMaxSize() const { return literal_pool_.GetMaxSize(); }
-  VIXL_DEPRECATED("GetLiteralPoolMaxSize", size_t LiteralPoolMaxSize() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLiteralPoolMaxSize", size_t LiteralPoolMaxSize() const) {
     return GetLiteralPoolMaxSize();
   }
 
   size_t GetVeneerPoolMaxSize() const { return veneer_pool_.GetMaxSize(); }
-  VIXL_DEPRECATED("GetVeneerPoolMaxSize", size_t VeneerPoolMaxSize() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetVeneerPoolMaxSize", size_t VeneerPoolMaxSize() const) {
     return GetVeneerPoolMaxSize();
   }
 
@@ -3314,7 +3314,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   int GetNumberOfPotentialVeneers() const {
     return veneer_pool_.GetNumberOfPotentialVeneers();
   }
-  VIXL_DEPRECATED("GetNumberOfPotentialVeneers",
+  SWANSTATION_VIXL_DEPRECATED("GetNumberOfPotentialVeneers",
                   int NumberOfPotentialVeneers() const) {
     return GetNumberOfPotentialVeneers();
   }
@@ -3325,7 +3325,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
     return std::min(next_checkpoint_for_pools,
                     static_cast<ptrdiff_t>(GetBuffer().GetCapacity()));
   }
-  VIXL_DEPRECATED("GetNextCheckPoint", ptrdiff_t NextCheckPoint()) {
+  SWANSTATION_VIXL_DEPRECATED("GetNextCheckPoint", ptrdiff_t NextCheckPoint()) {
     return GetNextCheckPoint();
   }
 
@@ -3349,7 +3349,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   }
 
   void CheckEmitPoolsFor(size_t amount);
-  virtual void EnsureEmitPoolsFor(size_t amount) VIXL_OVERRIDE {
+  virtual void EnsureEmitPoolsFor(size_t amount) SWANSTATION_VIXL_OVERRIDE {
     ptrdiff_t offset = amount;
     ptrdiff_t max_pools_size =
         literal_pool_.GetMaxSize() + veneer_pool_.GetMaxSize();
@@ -3362,7 +3362,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 
   // Set the current stack pointer, but don't generate any code.
   void SetStackPointer(const Register& stack_pointer) {
-    VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(stack_pointer));
+    SWANSTATION_VIXL_ASSERT(!GetScratchRegisterList()->IncludesAliasOf(stack_pointer));
     sp_ = stack_pointer;
   }
 
@@ -3370,12 +3370,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   const Register& StackPointer() const { return sp_; }
 
   CPURegList* GetScratchRegisterList() { return &tmp_list_; }
-  VIXL_DEPRECATED("GetScratchRegisterList", CPURegList* TmpList()) {
+  SWANSTATION_VIXL_DEPRECATED("GetScratchRegisterList", CPURegList* TmpList()) {
     return GetScratchRegisterList();
   }
 
   CPURegList* GetScratchFPRegisterList() { return &fptmp_list_; }
-  VIXL_DEPRECATED("GetScratchFPRegisterList", CPURegList* FPTmpList()) {
+  SWANSTATION_VIXL_DEPRECATED("GetScratchFPRegisterList", CPURegList* FPTmpList()) {
     return GetScratchFPRegisterList();
   }
 
@@ -3467,10 +3467,10 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
 // `CallRuntime` requires variadic templating, that is only available from
 // C++11.
 #if __cplusplus >= 201103L
-#define VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
+#define SWANSTATION_VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
 #endif  // #if __cplusplus >= 201103L
 
-#ifdef VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
+#ifdef SWANSTATION_VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
   template <typename R, typename... P>
   void CallRuntimeHelper(R (*function)(P...), RuntimeCallType call_type);
 
@@ -3483,7 +3483,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void TailCallRuntime(R (*function)(P...)) {
     CallRuntimeHelper(function, kTailCallRuntime);
   }
-#endif  // #ifdef VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
+#endif  // #ifdef SWANSTATION_VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
 
  protected:
   void BlockLiteralPool() { literal_pool_.Block(); }
@@ -3493,12 +3493,12 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   void ReleaseVeneerPool() { veneer_pool_.Release(); }
   bool IsVeneerPoolBlocked() const { return veneer_pool_.IsBlocked(); }
 
-  virtual void BlockPools() VIXL_OVERRIDE {
+  virtual void BlockPools() SWANSTATION_VIXL_OVERRIDE {
     BlockLiteralPool();
     BlockVeneerPool();
   }
 
-  virtual void ReleasePools() VIXL_OVERRIDE {
+  virtual void ReleasePools() SWANSTATION_VIXL_OVERRIDE {
     ReleaseLiteralPool();
     ReleaseVeneerPool();
   }
@@ -3510,7 +3510,7 @@ class MacroAssembler : public Assembler, public MacroAssemblerInterface {
   friend class BlockLiteralPoolScope;
   friend class BlockVeneerPoolScope;
 
-  virtual void SetAllowMacroInstructions(bool value) VIXL_OVERRIDE {
+  virtual void SetAllowMacroInstructions(bool value) SWANSTATION_VIXL_OVERRIDE {
     allow_macro_instructions_ = value;
   }
 
@@ -3654,7 +3654,7 @@ inline void LiteralPool::SetNextRecommendedCheckpoint(ptrdiff_t offset) {
 
 class InstructionAccurateScope : public ExactAssemblyScope {
  public:
-  VIXL_DEPRECATED("ExactAssemblyScope",
+  SWANSTATION_VIXL_DEPRECATED("ExactAssemblyScope",
                   InstructionAccurateScope(MacroAssembler* masm,
                                            int64_t count,
                                            SizePolicy size_policy = kExactSize))
@@ -3831,11 +3831,11 @@ class UseScratchRegisterScope {
   RegList old_availablefp_;  // kVRegister
 
   // Disallow copy constructor and operator=.
-  VIXL_DEBUG_NO_RETURN UseScratchRegisterScope(const UseScratchRegisterScope&) {
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_DEBUG_NO_RETURN UseScratchRegisterScope(const UseScratchRegisterScope&) {
+    SWANSTATION_VIXL_UNREACHABLE();
   }
-  VIXL_DEBUG_NO_RETURN void operator=(const UseScratchRegisterScope&) {
-    VIXL_UNREACHABLE();
+  SWANSTATION_VIXL_DEBUG_NO_RETURN void operator=(const UseScratchRegisterScope&) {
+    SWANSTATION_VIXL_UNREACHABLE();
   }
 };
 
@@ -3885,14 +3885,14 @@ class SimulationCPUFeaturesScope {
 
 
 // Variadic templating is only available from C++11.
-#ifdef VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
+#ifdef SWANSTATION_VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
 
 // `R` stands for 'return type', and `P` for 'parameter types'.
 template <typename R, typename... P>
 void MacroAssembler::CallRuntimeHelper(R (*function)(P...),
                                        RuntimeCallType call_type) {
   if (generate_simulator_code_) {
-#ifdef VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
+#ifdef SWANSTATION_VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
     uintptr_t runtime_call_wrapper_address = reinterpret_cast<uintptr_t>(
         &(Simulator::RuntimeCallStructHelper<R, P...>::Wrapper));
     uintptr_t function_address = reinterpret_cast<uintptr_t>(function);
@@ -3906,18 +3906,18 @@ void MacroAssembler::CallRuntimeHelper(R (*function)(P...),
       ExactAssemblyScope scope(this, kInstructionSize);
       hlt(kRuntimeCallOpcode);
     }
-    VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) ==
+    SWANSTATION_VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) ==
                 kRuntimeCallWrapperOffset);
     dc(runtime_call_wrapper_address);
-    VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) ==
+    SWANSTATION_VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) ==
                 kRuntimeCallFunctionOffset);
     dc(function_address);
-    VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) == kRuntimeCallTypeOffset);
+    SWANSTATION_VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) == kRuntimeCallTypeOffset);
     dc32(call_type);
-    VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) == kRuntimeCallLength);
+    SWANSTATION_VIXL_ASSERT(GetSizeOfCodeGeneratedSince(&start) == kRuntimeCallLength);
 #else
-    VIXL_UNREACHABLE();
-#endif  // #ifdef VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
+    SWANSTATION_VIXL_UNREACHABLE();
+#endif  // #ifdef SWANSTATION_VIXL_HAS_SIMULATED_RUNTIME_CALL_SUPPORT
   } else {
     UseScratchRegisterScope temps(this);
     Register temp = temps.AcquireX();
@@ -3925,13 +3925,13 @@ void MacroAssembler::CallRuntimeHelper(R (*function)(P...),
     if (call_type == kTailCallRuntime) {
       Br(temp);
     } else {
-      VIXL_ASSERT(call_type == kCallRuntime);
+      SWANSTATION_VIXL_ASSERT(call_type == kCallRuntime);
       Blr(temp);
     }
   }
 }
 
-#endif  // #ifdef VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
+#endif  // #ifdef SWANSTATION_VIXL_HAS_MACROASSEMBLER_RUNTIME_CALL_SUPPORT
 
 }  // namespace aarch64
 
@@ -3960,6 +3960,6 @@ inline void InvalSet<aarch64::VeneerPool::BranchInfo,
   branch_info->first_unreacheable_pc_ = key;
 }
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_MACRO_ASSEMBLER_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_MACRO_ASSEMBLER_AARCH64_H_

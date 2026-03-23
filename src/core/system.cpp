@@ -72,7 +72,8 @@ static bool LoadEXE(const char* filename);
 /// Opens CD image, preloading if needed.
 static std::unique_ptr<CDImage> OpenCDImage(const char* path, Common::Error* error, bool force_preload,
                                             bool check_for_patches);
-static bool ReadExecutableFromImage(ISOReader& iso, std::string* out_executable_name, std::vector<u8>* out_executable_data);
+static bool ReadExecutableFromImage(ISOReader& iso, std::string* out_executable_name,
+                                    std::vector<u8>* out_executable_data);
 static bool ShouldCheckForImagePatches();
 
 static bool DoLoadState(ByteStream* stream, bool force_software_renderer, bool update_display);
@@ -219,7 +220,6 @@ ConsoleRegion GetConsoleRegionForDiscRegion(DiscRegion region)
     case DiscRegion::Other:
     default:
       break;
-
   }
 
   return ConsoleRegion::NTSC_U;
@@ -475,7 +475,7 @@ DiscRegion GetRegionForImage(CDImage* cdi)
 DiscRegion GetRegionForExe(const char* path)
 {
   BIOS::PSEXEHeader header;
-  RFILE *fp = FileSystem::OpenRFile(path, "rb");
+  RFILE* fp = FileSystem::OpenRFile(path, "rb");
   if (!fp)
     return DiscRegion::Other;
   if (rfread(&header, sizeof(header), 1, fp) != 1)
@@ -572,8 +572,7 @@ std::unique_ptr<CDImage> OpenCDImage(const char* path, Common::Error* error, boo
       media = CDImage::OverlayPPFPatch(ppf_filename.c_str(), CDImage::OpenFlags::None, std::move(media));
       if (!media)
       {
-        Log_WarningPrintf("Failed to apply ppf patch from '%s', using unpatched image.",
-                          ppf_filename.c_str());
+        Log_WarningPrintf("Failed to apply ppf patch from '%s', using unpatched image.", ppf_filename.c_str());
         return OpenCDImage(path, error, force_preload, false);
       }
     }
@@ -830,9 +829,11 @@ bool CreateGPU(GPURenderer renderer)
       g_gpu = GPU::CreateHardwareOpenGLRenderer();
       break;
 
+#if ENABLE_VULKAN
     case GPURenderer::HardwareVulkan:
       g_gpu = GPU::CreateHardwareVulkanRenderer();
       break;
+#endif
 
 #ifdef _WIN32
     case GPURenderer::HardwareD3D11:
@@ -1038,8 +1039,10 @@ bool DoLoadState(ByteStream* state, bool force_software_renderer, bool update_di
       {
         if (old_media)
         {
-          Log_InfoPrintf("Failed to open CD image from save state '%s': %s. Using existing image '%s', this may result in instability.",
-                         media_filename.c_str(), error.GetCodeAndMessage().GetCharArray(), old_media->GetFileName().c_str());
+          Log_InfoPrintf("Failed to open CD image from save state '%s': %s. Using existing image '%s', this may result "
+                         "in instability.",
+                         media_filename.c_str(), error.GetCodeAndMessage().GetCharArray(),
+                         old_media->GetFileName().c_str());
           media = std::move(old_media);
         }
         else
@@ -1461,7 +1464,8 @@ static std::unique_ptr<MemoryCard> GetMemoryCardForSlot(u32 slot, MemoryCardType
       if (s_running_game_code.empty())
       {
         Log_WarningPrintf("Per-game memory card cannot be used for slot %u as the running "
-                          "game has no code. Using shared card instead.", slot + 1u);
+                          "game has no code. Using shared card instead.",
+                          slot + 1u);
         return MemoryCard::Open(g_host_interface->GetSharedMemoryCardPath(slot));
       }
       else
@@ -1475,7 +1479,8 @@ static std::unique_ptr<MemoryCard> GetMemoryCardForSlot(u32 slot, MemoryCardType
       if (s_running_game_title.empty())
       {
         Log_WarningPrintf("Per-game memory card cannot be used for slot %u as the running "
-                          "game has no title. Using shared card instead.", slot + 1u);
+                          "game has no title. Using shared card instead.",
+                          slot + 1u);
         return MemoryCard::Open(g_host_interface->GetSharedMemoryCardPath(slot));
       }
       else
@@ -1492,7 +1497,8 @@ static std::unique_ptr<MemoryCard> GetMemoryCardForSlot(u32 slot, MemoryCardType
       if (file_title.empty())
       {
         Log_WarningPrintf("Per-game memory card cannot be used for slot %u as the running "
-                          "game has no path. Using shared card instead.", slot + 1u);
+                          "game has no path. Using shared card instead.",
+                          slot + 1u);
         return MemoryCard::Open(g_host_interface->GetSharedMemoryCardPath(slot));
       }
       else
@@ -1832,11 +1838,8 @@ void UpdateMemorySaveStateSettings()
     {
       // doesn't matter if it's not resampled here since it eats everything anyway, nom nom nom.
       s_runahead_audio_stream = AudioStream::CreateNullAudioStream();
-      s_runahead_audio_stream->Reconfigure(
-		      HostInterface::AUDIO_SAMPLE_RATE,
-		      HostInterface::AUDIO_SAMPLE_RATE,
-		      HostInterface::AUDIO_CHANNELS,
-		      AudioStream::DefaultBufferSize);
+      s_runahead_audio_stream->Reconfigure(HostInterface::AUDIO_SAMPLE_RATE, HostInterface::AUDIO_SAMPLE_RATE,
+                                           HostInterface::AUDIO_CHANNELS, AudioStream::DefaultBufferSize);
     }
   }
   else
@@ -1951,7 +1954,6 @@ void DoRewind()
   {
     s_rewind_load_counter--;
   }
-
 }
 
 void SaveRunaheadState()
@@ -1988,7 +1990,6 @@ void DoRunahead()
     // and throw away all the states, forcing us to catch up below
     // TODO: can we leave one frame here and run, avoiding the extra save?
     s_runahead_states.clear();
-
   }
 
   // run the frames with no audio
@@ -2005,14 +2006,12 @@ void DoRunahead()
     }
 
     g_spu.SetAudioStream(g_host_interface->GetAudioStream());
-
   }
   else
   {
     // save this frame
     SaveRunaheadState();
   }
-
 }
 
 void DoMemorySaveStates()

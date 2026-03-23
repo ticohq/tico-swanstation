@@ -4,6 +4,8 @@
 
 #ifdef _WIN32
 #include "windows_headers.h"
+#elif defined(__SWITCH__)
+#include <switch.h>
 #else
 #include <sys/time.h>
 #include <time.h>
@@ -51,6 +53,31 @@ double Timer::ConvertValueToSeconds(Timer::Value value)
 Timer::Value Timer::ConvertSecondsToValue(double s)
 {
   return static_cast<Value>((s * 1000000000.0) * s_counter_frequency);
+}
+#elif defined(__SWITCH__)
+Timer::Value Timer::GetValue(void)
+{
+  return armGetSystemTick();
+}
+
+double Timer::ConvertValueToNanoseconds(Timer::Value value)
+{
+  return (static_cast<double>(value) / 19200000.0) * 1000000000.0;
+}
+
+double Timer::ConvertValueToMilliseconds(Timer::Value value)
+{
+  return (static_cast<double>(value) / 19200000.0) * 1000.0;
+}
+
+double Timer::ConvertValueToSeconds(Timer::Value value)
+{
+  return (static_cast<double>(value) / 19200000.0);
+}
+
+Timer::Value Timer::ConvertSecondsToValue(double s)
+{
+  return static_cast<Value>(s * 19200000.0);
 }
 #else
 Timer::Value Timer::GetValue(void)

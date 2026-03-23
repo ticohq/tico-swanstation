@@ -24,18 +24,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_CPU_FEATURES_H
-#define VIXL_CPU_FEATURES_H
+#ifndef SWANSTATION_VIXL_CPU_FEATURES_H
+#define SWANSTATION_VIXL_CPU_FEATURES_H
 
 #include <ostream>
 
 #include "globals-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 
 
 // clang-format off
-#define VIXL_CPU_FEATURE_LIST(V)                                               \
+#define SWANSTATION_VIXL_CPU_FEATURE_LIST(V)                                               \
   /* If set, the OS traps and emulates MRS accesses to relevant (EL1) ID_*  */ \
   /* registers, so that the detailed feature registers can be read          */ \
   /* directly.                                                              */ \
@@ -151,7 +151,7 @@ class CPUFeaturesConstIterator;
 //     if (h.Has(CPUFeatures::kFP, CPUFeatures::kNEON)) { ... }
 //     if (h.Has(g)) { ... }
 //     // If the empty set is requested, the result is always 'true'.
-//     VIXL_ASSERT(h.Has(CPUFeatures()));
+//     SWANSTATION_VIXL_ASSERT(h.Has(CPUFeatures()));
 //
 //     // For debug and reporting purposes, features can be enumerated (or
 //     // printed directly):
@@ -164,13 +164,13 @@ class CPUFeatures {
   // These should be treated as opaque tokens. User code should not rely on
   // specific numeric values or ordering.
   enum Feature {
-    // Refer to VIXL_CPU_FEATURE_LIST (above) for the list of feature names that
+    // Refer to SWANSTATION_VIXL_CPU_FEATURE_LIST (above) for the list of feature names that
     // this class supports.
 
     kNone = -1,
-#define VIXL_DECLARE_FEATURE(SYMBOL, NAME, CPUINFO) SYMBOL,
-    VIXL_CPU_FEATURE_LIST(VIXL_DECLARE_FEATURE)
-#undef VIXL_DECLARE_FEATURE
+#define SWANSTATION_VIXL_DECLARE_FEATURE(SYMBOL, NAME, CPUINFO) SYMBOL,
+    SWANSTATION_VIXL_CPU_FEATURE_LIST(SWANSTATION_VIXL_DECLARE_FEATURE)
+#undef SWANSTATION_VIXL_DECLARE_FEATURE
     kNumberOfFeatures
   };
   // clang-format on
@@ -261,11 +261,11 @@ class CPUFeatures {
   uint64_t features_;
 
   friend std::ostream& operator<<(std::ostream& os,
-                                  const vixl::CPUFeatures& features);
+                                  const swanstation_vixl::CPUFeatures& features);
 };
 
-std::ostream& operator<<(std::ostream& os, vixl::CPUFeatures::Feature feature);
-std::ostream& operator<<(std::ostream& os, const vixl::CPUFeatures& features);
+std::ostream& operator<<(std::ostream& os, swanstation_vixl::CPUFeatures::Feature feature);
+std::ostream& operator<<(std::ostream& os, const swanstation_vixl::CPUFeatures& features);
 
 // This is not a proper C++ iterator type, but it simulates enough of
 // ForwardIterator that simple loops can be written.
@@ -274,7 +274,7 @@ class CPUFeaturesConstIterator {
   CPUFeaturesConstIterator(const CPUFeatures* cpu_features = NULL,
                            CPUFeatures::Feature start = CPUFeatures::kNone)
       : cpu_features_(cpu_features), feature_(start) {
-    VIXL_ASSERT(IsValid());
+    SWANSTATION_VIXL_ASSERT(IsValid());
   }
 
   bool operator==(const CPUFeaturesConstIterator& other) const;
@@ -285,7 +285,7 @@ class CPUFeaturesConstIterator {
   CPUFeatures::Feature operator++(int);
 
   CPUFeatures::Feature operator*() const {
-    VIXL_ASSERT(IsValid());
+    SWANSTATION_VIXL_ASSERT(IsValid());
     return feature_;
   }
 
@@ -359,6 +359,6 @@ class CPUFeaturesScope {
 };
 
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_CPU_FEATURES_H
+#endif  // SWANSTATION_VIXL_CPU_FEATURES_H

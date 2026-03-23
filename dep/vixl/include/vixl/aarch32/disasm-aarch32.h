@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_DISASM_AARCH32_H_
-#define VIXL_DISASM_AARCH32_H_
+#ifndef SWANSTATION_VIXL_DISASM_AARCH32_H_
+#define SWANSTATION_VIXL_DISASM_AARCH32_H_
 
 extern "C" {
 #include <stdint.h>
@@ -36,7 +36,7 @@ extern "C" {
 #include "constants-aarch32.h"
 #include "operands-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 class ITBlock {
@@ -439,7 +439,7 @@ class Disassembler {
         return *this << operand.GetBaseRegister() << ", " << operand.GetShift()
                      << " " << operand.GetShiftRegister();
       }
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       return *this;
     }
     virtual DisassemblerStream& operator<<(const SOperand& operand) {
@@ -483,7 +483,7 @@ class Disassembler {
               << ImmediateShiftOperand(operand.GetShift(),
                                        operand.GetShiftAmount());
       } else {
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return *this;
       }
       if (operand.GetAddrMode() == Offset) {
@@ -561,7 +561,7 @@ class Disassembler {
   bool InITBlock() const { return it_block_.InITBlock(); }
   bool OutsideITBlock() const { return it_block_.OutsideITBlock(); }
   bool OutsideITBlockOrLast() const { return it_block_.OutsideITBlockOrLast(); }
-  void CheckNotIT() const { VIXL_ASSERT(it_block_.OutsideITBlock()); }
+  void CheckNotIT() const { SWANSTATION_VIXL_ASSERT(it_block_.OutsideITBlock()); }
   // Return the current condition depending on the IT state for T32.
   Condition CurrentCond() const {
     if (it_block_.OutsideITBlock()) return al;
@@ -2718,6 +2718,6 @@ class PrintDisassembler : public Disassembler {
 };
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_DISASM_AARCH32_H_
+#endif  // SWANSTATION_VIXL_DISASM_AARCH32_H_

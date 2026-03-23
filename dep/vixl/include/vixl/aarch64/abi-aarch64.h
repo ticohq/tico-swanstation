@@ -27,15 +27,15 @@
 // The ABI features are only supported with C++11 or later.
 #if __cplusplus >= 201103L
 // This should not be defined manually.
-#define VIXL_HAS_ABI_SUPPORT
-#elif defined(VIXL_HAS_ABI_SUPPORT)
+#define SWANSTATION_VIXL_HAS_ABI_SUPPORT
+#elif defined(SWANSTATION_VIXL_HAS_ABI_SUPPORT)
 #error "The ABI support requires C++11 or later."
 #endif
 
-#ifdef VIXL_HAS_ABI_SUPPORT
+#ifdef SWANSTATION_VIXL_HAS_ABI_SUPPORT
 
-#ifndef VIXL_AARCH64_ABI_AARCH64_H_
-#define VIXL_AARCH64_ABI_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_ABI_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_ABI_AARCH64_H_
 
 #include <algorithm>
 #include <type_traits>
@@ -45,7 +45,7 @@
 #include "instructions-aarch64.h"
 #include "operands-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Class describing the AArch64 procedure call standard, as defined in "ARM
@@ -75,7 +75,7 @@ class ABI {
   GenericOperand GetReturnGenericOperand() const {
     ABI abi(stack_pointer_);
     GenericOperand result = abi.GetNextParameterGenericOperand<T>();
-    VIXL_ASSERT(result.IsCPURegister());
+    SWANSTATION_VIXL_ASSERT(result.IsCPURegister());
     return result;
   }
 
@@ -91,7 +91,7 @@ class ABI {
     int type_alignment = std::alignment_of<T>::value;
 
     // We only support basic types.
-    VIXL_ASSERT(is_floating_point_type || is_integral_type || is_pointer_type);
+    SWANSTATION_VIXL_ASSERT(is_floating_point_type || is_integral_type || is_pointer_type);
 
     // To ensure we get the correct type of operand when simulating on a 32-bit
     // host, force the size of pointer types to the native AArch64 pointer size.
@@ -99,7 +99,7 @@ class ABI {
     // The size of the 'operand' reserved for the argument.
     unsigned operand_size = AlignUp(size, kWRegSizeInBytes);
     if (size > 8) {
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       return GenericOperand();
     }
 
@@ -110,7 +110,7 @@ class ABI {
     // Stages C.2, C.3, and C.4: Unsupported. Caught by the assertions above.
     // Stages C.5 and C.6
     if (is_floating_point_type) {
-      VIXL_STATIC_ASSERT(
+      SWANSTATION_VIXL_STATIC_ASSERT(
           !is_floating_point_type ||
           (std::is_same<T, float>::value || std::is_same<T, double>::value));
       int offset = stack_offset_;
@@ -127,7 +127,7 @@ class ABI {
     }
     // Stage C.9
     if (is_integral_type && (size == 16) && (NGRN_ < 7)) {
-      VIXL_UNIMPLEMENTED();
+      SWANSTATION_VIXL_UNIMPLEMENTED();
       return GenericOperand();
     }
     // Stage C.10: Unsupported. Caught by the assertions above.
@@ -137,7 +137,7 @@ class ABI {
     stack_offset_ = AlignUp(stack_offset_, std::max(type_alignment, 8));
     // Stage C.13: Unsupported. Caught by the assertions above.
     // Stage C.14
-    VIXL_ASSERT(size <= 8u);
+    SWANSTATION_VIXL_ASSERT(size <= 8u);
     size = std::max(size, 8u);
     int offset = stack_offset_;
     stack_offset_ += size;
@@ -160,8 +160,8 @@ inline GenericOperand ABI::GetReturnGenericOperand<void>() const {
   return GenericOperand();
 }
 }
-}  // namespace vixl::aarch64
+}  // namespace swanstation_swanstation_vixl::aarch64
 
-#endif  // VIXL_AARCH64_ABI_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_ABI_AARCH64_H_
 
-#endif  // VIXL_HAS_ABI_SUPPORT
+#endif  // SWANSTATION_VIXL_HAS_ABI_SUPPORT

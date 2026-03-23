@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_ASSEMBLER_AARCH64_H_
-#define VIXL_AARCH64_ASSEMBLER_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_ASSEMBLER_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_ASSEMBLER_AARCH64_H_
 
 #include "../assembler-base-vixl.h"
 #include "../code-generation-scopes-vixl.h"
@@ -35,7 +35,7 @@
 #include "../utils-vixl.h"
 #include "operands-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 class LabelTestHelper;  // Forward declaration.
@@ -46,14 +46,14 @@ class Label {
   Label() : location_(kLocationUnbound) {}
   ~Label() {
     // All links to a label must have been resolved before it is destructed.
-    VIXL_ASSERT(!IsLinked());
+    SWANSTATION_VIXL_ASSERT(!IsLinked());
   }
 
   bool IsBound() const { return location_ >= 0; }
   bool IsLinked() const { return !links_.empty(); }
 
   ptrdiff_t GetLocation() const { return location_; }
-  VIXL_DEPRECATED("GetLocation", ptrdiff_t location() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetLocation", ptrdiff_t location() const) {
     return GetLocation();
   }
 
@@ -91,14 +91,14 @@ class Label {
 
   void Bind(ptrdiff_t location) {
     // Labels can only be bound once.
-    VIXL_ASSERT(!IsBound());
+    SWANSTATION_VIXL_ASSERT(!IsBound());
     location_ = location;
   }
 
   void AddLink(ptrdiff_t instruction) {
     // If a label is bound, the assembler already has the information it needs
     // to write the instruction, so there is no need to add it to links_.
-    VIXL_ASSERT(!IsBound());
+    SWANSTATION_VIXL_ASSERT(!IsBound());
     links_.insert(instruction);
   }
 
@@ -193,46 +193,46 @@ class RawLiteral {
   virtual ~RawLiteral() {}
 
   size_t GetSize() const {
-    VIXL_STATIC_ASSERT(kDRegSizeInBytes == kXRegSizeInBytes);
-    VIXL_STATIC_ASSERT(kSRegSizeInBytes == kWRegSizeInBytes);
-    VIXL_ASSERT((size_ == kXRegSizeInBytes) || (size_ == kWRegSizeInBytes) ||
+    SWANSTATION_VIXL_STATIC_ASSERT(kDRegSizeInBytes == kXRegSizeInBytes);
+    SWANSTATION_VIXL_STATIC_ASSERT(kSRegSizeInBytes == kWRegSizeInBytes);
+    SWANSTATION_VIXL_ASSERT((size_ == kXRegSizeInBytes) || (size_ == kWRegSizeInBytes) ||
                 (size_ == kQRegSizeInBytes));
     return size_;
   }
-  VIXL_DEPRECATED("GetSize", size_t size()) { return GetSize(); }
+  SWANSTATION_VIXL_DEPRECATED("GetSize", size_t size()) { return GetSize(); }
 
   uint64_t GetRawValue128Low64() const {
-    VIXL_ASSERT(size_ == kQRegSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(size_ == kQRegSizeInBytes);
     return low64_;
   }
-  VIXL_DEPRECATED("GetRawValue128Low64", uint64_t raw_value128_low64()) {
+  SWANSTATION_VIXL_DEPRECATED("GetRawValue128Low64", uint64_t raw_value128_low64()) {
     return GetRawValue128Low64();
   }
 
   uint64_t GetRawValue128High64() const {
-    VIXL_ASSERT(size_ == kQRegSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(size_ == kQRegSizeInBytes);
     return high64_;
   }
-  VIXL_DEPRECATED("GetRawValue128High64", uint64_t raw_value128_high64()) {
+  SWANSTATION_VIXL_DEPRECATED("GetRawValue128High64", uint64_t raw_value128_high64()) {
     return GetRawValue128High64();
   }
 
   uint64_t GetRawValue64() const {
-    VIXL_ASSERT(size_ == kXRegSizeInBytes);
-    VIXL_ASSERT(high64_ == 0);
+    SWANSTATION_VIXL_ASSERT(size_ == kXRegSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(high64_ == 0);
     return low64_;
   }
-  VIXL_DEPRECATED("GetRawValue64", uint64_t raw_value64()) {
+  SWANSTATION_VIXL_DEPRECATED("GetRawValue64", uint64_t raw_value64()) {
     return GetRawValue64();
   }
 
   uint32_t GetRawValue32() const {
-    VIXL_ASSERT(size_ == kWRegSizeInBytes);
-    VIXL_ASSERT(high64_ == 0);
-    VIXL_ASSERT(IsUint32(low64_) || IsInt32(low64_));
+    SWANSTATION_VIXL_ASSERT(size_ == kWRegSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(high64_ == 0);
+    SWANSTATION_VIXL_ASSERT(IsUint32(low64_) || IsInt32(low64_));
     return static_cast<uint32_t>(low64_);
   }
-  VIXL_DEPRECATED("GetRawValue32", uint32_t raw_value32()) {
+  SWANSTATION_VIXL_DEPRECATED("GetRawValue32", uint32_t raw_value32()) {
     return GetRawValue32();
   }
 
@@ -242,35 +242,35 @@ class RawLiteral {
   LiteralPool* GetLiteralPool() const { return literal_pool_; }
 
   ptrdiff_t GetOffset() const {
-    VIXL_ASSERT(IsPlaced());
+    SWANSTATION_VIXL_ASSERT(IsPlaced());
     return offset_ - 1;
   }
-  VIXL_DEPRECATED("GetOffset", ptrdiff_t offset()) { return GetOffset(); }
+  SWANSTATION_VIXL_DEPRECATED("GetOffset", ptrdiff_t offset()) { return GetOffset(); }
 
  protected:
   void SetOffset(ptrdiff_t offset) {
-    VIXL_ASSERT(offset >= 0);
-    VIXL_ASSERT(IsWordAligned(offset));
-    VIXL_ASSERT(!IsPlaced());
+    SWANSTATION_VIXL_ASSERT(offset >= 0);
+    SWANSTATION_VIXL_ASSERT(IsWordAligned(offset));
+    SWANSTATION_VIXL_ASSERT(!IsPlaced());
     offset_ = offset + 1;
   }
-  VIXL_DEPRECATED("SetOffset", void set_offset(ptrdiff_t offset)) {
+  SWANSTATION_VIXL_DEPRECATED("SetOffset", void set_offset(ptrdiff_t offset)) {
     SetOffset(offset);
   }
 
   ptrdiff_t GetLastUse() const {
-    VIXL_ASSERT(IsUsed());
+    SWANSTATION_VIXL_ASSERT(IsUsed());
     return -offset_ - 1;
   }
-  VIXL_DEPRECATED("GetLastUse", ptrdiff_t last_use()) { return GetLastUse(); }
+  SWANSTATION_VIXL_DEPRECATED("GetLastUse", ptrdiff_t last_use()) { return GetLastUse(); }
 
   void SetLastUse(ptrdiff_t offset) {
-    VIXL_ASSERT(offset >= 0);
-    VIXL_ASSERT(IsWordAligned(offset));
-    VIXL_ASSERT(!IsPlaced());
+    SWANSTATION_VIXL_ASSERT(offset >= 0);
+    SWANSTATION_VIXL_ASSERT(IsWordAligned(offset));
+    SWANSTATION_VIXL_ASSERT(!IsPlaced());
     offset_ = -offset - 1;
   }
-  VIXL_DEPRECATED("SetLastUse", void set_last_use(ptrdiff_t offset)) {
+  SWANSTATION_VIXL_DEPRECATED("SetLastUse", void set_last_use(ptrdiff_t offset)) {
     SetLastUse(offset);
   }
 
@@ -295,7 +295,7 @@ class Literal : public RawLiteral {
                    LiteralPool* literal_pool = NULL,
                    RawLiteral::DeletionPolicy ownership = kManuallyDeleted)
       : RawLiteral(sizeof(value), literal_pool, ownership) {
-    VIXL_STATIC_ASSERT(sizeof(value) <= kXRegSizeInBytes);
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(value) <= kXRegSizeInBytes);
     UpdateValue(value);
   }
 
@@ -304,7 +304,7 @@ class Literal : public RawLiteral {
           LiteralPool* literal_pool = NULL,
           RawLiteral::DeletionPolicy ownership = kManuallyDeleted)
       : RawLiteral(kQRegSizeInBytes, literal_pool, ownership) {
-    VIXL_STATIC_ASSERT(sizeof(low64) == (kQRegSizeInBytes / 2));
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(low64) == (kQRegSizeInBytes / 2));
     UpdateValue(high64, low64);
   }
 
@@ -317,20 +317,20 @@ class Literal : public RawLiteral {
   // offset from there. This also allows patching the value after the code has
   // been moved in memory.
   void UpdateValue(T new_value, uint8_t* code_buffer = NULL) {
-    VIXL_ASSERT(sizeof(new_value) == size_);
+    SWANSTATION_VIXL_ASSERT(sizeof(new_value) == size_);
     memcpy(&low64_, &new_value, sizeof(new_value));
     if (IsPlaced()) {
-      VIXL_ASSERT(code_buffer != NULL);
+      SWANSTATION_VIXL_ASSERT(code_buffer != NULL);
       RewriteValueInCode(code_buffer);
     }
   }
 
   void UpdateValue(T high64, T low64, uint8_t* code_buffer = NULL) {
-    VIXL_ASSERT(sizeof(low64) == size_ / 2);
+    SWANSTATION_VIXL_ASSERT(sizeof(low64) == size_ / 2);
     memcpy(&low64_, &low64, sizeof(low64));
     memcpy(&high64_, &high64, sizeof(high64));
     if (IsPlaced()) {
-      VIXL_ASSERT(code_buffer != NULL);
+      SWANSTATION_VIXL_ASSERT(code_buffer != NULL);
       RewriteValueInCode(code_buffer);
     }
   }
@@ -340,8 +340,8 @@ class Literal : public RawLiteral {
 
  private:
   void RewriteValueInCode(uint8_t* code_buffer) {
-    VIXL_ASSERT(IsPlaced());
-    VIXL_STATIC_ASSERT(sizeof(T) <= kXRegSizeInBytes);
+    SWANSTATION_VIXL_ASSERT(IsPlaced());
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(T) <= kXRegSizeInBytes);
     switch (GetSize()) {
       case kSRegSizeInBytes:
         *reinterpret_cast<uint32_t*>(code_buffer + GetOffset()) =
@@ -352,7 +352,7 @@ class Literal : public RawLiteral {
             GetRawValue64();
         break;
       default:
-        VIXL_ASSERT(GetSize() == kQRegSizeInBytes);
+        SWANSTATION_VIXL_ASSERT(GetSize() == kQRegSizeInBytes);
         uint64_t* base_address =
             reinterpret_cast<uint64_t*>(code_buffer + GetOffset());
         *base_address = GetRawValue128Low64();
@@ -401,7 +401,7 @@ enum LoadStoreScalingOption {
 
 
 // Assembler.
-class Assembler : public vixl::internal::AssemblerBase {
+class Assembler : public swanstation_vixl::internal::AssemblerBase {
  public:
   explicit Assembler(
       PositionIndependentCodeOption pic = PositionIndependentCode)
@@ -441,15 +441,15 @@ class Assembler : public vixl::internal::AssemblerBase {
   // Place a literal at the current PC.
   void place(RawLiteral* literal);
 
-  VIXL_DEPRECATED("GetCursorOffset", ptrdiff_t CursorOffset() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetCursorOffset", ptrdiff_t CursorOffset() const) {
     return GetCursorOffset();
   }
 
-  VIXL_DEPRECATED("GetBuffer().GetCapacity()",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetCapacity()",
                   ptrdiff_t GetBufferEndOffset() const) {
     return static_cast<ptrdiff_t>(GetBuffer().GetCapacity());
   }
-  VIXL_DEPRECATED("GetBuffer().GetCapacity()",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetCapacity()",
                   ptrdiff_t BufferEndOffset() const) {
     return GetBuffer().GetCapacity();
   }
@@ -457,28 +457,28 @@ class Assembler : public vixl::internal::AssemblerBase {
   // Return the address of a bound label.
   template <typename T>
   T GetLabelAddress(const Label* label) const {
-    VIXL_ASSERT(label->IsBound());
-    VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
+    SWANSTATION_VIXL_ASSERT(label->IsBound());
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
     return GetBuffer().GetOffsetAddress<T>(label->GetLocation());
   }
 
   Instruction* GetInstructionAt(ptrdiff_t instruction_offset) {
     return GetBuffer()->GetOffsetAddress<Instruction*>(instruction_offset);
   }
-  VIXL_DEPRECATED("GetInstructionAt",
+  SWANSTATION_VIXL_DEPRECATED("GetInstructionAt",
                   Instruction* InstructionAt(ptrdiff_t instruction_offset)) {
     return GetInstructionAt(instruction_offset);
   }
 
   ptrdiff_t GetInstructionOffset(Instruction* instruction) {
-    VIXL_STATIC_ASSERT(sizeof(*instruction) == 1);
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(*instruction) == 1);
     ptrdiff_t offset =
         instruction - GetBuffer()->GetStartAddress<Instruction*>();
-    VIXL_ASSERT((0 <= offset) &&
+    SWANSTATION_VIXL_ASSERT((0 <= offset) &&
                 (offset < static_cast<ptrdiff_t>(GetBuffer()->GetCapacity())));
     return offset;
   }
-  VIXL_DEPRECATED("GetInstructionOffset",
+  SWANSTATION_VIXL_DEPRECATED("GetInstructionOffset",
                   ptrdiff_t InstructionOffset(Instruction* instruction)) {
     return GetInstructionOffset(instruction);
   }
@@ -745,8 +745,8 @@ class Assembler : public vixl::internal::AssemblerBase {
            const Register& rn,
            unsigned lsb,
            unsigned width) {
-    VIXL_ASSERT(width >= 1);
-    VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(width >= 1);
+    SWANSTATION_VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
     bfm(rd,
         rn,
         (rd.GetSizeInBits() - lsb) & (rd.GetSizeInBits() - 1),
@@ -758,8 +758,8 @@ class Assembler : public vixl::internal::AssemblerBase {
              const Register& rn,
              unsigned lsb,
              unsigned width) {
-    VIXL_ASSERT(width >= 1);
-    VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(width >= 1);
+    SWANSTATION_VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
     bfm(rd, rn, lsb, lsb + width - 1);
   }
 
@@ -771,7 +771,7 @@ class Assembler : public vixl::internal::AssemblerBase {
   // Sbfm aliases.
   // Arithmetic shift right.
   void asr(const Register& rd, const Register& rn, unsigned shift) {
-    VIXL_ASSERT(shift < static_cast<unsigned>(rd.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(shift < static_cast<unsigned>(rd.GetSizeInBits()));
     sbfm(rd, rn, shift, rd.GetSizeInBits() - 1);
   }
 
@@ -780,8 +780,8 @@ class Assembler : public vixl::internal::AssemblerBase {
              const Register& rn,
              unsigned lsb,
              unsigned width) {
-    VIXL_ASSERT(width >= 1);
-    VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(width >= 1);
+    SWANSTATION_VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
     sbfm(rd,
          rn,
          (rd.GetSizeInBits() - lsb) & (rd.GetSizeInBits() - 1),
@@ -793,8 +793,8 @@ class Assembler : public vixl::internal::AssemblerBase {
             const Register& rn,
             unsigned lsb,
             unsigned width) {
-    VIXL_ASSERT(width >= 1);
-    VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(width >= 1);
+    SWANSTATION_VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
     sbfm(rd, rn, lsb, lsb + width - 1);
   }
 
@@ -811,13 +811,13 @@ class Assembler : public vixl::internal::AssemblerBase {
   // Logical shift left.
   void lsl(const Register& rd, const Register& rn, unsigned shift) {
     unsigned reg_size = rd.GetSizeInBits();
-    VIXL_ASSERT(shift < reg_size);
+    SWANSTATION_VIXL_ASSERT(shift < reg_size);
     ubfm(rd, rn, (reg_size - shift) % reg_size, reg_size - shift - 1);
   }
 
   // Logical shift right.
   void lsr(const Register& rd, const Register& rn, unsigned shift) {
-    VIXL_ASSERT(shift < static_cast<unsigned>(rd.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(shift < static_cast<unsigned>(rd.GetSizeInBits()));
     ubfm(rd, rn, shift, rd.GetSizeInBits() - 1);
   }
 
@@ -826,8 +826,8 @@ class Assembler : public vixl::internal::AssemblerBase {
              const Register& rn,
              unsigned lsb,
              unsigned width) {
-    VIXL_ASSERT(width >= 1);
-    VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(width >= 1);
+    SWANSTATION_VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
     ubfm(rd,
          rn,
          (rd.GetSizeInBits() - lsb) & (rd.GetSizeInBits() - 1),
@@ -839,8 +839,8 @@ class Assembler : public vixl::internal::AssemblerBase {
             const Register& rn,
             unsigned lsb,
             unsigned width) {
-    VIXL_ASSERT(width >= 1);
-    VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
+    SWANSTATION_VIXL_ASSERT(width >= 1);
+    SWANSTATION_VIXL_ASSERT(lsb + width <= static_cast<unsigned>(rn.GetSizeInBits()));
     ubfm(rd, rn, lsb, lsb + width - 1);
   }
 
@@ -1014,7 +1014,7 @@ class Assembler : public vixl::internal::AssemblerBase {
   // Reverse bytes in 64-bit general purpose register, an alias for rev
   // [Armv8.2].
   void rev64(const Register& xd, const Register& xn) {
-    VIXL_ASSERT(xd.Is64Bits() && xn.Is64Bits());
+    SWANSTATION_VIXL_ASSERT(xd.Is64Bits() && xn.Is64Bits());
     rev(xd, xn);
   }
 
@@ -3508,7 +3508,7 @@ class Assembler : public vixl::internal::AssemblerBase {
   // Emit data in the instruction stream.
   template <typename T>
   void dc(T data) {
-    VIXL_ASSERT(AllowAssembler());
+    SWANSTATION_VIXL_ASSERT(AllowAssembler());
     GetBuffer()->Emit<T>(data);
   }
 
@@ -3516,8 +3516,8 @@ class Assembler : public vixl::internal::AssemblerBase {
   // character. The instruction pointer is then aligned correctly for
   // subsequent instructions.
   void EmitString(const char* string) {
-    VIXL_ASSERT(string != NULL);
-    VIXL_ASSERT(AllowAssembler());
+    SWANSTATION_VIXL_ASSERT(string != NULL);
+    SWANSTATION_VIXL_ASSERT(AllowAssembler());
 
     GetBuffer()->EmitString(string);
     GetBuffer()->Align();
@@ -3527,60 +3527,60 @@ class Assembler : public vixl::internal::AssemblerBase {
 
   // Register encoding.
   static Instr Rd(CPURegister rd) {
-    VIXL_ASSERT(rd.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(rd.GetCode() != kSPRegInternalCode);
     return rd.GetCode() << Rd_offset;
   }
 
   static Instr Rn(CPURegister rn) {
-    VIXL_ASSERT(rn.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(rn.GetCode() != kSPRegInternalCode);
     return rn.GetCode() << Rn_offset;
   }
 
   static Instr Rm(CPURegister rm) {
-    VIXL_ASSERT(rm.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(rm.GetCode() != kSPRegInternalCode);
     return rm.GetCode() << Rm_offset;
   }
 
   static Instr RmNot31(CPURegister rm) {
-    VIXL_ASSERT(rm.GetCode() != kSPRegInternalCode);
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(rm.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     return Rm(rm);
   }
 
   static Instr Ra(CPURegister ra) {
-    VIXL_ASSERT(ra.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(ra.GetCode() != kSPRegInternalCode);
     return ra.GetCode() << Ra_offset;
   }
 
   static Instr Rt(CPURegister rt) {
-    VIXL_ASSERT(rt.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(rt.GetCode() != kSPRegInternalCode);
     return rt.GetCode() << Rt_offset;
   }
 
   static Instr Rt2(CPURegister rt2) {
-    VIXL_ASSERT(rt2.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(rt2.GetCode() != kSPRegInternalCode);
     return rt2.GetCode() << Rt2_offset;
   }
 
   static Instr Rs(CPURegister rs) {
-    VIXL_ASSERT(rs.GetCode() != kSPRegInternalCode);
+    SWANSTATION_VIXL_ASSERT(rs.GetCode() != kSPRegInternalCode);
     return rs.GetCode() << Rs_offset;
   }
 
   // These encoding functions allow the stack pointer to be encoded, and
   // disallow the zero register.
   static Instr RdSP(Register rd) {
-    VIXL_ASSERT(!rd.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rd.IsZero());
     return (rd.GetCode() & kRegCodeMask) << Rd_offset;
   }
 
   static Instr RnSP(Register rn) {
-    VIXL_ASSERT(!rn.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rn.IsZero());
     return (rn.GetCode() & kRegCodeMask) << Rn_offset;
   }
 
   static Instr RmSP(Register rm) {
-    VIXL_ASSERT(!rm.IsZero());
+    SWANSTATION_VIXL_ASSERT(!rm.IsZero());
     return (rm.GetCode() & kRegCodeMask) << Rm_offset;
   }
 
@@ -3591,7 +3591,7 @@ class Assembler : public vixl::internal::AssemblerBase {
     } else if (S == LeaveFlags) {
       return 0 << FlagsUpdate_offset;
     }
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
     return 0;
   }
 
@@ -3599,7 +3599,7 @@ class Assembler : public vixl::internal::AssemblerBase {
 
   // PC-relative address encoding.
   static Instr ImmPCRelAddress(int64_t imm21) {
-    VIXL_ASSERT(IsInt21(imm21));
+    SWANSTATION_VIXL_ASSERT(IsInt21(imm21));
     Instr imm = static_cast<Instr>(TruncateToUint21(imm21));
     Instr immhi = (imm >> ImmPCRelLo_width) << ImmPCRelHi_offset;
     Instr immlo = imm << ImmPCRelLo_offset;
@@ -3608,27 +3608,27 @@ class Assembler : public vixl::internal::AssemblerBase {
 
   // Branch encoding.
   static Instr ImmUncondBranch(int64_t imm26) {
-    VIXL_ASSERT(IsInt26(imm26));
+    SWANSTATION_VIXL_ASSERT(IsInt26(imm26));
     return TruncateToUint26(imm26) << ImmUncondBranch_offset;
   }
 
   static Instr ImmCondBranch(int64_t imm19) {
-    VIXL_ASSERT(IsInt19(imm19));
+    SWANSTATION_VIXL_ASSERT(IsInt19(imm19));
     return TruncateToUint19(imm19) << ImmCondBranch_offset;
   }
 
   static Instr ImmCmpBranch(int64_t imm19) {
-    VIXL_ASSERT(IsInt19(imm19));
+    SWANSTATION_VIXL_ASSERT(IsInt19(imm19));
     return TruncateToUint19(imm19) << ImmCmpBranch_offset;
   }
 
   static Instr ImmTestBranch(int64_t imm14) {
-    VIXL_ASSERT(IsInt14(imm14));
+    SWANSTATION_VIXL_ASSERT(IsInt14(imm14));
     return TruncateToUint14(imm14) << ImmTestBranch_offset;
   }
 
   static Instr ImmTestBranchBit(unsigned bit_pos) {
-    VIXL_ASSERT(IsUint6(bit_pos));
+    SWANSTATION_VIXL_ASSERT(IsUint6(bit_pos));
     // Subtract five from the shift offset, as we need bit 5 from bit_pos.
     unsigned b5 = bit_pos << (ImmTestBranchBit5_offset - 5);
     unsigned b40 = bit_pos << ImmTestBranchBit40_offset;
@@ -3643,7 +3643,7 @@ class Assembler : public vixl::internal::AssemblerBase {
   }
 
   static Instr ImmAddSub(int imm) {
-    VIXL_ASSERT(IsImmAddSub(imm));
+    SWANSTATION_VIXL_ASSERT(IsImmAddSub(imm));
     if (IsUint12(imm)) {  // No shift required.
       imm <<= ImmAddSub_offset;
     } else {
@@ -3653,67 +3653,67 @@ class Assembler : public vixl::internal::AssemblerBase {
   }
 
   static Instr ImmS(unsigned imms, unsigned reg_size) {
-    VIXL_ASSERT(((reg_size == kXRegSize) && IsUint6(imms)) ||
+    SWANSTATION_VIXL_ASSERT(((reg_size == kXRegSize) && IsUint6(imms)) ||
                 ((reg_size == kWRegSize) && IsUint5(imms)));
     USE(reg_size);
     return imms << ImmS_offset;
   }
 
   static Instr ImmR(unsigned immr, unsigned reg_size) {
-    VIXL_ASSERT(((reg_size == kXRegSize) && IsUint6(immr)) ||
+    SWANSTATION_VIXL_ASSERT(((reg_size == kXRegSize) && IsUint6(immr)) ||
                 ((reg_size == kWRegSize) && IsUint5(immr)));
     USE(reg_size);
-    VIXL_ASSERT(IsUint6(immr));
+    SWANSTATION_VIXL_ASSERT(IsUint6(immr));
     return immr << ImmR_offset;
   }
 
   static Instr ImmSetBits(unsigned imms, unsigned reg_size) {
-    VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
-    VIXL_ASSERT(IsUint6(imms));
-    VIXL_ASSERT((reg_size == kXRegSize) || IsUint6(imms + 3));
+    SWANSTATION_VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
+    SWANSTATION_VIXL_ASSERT(IsUint6(imms));
+    SWANSTATION_VIXL_ASSERT((reg_size == kXRegSize) || IsUint6(imms + 3));
     USE(reg_size);
     return imms << ImmSetBits_offset;
   }
 
   static Instr ImmRotate(unsigned immr, unsigned reg_size) {
-    VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
-    VIXL_ASSERT(((reg_size == kXRegSize) && IsUint6(immr)) ||
+    SWANSTATION_VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
+    SWANSTATION_VIXL_ASSERT(((reg_size == kXRegSize) && IsUint6(immr)) ||
                 ((reg_size == kWRegSize) && IsUint5(immr)));
     USE(reg_size);
     return immr << ImmRotate_offset;
   }
 
   static Instr ImmLLiteral(int64_t imm19) {
-    VIXL_ASSERT(IsInt19(imm19));
+    SWANSTATION_VIXL_ASSERT(IsInt19(imm19));
     return TruncateToUint19(imm19) << ImmLLiteral_offset;
   }
 
   static Instr BitN(unsigned bitn, unsigned reg_size) {
-    VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
-    VIXL_ASSERT((reg_size == kXRegSize) || (bitn == 0));
+    SWANSTATION_VIXL_ASSERT((reg_size == kWRegSize) || (reg_size == kXRegSize));
+    SWANSTATION_VIXL_ASSERT((reg_size == kXRegSize) || (bitn == 0));
     USE(reg_size);
     return bitn << BitN_offset;
   }
 
   static Instr ShiftDP(Shift shift) {
-    VIXL_ASSERT(shift == LSL || shift == LSR || shift == ASR || shift == ROR);
+    SWANSTATION_VIXL_ASSERT(shift == LSL || shift == LSR || shift == ASR || shift == ROR);
     return shift << ShiftDP_offset;
   }
 
   static Instr ImmDPShift(unsigned amount) {
-    VIXL_ASSERT(IsUint6(amount));
+    SWANSTATION_VIXL_ASSERT(IsUint6(amount));
     return amount << ImmDPShift_offset;
   }
 
   static Instr ExtendMode(Extend extend) { return extend << ExtendMode_offset; }
 
   static Instr ImmExtendShift(unsigned left_shift) {
-    VIXL_ASSERT(left_shift <= 4);
+    SWANSTATION_VIXL_ASSERT(left_shift <= 4);
     return left_shift << ImmExtendShift_offset;
   }
 
   static Instr ImmCondCmp(unsigned imm) {
-    VIXL_ASSERT(IsUint5(imm));
+    SWANSTATION_VIXL_ASSERT(IsUint5(imm));
     return imm << ImmCondCmp_offset;
   }
 
@@ -3723,90 +3723,90 @@ class Assembler : public vixl::internal::AssemblerBase {
 
   // MemOperand offset encoding.
   static Instr ImmLSUnsigned(int64_t imm12) {
-    VIXL_ASSERT(IsUint12(imm12));
+    SWANSTATION_VIXL_ASSERT(IsUint12(imm12));
     return TruncateToUint12(imm12) << ImmLSUnsigned_offset;
   }
 
   static Instr ImmLS(int64_t imm9) {
-    VIXL_ASSERT(IsInt9(imm9));
+    SWANSTATION_VIXL_ASSERT(IsInt9(imm9));
     return TruncateToUint9(imm9) << ImmLS_offset;
   }
 
   static Instr ImmLSPair(int64_t imm7, unsigned access_size) {
-    VIXL_ASSERT(IsMultiple(imm7, 1 << access_size));
+    SWANSTATION_VIXL_ASSERT(IsMultiple(imm7, 1 << access_size));
     int64_t scaled_imm7 = imm7 / (1 << access_size);
-    VIXL_ASSERT(IsInt7(scaled_imm7));
+    SWANSTATION_VIXL_ASSERT(IsInt7(scaled_imm7));
     return TruncateToUint7(scaled_imm7) << ImmLSPair_offset;
   }
 
   static Instr ImmShiftLS(unsigned shift_amount) {
-    VIXL_ASSERT(IsUint1(shift_amount));
+    SWANSTATION_VIXL_ASSERT(IsUint1(shift_amount));
     return shift_amount << ImmShiftLS_offset;
   }
 
   static Instr ImmPrefetchOperation(int imm5) {
-    VIXL_ASSERT(IsUint5(imm5));
+    SWANSTATION_VIXL_ASSERT(IsUint5(imm5));
     return imm5 << ImmPrefetchOperation_offset;
   }
 
   static Instr ImmException(int imm16) {
-    VIXL_ASSERT(IsUint16(imm16));
+    SWANSTATION_VIXL_ASSERT(IsUint16(imm16));
     return imm16 << ImmException_offset;
   }
 
   static Instr ImmSystemRegister(int imm16) {
-    VIXL_ASSERT(IsUint16(imm16));
+    SWANSTATION_VIXL_ASSERT(IsUint16(imm16));
     return imm16 << ImmSystemRegister_offset;
   }
 
   static Instr ImmHint(int imm7) {
-    VIXL_ASSERT(IsUint7(imm7));
+    SWANSTATION_VIXL_ASSERT(IsUint7(imm7));
     return imm7 << ImmHint_offset;
   }
 
   static Instr CRm(int imm4) {
-    VIXL_ASSERT(IsUint4(imm4));
+    SWANSTATION_VIXL_ASSERT(IsUint4(imm4));
     return imm4 << CRm_offset;
   }
 
   static Instr CRn(int imm4) {
-    VIXL_ASSERT(IsUint4(imm4));
+    SWANSTATION_VIXL_ASSERT(IsUint4(imm4));
     return imm4 << CRn_offset;
   }
 
   static Instr SysOp(int imm14) {
-    VIXL_ASSERT(IsUint14(imm14));
+    SWANSTATION_VIXL_ASSERT(IsUint14(imm14));
     return imm14 << SysOp_offset;
   }
 
   static Instr ImmSysOp1(int imm3) {
-    VIXL_ASSERT(IsUint3(imm3));
+    SWANSTATION_VIXL_ASSERT(IsUint3(imm3));
     return imm3 << SysOp1_offset;
   }
 
   static Instr ImmSysOp2(int imm3) {
-    VIXL_ASSERT(IsUint3(imm3));
+    SWANSTATION_VIXL_ASSERT(IsUint3(imm3));
     return imm3 << SysOp2_offset;
   }
 
   static Instr ImmBarrierDomain(int imm2) {
-    VIXL_ASSERT(IsUint2(imm2));
+    SWANSTATION_VIXL_ASSERT(IsUint2(imm2));
     return imm2 << ImmBarrierDomain_offset;
   }
 
   static Instr ImmBarrierType(int imm2) {
-    VIXL_ASSERT(IsUint2(imm2));
+    SWANSTATION_VIXL_ASSERT(IsUint2(imm2));
     return imm2 << ImmBarrierType_offset;
   }
 
   // Move immediates encoding.
   static Instr ImmMoveWide(uint64_t imm) {
-    VIXL_ASSERT(IsUint16(imm));
+    SWANSTATION_VIXL_ASSERT(IsUint16(imm));
     return static_cast<Instr>(imm << ImmMoveWide_offset);
   }
 
   static Instr ShiftMoveWide(int64_t shift) {
-    VIXL_ASSERT(IsUint2(shift));
+    SWANSTATION_VIXL_ASSERT(IsUint2(shift));
     return static_cast<Instr>(shift << ShiftMoveWide_offset);
   }
 
@@ -3825,13 +3825,13 @@ class Assembler : public vixl::internal::AssemblerBase {
       case 64:
         return FP64;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return 0;
     }
   }
 
   static Instr FPScale(unsigned scale) {
-    VIXL_ASSERT(IsUint6(scale));
+    SWANSTATION_VIXL_ASSERT(IsUint6(scale));
     return scale << FPScale_offset;
   }
 
@@ -3866,7 +3866,7 @@ class Assembler : public vixl::internal::AssemblerBase {
           return 0xffffffff;
       }
     } else {
-      VIXL_ASSERT(vd.Is128Bits());
+      SWANSTATION_VIXL_ASSERT(vd.Is128Bits());
       switch (vd.GetLanes()) {
         case 2:
           return NEON_2D;
@@ -3896,7 +3896,7 @@ class Assembler : public vixl::internal::AssemblerBase {
           case 64:
             return FP64;
           default:
-            VIXL_UNREACHABLE();
+            SWANSTATION_VIXL_UNREACHABLE();
         }
         break;
       case 2:
@@ -3907,7 +3907,7 @@ class Assembler : public vixl::internal::AssemblerBase {
           case 128:
             return NEON_FP_2D;
           default:
-            VIXL_UNREACHABLE();
+            SWANSTATION_VIXL_UNREACHABLE();
         }
         break;
       case 4:
@@ -3918,18 +3918,18 @@ class Assembler : public vixl::internal::AssemblerBase {
           case 128:
             return NEON_FP_4S;
           default:
-            VIXL_UNREACHABLE();
+            SWANSTATION_VIXL_UNREACHABLE();
         }
         break;
       case 8:
         // Eight lane floating point vector format.
-        VIXL_ASSERT(vd.Is128Bits());
+        SWANSTATION_VIXL_ASSERT(vd.Is128Bits());
         return NEON_FP_8H;
       default:
-        VIXL_UNREACHABLE();
+        SWANSTATION_VIXL_UNREACHABLE();
         return 0;
     }
-    VIXL_UNREACHABLE();
+    SWANSTATION_VIXL_UNREACHABLE();
     return 0;
   }
 
@@ -3949,7 +3949,7 @@ class Assembler : public vixl::internal::AssemblerBase {
           return 0xffffffff;
       }
     } else {
-      VIXL_ASSERT(vd.Is128Bits());
+      SWANSTATION_VIXL_ASSERT(vd.Is128Bits());
       switch (vd.GetLanes()) {
         case 2:
           return LS_NEON_2D;
@@ -3967,7 +3967,7 @@ class Assembler : public vixl::internal::AssemblerBase {
 
   // Instruction bits for scalar format in data processing operations.
   static Instr SFormat(VRegister vd) {
-    VIXL_ASSERT(vd.GetLanes() == 1);
+    SWANSTATION_VIXL_ASSERT(vd.GetLanes() == 1);
     switch (vd.GetSizeInBytes()) {
       case 1:
         return NEON_B;
@@ -3985,17 +3985,17 @@ class Assembler : public vixl::internal::AssemblerBase {
   static Instr ImmNEONHLM(int index, int num_bits) {
     int h, l, m;
     if (num_bits == 3) {
-      VIXL_ASSERT(IsUint3(index));
+      SWANSTATION_VIXL_ASSERT(IsUint3(index));
       h = (index >> 2) & 1;
       l = (index >> 1) & 1;
       m = (index >> 0) & 1;
     } else if (num_bits == 2) {
-      VIXL_ASSERT(IsUint2(index));
+      SWANSTATION_VIXL_ASSERT(IsUint2(index));
       h = (index >> 1) & 1;
       l = (index >> 0) & 1;
       m = 0;
     } else {
-      VIXL_ASSERT(IsUint1(index) && (num_bits == 1));
+      SWANSTATION_VIXL_ASSERT(IsUint1(index) && (num_bits == 1));
       h = (index >> 0) & 1;
       l = 0;
       m = 0;
@@ -4004,41 +4004,41 @@ class Assembler : public vixl::internal::AssemblerBase {
   }
 
   static Instr ImmRotFcadd(int rot) {
-    VIXL_ASSERT(rot == 90 || rot == 270);
+    SWANSTATION_VIXL_ASSERT(rot == 90 || rot == 270);
     return (((rot == 270) ? 1 : 0) << ImmRotFcadd_offset);
   }
 
   static Instr ImmRotFcmlaSca(int rot) {
-    VIXL_ASSERT(rot == 0 || rot == 90 || rot == 180 || rot == 270);
+    SWANSTATION_VIXL_ASSERT(rot == 0 || rot == 90 || rot == 180 || rot == 270);
     return (rot / 90) << ImmRotFcmlaSca_offset;
   }
 
   static Instr ImmRotFcmlaVec(int rot) {
-    VIXL_ASSERT(rot == 0 || rot == 90 || rot == 180 || rot == 270);
+    SWANSTATION_VIXL_ASSERT(rot == 0 || rot == 90 || rot == 180 || rot == 270);
     return (rot / 90) << ImmRotFcmlaVec_offset;
   }
 
   static Instr ImmNEONExt(int imm4) {
-    VIXL_ASSERT(IsUint4(imm4));
+    SWANSTATION_VIXL_ASSERT(IsUint4(imm4));
     return imm4 << ImmNEONExt_offset;
   }
 
   static Instr ImmNEON5(Instr format, int index) {
-    VIXL_ASSERT(IsUint4(index));
+    SWANSTATION_VIXL_ASSERT(IsUint4(index));
     int s = LaneSizeInBytesLog2FromFormat(static_cast<VectorFormat>(format));
     int imm5 = (index << (s + 1)) | (1 << s);
     return imm5 << ImmNEON5_offset;
   }
 
   static Instr ImmNEON4(Instr format, int index) {
-    VIXL_ASSERT(IsUint4(index));
+    SWANSTATION_VIXL_ASSERT(IsUint4(index));
     int s = LaneSizeInBytesLog2FromFormat(static_cast<VectorFormat>(format));
     int imm4 = index << s;
     return imm4 << ImmNEON4_offset;
   }
 
   static Instr ImmNEONabcdefgh(int imm8) {
-    VIXL_ASSERT(IsUint8(imm8));
+    SWANSTATION_VIXL_ASSERT(IsUint8(imm8));
     Instr instr;
     instr = ((imm8 >> 5) & 7) << ImmNEONabc_offset;
     instr |= (imm8 & 0x1f) << ImmNEONdefgh_offset;
@@ -4046,44 +4046,44 @@ class Assembler : public vixl::internal::AssemblerBase {
   }
 
   static Instr NEONCmode(int cmode) {
-    VIXL_ASSERT(IsUint4(cmode));
+    SWANSTATION_VIXL_ASSERT(IsUint4(cmode));
     return cmode << NEONCmode_offset;
   }
 
   static Instr NEONModImmOp(int op) {
-    VIXL_ASSERT(IsUint1(op));
+    SWANSTATION_VIXL_ASSERT(IsUint1(op));
     return op << NEONModImmOp_offset;
   }
 
   // Size of the code generated since label to the current position.
   size_t GetSizeOfCodeGeneratedSince(Label* label) const {
-    VIXL_ASSERT(label->IsBound());
+    SWANSTATION_VIXL_ASSERT(label->IsBound());
     return GetBuffer().GetOffsetFrom(label->GetLocation());
   }
-  VIXL_DEPRECATED("GetSizeOfCodeGeneratedSince",
+  SWANSTATION_VIXL_DEPRECATED("GetSizeOfCodeGeneratedSince",
                   size_t SizeOfCodeGeneratedSince(Label* label) const) {
     return GetSizeOfCodeGeneratedSince(label);
   }
 
-  VIXL_DEPRECATED("GetBuffer().GetCapacity()",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetCapacity()",
                   size_t GetBufferCapacity() const) {
     return GetBuffer().GetCapacity();
   }
-  VIXL_DEPRECATED("GetBuffer().GetCapacity()", size_t BufferCapacity() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetCapacity()", size_t BufferCapacity() const) {
     return GetBuffer().GetCapacity();
   }
 
-  VIXL_DEPRECATED("GetBuffer().GetRemainingBytes()",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetRemainingBytes()",
                   size_t GetRemainingBufferSpace() const) {
     return GetBuffer().GetRemainingBytes();
   }
-  VIXL_DEPRECATED("GetBuffer().GetRemainingBytes()",
+  SWANSTATION_VIXL_DEPRECATED("GetBuffer().GetRemainingBytes()",
                   size_t RemainingBufferSpace() const) {
     return GetBuffer().GetRemainingBytes();
   }
 
   PositionIndependentCodeOption GetPic() const { return pic_; }
-  VIXL_DEPRECATED("GetPic", PositionIndependentCodeOption pic() const) {
+  SWANSTATION_VIXL_DEPRECATED("GetPic", PositionIndependentCodeOption pic() const) {
     return GetPic();
   }
 
@@ -4381,8 +4381,8 @@ class Assembler : public vixl::internal::AssemblerBase {
 
   // Emit the instruction in buffer_.
   void Emit(Instr instruction) {
-    VIXL_STATIC_ASSERT(sizeof(instruction) == kInstructionSize);
-    VIXL_ASSERT(AllowAssembler());
+    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(instruction) == kInstructionSize);
+    SWANSTATION_VIXL_ASSERT(AllowAssembler());
     GetBuffer()->Emit32(instruction);
   }
 
@@ -4429,6 +4429,6 @@ inline void InvalSet<INVAL_SET_TEMPLATE_PARAMETERS>::SetKey(ptrdiff_t* element,
 }
 #undef INVAL_SET_TEMPLATE_PARAMETERS
 
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_ASSEMBLER_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_ASSEMBLER_AARCH64_H_

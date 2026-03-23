@@ -24,12 +24,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_CONSTANTS_AARCH64_H_
-#define VIXL_AARCH64_CONSTANTS_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_CONSTANTS_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_CONSTANTS_AARCH64_H_
 
 #include "../globals-vixl.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 const unsigned kNumberOfRegisters = 32;
@@ -236,7 +236,7 @@ enum Condition {
 inline Condition InvertCondition(Condition cond) {
   // Conditions al and nv behave identically, as "always true". They can't be
   // inverted, because there is no "always false" condition.
-  VIXL_ASSERT((cond != al) && (cond != nv));
+  SWANSTATION_VIXL_ASSERT((cond != al) && (cond != nv));
   return static_cast<Condition>(cond ^ 1);
 }
 
@@ -398,7 +398,7 @@ enum DataCacheOp {
 //
 // The enumerations can be used like this:
 //
-// VIXL_ASSERT(instr->Mask(PCRelAddressingFMask) == PCRelAddressingFixed);
+// SWANSTATION_VIXL_ASSERT(instr->Mask(PCRelAddressingFMask) == PCRelAddressingFixed);
 // switch(instr->Mask(PCRelAddressingMask)) {
 //   case ADR:  Format("adr 'Xd, 'AddrPCRelByte"); break;
 //   case ADRP: Format("adrp 'Xd, 'AddrPCRelPage"); break;
@@ -2539,6 +2539,6 @@ enum UnallocatedOp {
 // clang-format on
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_CONSTANTS_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_CONSTANTS_AARCH64_H_

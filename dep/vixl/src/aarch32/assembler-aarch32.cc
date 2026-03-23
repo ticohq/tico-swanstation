@@ -40,34 +40,34 @@ extern "C" {
 #include "aarch32/instructions-aarch32.h"
 #include "aarch32/operands-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 void Assembler::EmitT32_16(uint16_t instr) {
-  VIXL_ASSERT(buffer_.Is16bitAligned());
+  SWANSTATION_VIXL_ASSERT(buffer_.Is16bitAligned());
   buffer_.Emit16(instr);
 }
 
 
 void Assembler::EmitT32_32(uint32_t instr) {
-  VIXL_ASSERT(buffer_.Is16bitAligned());
+  SWANSTATION_VIXL_ASSERT(buffer_.Is16bitAligned());
   buffer_.Emit16(static_cast<uint16_t>(instr >> 16));
   buffer_.Emit16(static_cast<uint16_t>(instr & 0xffff));
 }
 
 
 void Assembler::EmitA32(uint32_t instr) {
-  VIXL_ASSERT(buffer_.Is32bitAligned());
+  SWANSTATION_VIXL_ASSERT(buffer_.Is32bitAligned());
   buffer_.Emit32(instr);
 }
 
 
-#ifdef VIXL_DEBUG
+#ifdef SWANSTATION_VIXL_DEBUG
 void Assembler::PerformCheckIT(Condition condition) {
   if (it_mask_ == 0) {
-    VIXL_ASSERT(IsUsingA32() || condition.Is(al));
+    SWANSTATION_VIXL_ASSERT(IsUsingA32() || condition.Is(al));
   } else {
-    VIXL_ASSERT(condition.Is(first_condition_));
+    SWANSTATION_VIXL_ASSERT(condition.Is(first_condition_));
     // For A32, AdavanceIT() is not called by the assembler. We must call it
     // in order to check that IT instructions are used consistently with
     // the following conditional instructions.
@@ -78,7 +78,7 @@ void Assembler::PerformCheckIT(Condition condition) {
 
 
 void Assembler::BindHelper(Label* label) {
-  VIXL_ASSERT(!label->IsBound());
+  SWANSTATION_VIXL_ASSERT(!label->IsBound());
   label->SetLocation(this, GetCursorOffset());
   label->MarkBound();
 }
@@ -140,7 +140,7 @@ Dt_L_imm6_1::Dt_L_imm6_1(DataType dt) {
       SetEncodingValue(0x8);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -173,7 +173,7 @@ Dt_L_imm6_2::Dt_L_imm6_2(DataType dt) {
       SetEncodingValue(0x8);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -262,7 +262,7 @@ Dt_imm6_1::Dt_imm6_1(DataType dt) {
       SetEncodingValue(0x4);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -291,7 +291,7 @@ Dt_imm6_2::Dt_imm6_2(DataType dt) {
       SetEncodingValue(0x4);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -353,7 +353,7 @@ Dt_imm6_4::Dt_imm6_4(DataType dt) {
       SetEncodingValue(0x4);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -1139,7 +1139,7 @@ Dt_size_9::Dt_size_9(DataType dt) {
       SetEncodingValue(0x2);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -1199,7 +1199,7 @@ Dt_size_11::Dt_size_11(DataType dt) {
       SetEncodingValue(0x2);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -1240,7 +1240,7 @@ Dt_size_12::Dt_size_12(DataType dt) {
       SetEncodingValue(0x2);
       break;
     default:
-      VIXL_UNREACHABLE();
+      SWANSTATION_VIXL_UNREACHABLE();
       type_ = 0x0;
       break;
   }
@@ -1925,7 +1925,7 @@ void Assembler::adc(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2013,7 +2013,7 @@ void Assembler::adcs(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2101,7 +2101,7 @@ void Assembler::add(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2314,7 +2314,7 @@ void Assembler::add(Condition cond,
 }
 
 void Assembler::add(Condition cond, Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2350,7 +2350,7 @@ void Assembler::adds(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2483,7 +2483,7 @@ void Assembler::adds(Condition cond,
 }
 
 void Assembler::adds(Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2503,7 +2503,7 @@ void Assembler::addw(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2539,7 +2539,7 @@ void Assembler::adr(Condition cond,
                     EncodingSize size,
                     Register rd,
                     Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -2558,10 +2558,10 @@ void Assembler::adr(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= 0) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= 0) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           const int32_t target = offset >> 2;
           return instr | (target & 0xff);
@@ -2589,7 +2589,7 @@ void Assembler::adr(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
           int32_t target;
@@ -2597,7 +2597,7 @@ void Assembler::adr(Condition cond,
             target = offset;
           } else {
             target = -offset;
-            VIXL_ASSERT((target >= 0) && (target <= 4095));
+            SWANSTATION_VIXL_ASSERT((target >= 0) && (target <= 4095));
             // Emit the T2 encoding.
             instr |= 0x00a00000;
           }
@@ -2623,7 +2623,7 @@ void Assembler::adr(Condition cond,
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
           int32_t target;
@@ -2632,7 +2632,7 @@ void Assembler::adr(Condition cond,
             target = positive_immediate_a32.GetEncodingValue();
           } else {
             ImmediateA32 negative_immediate_a32(-offset);
-            VIXL_ASSERT(negative_immediate_a32.IsValid());
+            SWANSTATION_VIXL_ASSERT(negative_immediate_a32.IsValid());
             // Emit the A2 encoding.
             target = negative_immediate_a32.GetEncodingValue();
             instr = (instr & ~0x00f00000) | 0x00400000;
@@ -2663,7 +2663,7 @@ bool Assembler::adr_info(Condition cond,
                          Register rd,
                          Location* location,
                          const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // ADR{<c>}{<q>} <Rd>, <label> ; T1
@@ -2697,7 +2697,7 @@ void Assembler::and_(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2785,7 +2785,7 @@ void Assembler::ands(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2873,7 +2873,7 @@ void Assembler::asr(Condition cond,
                     Register rd,
                     Register rm,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -2942,7 +2942,7 @@ void Assembler::asrs(Condition cond,
                      Register rd,
                      Register rm,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -3007,7 +3007,7 @@ void Assembler::asrs(Condition cond,
 }
 
 void Assembler::b(Condition cond, EncodingSize size, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   Location::Offset offset =
       location->IsBound()
           ? location->GetLocation() -
@@ -3025,10 +3025,10 @@ void Assembler::b(Condition cond, EncodingSize size, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -256) && (offset <= 254) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -256) && (offset <= 254) &&
                       ((offset & 0x1) == 0));
           const int32_t target = offset >> 1;
           return instr | (target & 0xff);
@@ -3052,10 +3052,10 @@ void Assembler::b(Condition cond, EncodingSize size, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -2048) && (offset <= 2046) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -2048) && (offset <= 2046) &&
                       ((offset & 0x1) == 0));
           const int32_t target = offset >> 1;
           return instr | (target & 0x7ff);
@@ -3076,10 +3076,10 @@ void Assembler::b(Condition cond, EncodingSize size, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -1048576) && (offset <= 1048574) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -1048576) && (offset <= 1048574) &&
                       ((offset & 0x1) == 0));
           const int32_t target = offset >> 1;
           return instr | (target & 0x7ff) | ((target & 0x1f800) << 5) |
@@ -3105,10 +3105,10 @@ void Assembler::b(Condition cond, EncodingSize size, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -16777216) && (offset <= 16777214) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -16777216) && (offset <= 16777214) &&
                       ((offset & 0x1) == 0));
           int32_t target = offset >> 1;
           uint32_t S = target & (1 << 23);
@@ -3133,10 +3133,10 @@ void Assembler::b(Condition cond, EncodingSize size, Location* location) {
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -33554432) && (offset <= 33554428) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -33554432) && (offset <= 33554428) &&
                       ((offset & 0x3) == 0));
           const int32_t target = offset >> 2;
           return instr | (target & 0xffffff);
@@ -3156,7 +3156,7 @@ bool Assembler::b_info(Condition cond,
                        EncodingSize size,
                        Location* location,
                        const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // B<c>{<q>} <label> ; T1
@@ -3192,7 +3192,7 @@ bool Assembler::b_info(Condition cond,
 }
 
 void Assembler::bfc(Condition cond, Register rd, uint32_t lsb, uint32_t width) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // BFC{<c>}{<q>} <Rd>, #<lsb>, #<width> ; T1
@@ -3220,7 +3220,7 @@ void Assembler::bfc(Condition cond, Register rd, uint32_t lsb, uint32_t width) {
 
 void Assembler::bfi(
     Condition cond, Register rd, Register rn, uint32_t lsb, uint32_t width) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // BFI{<c>}{<q>} <Rd>, <Rn>, #<lsb>, #<width> ; T1
@@ -3252,7 +3252,7 @@ void Assembler::bic(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -3340,7 +3340,7 @@ void Assembler::bics(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -3424,7 +3424,7 @@ void Assembler::bics(Condition cond,
 }
 
 void Assembler::bkpt(Condition cond, uint32_t imm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // BKPT{<q>} {#}<imm> ; T1
@@ -3445,7 +3445,7 @@ void Assembler::bkpt(Condition cond, uint32_t imm) {
 }
 
 void Assembler::bl(Condition cond, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -3463,10 +3463,10 @@ void Assembler::bl(Condition cond, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -16777216) && (offset <= 16777214) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -16777216) && (offset <= 16777214) &&
                       ((offset & 0x1) == 0));
           int32_t target = offset >> 1;
           uint32_t S = target & (1 << 23);
@@ -3491,10 +3491,10 @@ void Assembler::bl(Condition cond, Location* location) {
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= -33554432) && (offset <= 33554428) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -33554432) && (offset <= 33554428) &&
                       ((offset & 0x3) == 0));
           const int32_t target = offset >> 2;
           return instr | (target & 0xffffff);
@@ -3513,7 +3513,7 @@ void Assembler::bl(Condition cond, Location* location) {
 bool Assembler::bl_info(Condition cond,
                         Location* location,
                         const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // BL{<c>}{<q>} <label> ; T1
@@ -3532,7 +3532,7 @@ bool Assembler::bl_info(Condition cond,
 }
 
 void Assembler::blx(Condition cond, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -3550,10 +3550,10 @@ void Assembler::blx(Condition cond, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -16777216) && (offset <= 16777212) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -16777216) && (offset <= 16777212) &&
                       ((offset & 0x3) == 0));
           int32_t target = offset >> 2;
           uint32_t S = target & (1 << 22);
@@ -3579,11 +3579,11 @@ void Assembler::blx(Condition cond, Location* location) {
           virtual uint32_t Encode(uint32_t instr,
                                   Location::Offset pc,
                                   const Location* location) const
-              VIXL_OVERRIDE {
+              SWANSTATION_VIXL_OVERRIDE {
             pc += kA32PcDelta;
             Location::Offset offset =
                 location->GetLocation() - AlignDown(pc, 4);
-            VIXL_ASSERT((offset >= -33554432) && (offset <= 33554430) &&
+            SWANSTATION_VIXL_ASSERT((offset >= -33554432) && (offset <= 33554430) &&
                         ((offset & 0x1) == 0));
             const int32_t target = offset >> 1;
             return instr | ((target & 0x1) << 24) | ((target & 0x1fffffe) >> 1);
@@ -3600,7 +3600,7 @@ void Assembler::blx(Condition cond, Location* location) {
 bool Assembler::blx_info(Condition cond,
                          Location* location,
                          const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   USE(cond);
   if (IsUsingT32()) {
@@ -3620,7 +3620,7 @@ bool Assembler::blx_info(Condition cond,
 }
 
 void Assembler::blx(Condition cond, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // BLX{<c>}{<q>} <Rm> ; T1
@@ -3641,7 +3641,7 @@ void Assembler::blx(Condition cond, Register rm) {
 }
 
 void Assembler::bx(Condition cond, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // BX{<c>}{<q>} <Rm> ; T1
@@ -3661,7 +3661,7 @@ void Assembler::bx(Condition cond, Register rm) {
 }
 
 void Assembler::bxj(Condition cond, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // BXJ{<c>}{<q>} <Rm> ; T1
@@ -3682,7 +3682,7 @@ void Assembler::bxj(Condition cond, Register rm) {
 }
 
 void Assembler::cbnz(Register rn, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Location::Offset offset =
       location->IsBound()
@@ -3699,10 +3699,10 @@ void Assembler::cbnz(Register rn, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= 0) && (offset <= 126) &&
+          SWANSTATION_VIXL_ASSERT((offset >= 0) && (offset <= 126) &&
                       ((offset & 0x1) == 0));
           const int32_t target = offset >> 1;
           return instr | ((target & 0x1f) << 3) | ((target & 0x20) << 4);
@@ -3719,7 +3719,7 @@ void Assembler::cbnz(Register rn, Location* location) {
 bool Assembler::cbnz_info(Register rn,
                           Location* location,
                           const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // CBNZ{<q>} <Rn>, <label> ; T1
@@ -3732,7 +3732,7 @@ bool Assembler::cbnz_info(Register rn,
 }
 
 void Assembler::cbz(Register rn, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Location::Offset offset =
       location->IsBound()
@@ -3749,10 +3749,10 @@ void Assembler::cbz(Register rn, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - pc;
-          VIXL_ASSERT((offset >= 0) && (offset <= 126) &&
+          SWANSTATION_VIXL_ASSERT((offset >= 0) && (offset <= 126) &&
                       ((offset & 0x1) == 0));
           const int32_t target = offset >> 1;
           return instr | ((target & 0x1f) << 3) | ((target & 0x20) << 4);
@@ -3769,7 +3769,7 @@ void Assembler::cbz(Register rn, Location* location) {
 bool Assembler::cbz_info(Register rn,
                          Location* location,
                          const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // CBZ{<q>} <Rn>, <label> ; T1
@@ -3782,7 +3782,7 @@ bool Assembler::cbz_info(Register rn,
 }
 
 void Assembler::clrex(Condition cond) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CLREX{<c>}{<q>} ; T1
@@ -3800,7 +3800,7 @@ void Assembler::clrex(Condition cond) {
 }
 
 void Assembler::clz(Condition cond, Register rd, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CLZ{<c>}{<q>} <Rd>, <Rm> ; T1
@@ -3826,7 +3826,7 @@ void Assembler::cmn(Condition cond,
                     EncodingSize size,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -3910,7 +3910,7 @@ void Assembler::cmp(Condition cond,
                     EncodingSize size,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -4005,7 +4005,7 @@ void Assembler::cmp(Condition cond,
 }
 
 void Assembler::crc32b(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CRC32B{<q>} <Rd>, <Rn>, <Rm> ; T1
@@ -4029,7 +4029,7 @@ void Assembler::crc32b(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::crc32cb(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CRC32CB{<q>} <Rd>, <Rn>, <Rm> ; T1
@@ -4053,7 +4053,7 @@ void Assembler::crc32cb(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::crc32ch(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CRC32CH{<q>} <Rd>, <Rn>, <Rm> ; T1
@@ -4077,7 +4077,7 @@ void Assembler::crc32ch(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::crc32cw(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CRC32CW{<q>} <Rd>, <Rn>, <Rm> ; T1
@@ -4101,7 +4101,7 @@ void Assembler::crc32cw(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::crc32h(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CRC32H{<q>} <Rd>, <Rn>, <Rm> ; T1
@@ -4125,7 +4125,7 @@ void Assembler::crc32h(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::crc32w(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // CRC32W{<q>} <Rd>, <Rn>, <Rm> ; T1
@@ -4149,7 +4149,7 @@ void Assembler::crc32w(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::dmb(Condition cond, MemoryBarrier option) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // DMB{<c>}{<q>} {<option>} ; T1
@@ -4167,7 +4167,7 @@ void Assembler::dmb(Condition cond, MemoryBarrier option) {
 }
 
 void Assembler::dsb(Condition cond, MemoryBarrier option) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // DSB{<c>}{<q>} {<option>} ; T1
@@ -4189,7 +4189,7 @@ void Assembler::eor(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -4277,7 +4277,7 @@ void Assembler::eors(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -4364,7 +4364,7 @@ void Assembler::fldmdbx(Condition cond,
                         Register rn,
                         WriteBack write_back,
                         DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // FLDMDBX{<c>}{<q>} <Rn>!, <dreglist> ; T1
@@ -4399,7 +4399,7 @@ void Assembler::fldmiax(Condition cond,
                         Register rn,
                         WriteBack write_back,
                         DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // FLDMIAX{<c>}{<q>} <Rn>{!}, <dreglist> ; T1
@@ -4435,7 +4435,7 @@ void Assembler::fstmdbx(Condition cond,
                         Register rn,
                         WriteBack write_back,
                         DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // FSTMDBX{<c>}{<q>} <Rn>!, <dreglist> ; T1
@@ -4470,7 +4470,7 @@ void Assembler::fstmiax(Condition cond,
                         Register rn,
                         WriteBack write_back,
                         DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // FSTMIAX{<c>}{<q>} <Rn>{!}, <dreglist> ; T1
@@ -4503,7 +4503,7 @@ void Assembler::fstmiax(Condition cond,
 }
 
 void Assembler::hlt(Condition cond, uint32_t imm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // HLT{<q>} {#}<imm> ; T1
@@ -4524,7 +4524,7 @@ void Assembler::hlt(Condition cond, uint32_t imm) {
 }
 
 void Assembler::hvc(Condition cond, uint32_t imm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // HVC{<q>} {#}<imm16> ; T1
@@ -4545,7 +4545,7 @@ void Assembler::hvc(Condition cond, uint32_t imm) {
 }
 
 void Assembler::isb(Condition cond, MemoryBarrier option) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // ISB{<c>}{<q>} {<option>} ; T1
@@ -4563,7 +4563,7 @@ void Assembler::isb(Condition cond, MemoryBarrier option) {
 }
 
 void Assembler::it(Condition cond, uint16_t mask) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckNotIT();
   if (mask != 0) {
     if ((cond.GetCondition() & 0x1) != 0) {
@@ -4583,7 +4583,7 @@ void Assembler::it(Condition cond, uint16_t mask) {
 }
 
 void Assembler::lda(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4609,7 +4609,7 @@ void Assembler::lda(Condition cond, Register rt, const MemOperand& operand) {
 }
 
 void Assembler::ldab(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4635,7 +4635,7 @@ void Assembler::ldab(Condition cond, Register rt, const MemOperand& operand) {
 }
 
 void Assembler::ldaex(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4661,7 +4661,7 @@ void Assembler::ldaex(Condition cond, Register rt, const MemOperand& operand) {
 }
 
 void Assembler::ldaexb(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4690,7 +4690,7 @@ void Assembler::ldaexd(Condition cond,
                        Register rt,
                        Register rt2,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4719,7 +4719,7 @@ void Assembler::ldaexd(Condition cond,
 }
 
 void Assembler::ldaexh(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4745,7 +4745,7 @@ void Assembler::ldaexh(Condition cond, Register rt, const MemOperand& operand) {
 }
 
 void Assembler::ldah(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -4775,7 +4775,7 @@ void Assembler::ldm(Condition cond,
                     Register rn,
                     WriteBack write_back,
                     RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // LDM{<c>}{<q>} <Rn>{!}, <registers> ; T1
@@ -4823,7 +4823,7 @@ void Assembler::ldmda(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // LDMDA{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -4841,7 +4841,7 @@ void Assembler::ldmdb(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // LDMDB{<c>}{<q>} <Rn>{!}, <registers> ; T1
@@ -4871,7 +4871,7 @@ void Assembler::ldmea(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // LDMEA{<c>}{<q>} <Rn>{!}, <registers> ; T1
@@ -4901,7 +4901,7 @@ void Assembler::ldmed(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // LDMED{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -4919,7 +4919,7 @@ void Assembler::ldmfa(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // LDMFA{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -4938,7 +4938,7 @@ void Assembler::ldmfd(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // LDMFD{<c>}{<q>} <Rn>{!}, <registers> ; T1
@@ -4978,7 +4978,7 @@ void Assembler::ldmib(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // LDMIB{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -4996,7 +4996,7 @@ void Assembler::ldr(Condition cond,
                     EncodingSize size,
                     Register rt,
                     const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -5191,7 +5191,7 @@ void Assembler::ldr(Condition cond,
                     EncodingSize size,
                     Register rt,
                     Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -5209,10 +5209,10 @@ void Assembler::ldr(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= 0) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= 0) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           const int32_t target = offset >> 2;
           return instr | (target & 0xff);
@@ -5234,10 +5234,10 @@ void Assembler::ldr(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -5260,10 +5260,10 @@ void Assembler::ldr(Condition cond,
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -5285,7 +5285,7 @@ bool Assembler::ldr_info(Condition cond,
                          Register rt,
                          Location* location,
                          const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // LDR{<c>}{<q>} <Rt>, <label> ; T1
@@ -5312,7 +5312,7 @@ void Assembler::ldrb(Condition cond,
                      EncodingSize size,
                      Register rt,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -5489,7 +5489,7 @@ void Assembler::ldrb(Condition cond,
 }
 
 void Assembler::ldrb(Condition cond, Register rt, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -5506,10 +5506,10 @@ void Assembler::ldrb(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -5532,10 +5532,10 @@ void Assembler::ldrb(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -5556,7 +5556,7 @@ bool Assembler::ldrb_info(Condition cond,
                           Register rt,
                           Location* location,
                           const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // LDRB{<c>}{<q>} <Rt>, <label> ; T1
@@ -5578,7 +5578,7 @@ void Assembler::ldrd(Condition cond,
                      Register rt,
                      Register rt2,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -5730,7 +5730,7 @@ void Assembler::ldrd(Condition cond,
                      Register rt,
                      Register rt2,
                      Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -5748,10 +5748,10 @@ void Assembler::ldrd(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           int32_t target = offset >> 2;
           uint32_t U = (target >= 0);
@@ -5778,10 +5778,10 @@ void Assembler::ldrd(Condition cond,
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -255) && (offset <= 255));
+          SWANSTATION_VIXL_ASSERT((offset >= -255) && (offset <= 255));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 8);
           return instr | (target & 0xf) | ((target & 0xf0) << 4) |
@@ -5804,7 +5804,7 @@ bool Assembler::ldrd_info(Condition cond,
                           Register rt2,
                           Location* location,
                           const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // LDRD{<c>}{<q>} <Rt>, <Rt2>, <label> ; T1
@@ -5824,7 +5824,7 @@ bool Assembler::ldrd_info(Condition cond,
 }
 
 void Assembler::ldrex(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -5854,7 +5854,7 @@ void Assembler::ldrex(Condition cond, Register rt, const MemOperand& operand) {
 }
 
 void Assembler::ldrexb(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -5883,7 +5883,7 @@ void Assembler::ldrexd(Condition cond,
                        Register rt,
                        Register rt2,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -5912,7 +5912,7 @@ void Assembler::ldrexd(Condition cond,
 }
 
 void Assembler::ldrexh(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -5941,7 +5941,7 @@ void Assembler::ldrh(Condition cond,
                      EncodingSize size,
                      Register rt,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -6113,7 +6113,7 @@ void Assembler::ldrh(Condition cond,
 }
 
 void Assembler::ldrh(Condition cond, Register rt, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -6130,10 +6130,10 @@ void Assembler::ldrh(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -6156,10 +6156,10 @@ void Assembler::ldrh(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -255) && (offset <= 255));
+          SWANSTATION_VIXL_ASSERT((offset >= -255) && (offset <= 255));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 8);
           return instr | (target & 0xf) | ((target & 0xf0) << 4) |
@@ -6181,7 +6181,7 @@ bool Assembler::ldrh_info(Condition cond,
                           Register rt,
                           Location* location,
                           const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // LDRH{<c>}{<q>} <Rt>, <label> ; T1
@@ -6203,7 +6203,7 @@ void Assembler::ldrsb(Condition cond,
                       EncodingSize size,
                       Register rt,
                       const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -6366,7 +6366,7 @@ void Assembler::ldrsb(Condition cond,
 }
 
 void Assembler::ldrsb(Condition cond, Register rt, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -6383,10 +6383,10 @@ void Assembler::ldrsb(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -6409,10 +6409,10 @@ void Assembler::ldrsb(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -255) && (offset <= 255));
+          SWANSTATION_VIXL_ASSERT((offset >= -255) && (offset <= 255));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 8);
           return instr | (target & 0xf) | ((target & 0xf0) << 4) |
@@ -6434,7 +6434,7 @@ bool Assembler::ldrsb_info(Condition cond,
                            Register rt,
                            Location* location,
                            const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // LDRSB{<c>}{<q>} <Rt>, <label> ; T1
@@ -6456,7 +6456,7 @@ void Assembler::ldrsh(Condition cond,
                       EncodingSize size,
                       Register rt,
                       const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -6619,7 +6619,7 @@ void Assembler::ldrsh(Condition cond,
 }
 
 void Assembler::ldrsh(Condition cond, Register rt, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -6636,10 +6636,10 @@ void Assembler::ldrsh(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -6662,10 +6662,10 @@ void Assembler::ldrsh(Condition cond, Register rt, Location* location) {
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -255) && (offset <= 255));
+          SWANSTATION_VIXL_ASSERT((offset >= -255) && (offset <= 255));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 8);
           return instr | (target & 0xf) | ((target & 0xf0) << 4) |
@@ -6687,7 +6687,7 @@ bool Assembler::ldrsh_info(Condition cond,
                            Register rt,
                            Location* location,
                            const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   if (IsUsingT32()) {
     // LDRSH{<c>}{<q>} <Rt>, <label> ; T1
@@ -6710,7 +6710,7 @@ void Assembler::lsl(Condition cond,
                     Register rd,
                     Register rm,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -6775,7 +6775,7 @@ void Assembler::lsls(Condition cond,
                      Register rd,
                      Register rm,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -6840,7 +6840,7 @@ void Assembler::lsr(Condition cond,
                     Register rd,
                     Register rm,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -6909,7 +6909,7 @@ void Assembler::lsrs(Condition cond,
                      Register rd,
                      Register rm,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -6975,7 +6975,7 @@ void Assembler::lsrs(Condition cond,
 
 void Assembler::mla(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // MLA{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -7001,7 +7001,7 @@ void Assembler::mla(
 
 void Assembler::mlas(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // MLAS{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; A1
@@ -7018,7 +7018,7 @@ void Assembler::mlas(
 
 void Assembler::mls(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // MLS{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -7046,7 +7046,7 @@ void Assembler::mov(Condition cond,
                     EncodingSize size,
                     Register rd,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -7203,7 +7203,7 @@ void Assembler::movs(Condition cond,
                      EncodingSize size,
                      Register rd,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -7328,7 +7328,7 @@ void Assembler::movs(Condition cond,
 }
 
 void Assembler::movt(Condition cond, Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7355,7 +7355,7 @@ void Assembler::movt(Condition cond, Register rd, const Operand& operand) {
 }
 
 void Assembler::movw(Condition cond, Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7382,7 +7382,7 @@ void Assembler::movw(Condition cond, Register rd, const Operand& operand) {
 }
 
 void Assembler::mrs(Condition cond, Register rd, SpecialRegister spec_reg) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // MRS{<c>}{<q>} <Rd>, <spec_reg> ; T1
@@ -7405,7 +7405,7 @@ void Assembler::mrs(Condition cond, Register rd, SpecialRegister spec_reg) {
 void Assembler::msr(Condition cond,
                     MaskedSpecialRegister spec_reg,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7446,7 +7446,7 @@ void Assembler::msr(Condition cond,
 
 void Assembler::mul(
     Condition cond, EncodingSize size, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // MUL<c>{<q>} <Rdm>, <Rn>, {<Rdm>} ; T1
@@ -7477,7 +7477,7 @@ void Assembler::mul(
 }
 
 void Assembler::muls(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // MULS{<q>} <Rdm>, <Rn>, {<Rdm>} ; T1
@@ -7502,7 +7502,7 @@ void Assembler::mvn(Condition cond,
                     EncodingSize size,
                     Register rd,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7586,7 +7586,7 @@ void Assembler::mvns(Condition cond,
                      EncodingSize size,
                      Register rd,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7667,7 +7667,7 @@ void Assembler::mvns(Condition cond,
 }
 
 void Assembler::nop(Condition cond, EncodingSize size) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // NOP{<c>}{<q>} ; T1
@@ -7696,7 +7696,7 @@ void Assembler::orn(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7738,7 +7738,7 @@ void Assembler::orns(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7781,7 +7781,7 @@ void Assembler::orr(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7869,7 +7869,7 @@ void Assembler::orrs(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -7956,7 +7956,7 @@ void Assembler::pkhbt(Condition cond,
                       Register rd,
                       Register rn,
                       const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -7990,7 +7990,7 @@ void Assembler::pkhtb(Condition cond,
                       Register rd,
                       Register rn,
                       const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -8024,7 +8024,7 @@ void Assembler::pkhtb(Condition cond,
 }
 
 void Assembler::pld(Condition cond, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -8040,10 +8040,10 @@ void Assembler::pld(Condition cond, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -8064,11 +8064,11 @@ void Assembler::pld(Condition cond, Location* location) {
           virtual uint32_t Encode(uint32_t instr,
                                   Location::Offset pc,
                                   const Location* location) const
-              VIXL_OVERRIDE {
+              SWANSTATION_VIXL_OVERRIDE {
             pc += kA32PcDelta;
             Location::Offset offset =
                 location->GetLocation() - AlignDown(pc, 4);
-            VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+            SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
             uint32_t U = (offset >= 0);
             int32_t target = abs(offset) | (U << 12);
             return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -8085,7 +8085,7 @@ void Assembler::pld(Condition cond, Location* location) {
 bool Assembler::pld_info(Condition cond,
                          Location* location,
                          const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   USE(cond);
   if (IsUsingT32()) {
@@ -8105,7 +8105,7 @@ bool Assembler::pld_info(Condition cond,
 }
 
 void Assembler::pld(Condition cond, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -8208,7 +8208,7 @@ void Assembler::pld(Condition cond, const MemOperand& operand) {
 }
 
 void Assembler::pldw(Condition cond, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -8285,7 +8285,7 @@ void Assembler::pldw(Condition cond, const MemOperand& operand) {
 }
 
 void Assembler::pli(Condition cond, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -8388,7 +8388,7 @@ void Assembler::pli(Condition cond, const MemOperand& operand) {
 }
 
 void Assembler::pli(Condition cond, Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -8404,10 +8404,10 @@ void Assembler::pli(Condition cond, Location* location) {
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+          SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
           uint32_t U = (offset >= 0);
           int32_t target = abs(offset) | (U << 12);
           return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -8428,11 +8428,11 @@ void Assembler::pli(Condition cond, Location* location) {
           virtual uint32_t Encode(uint32_t instr,
                                   Location::Offset pc,
                                   const Location* location) const
-              VIXL_OVERRIDE {
+              SWANSTATION_VIXL_OVERRIDE {
             pc += kA32PcDelta;
             Location::Offset offset =
                 location->GetLocation() - AlignDown(pc, 4);
-            VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
+            SWANSTATION_VIXL_ASSERT((offset >= -4095) && (offset <= 4095));
             uint32_t U = (offset >= 0);
             int32_t target = abs(offset) | (U << 12);
             return instr | (target & 0xfff) | ((target & 0x1000) << 11);
@@ -8449,7 +8449,7 @@ void Assembler::pli(Condition cond, Location* location) {
 bool Assembler::pli_info(Condition cond,
                          Location* location,
                          const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   USE(cond);
   if (IsUsingT32()) {
@@ -8469,7 +8469,7 @@ bool Assembler::pli_info(Condition cond,
 }
 
 void Assembler::pop(Condition cond, EncodingSize size, RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // POP{<c>}{<q>} <registers> ; T1
@@ -8500,7 +8500,7 @@ void Assembler::pop(Condition cond, EncodingSize size, RegisterList registers) {
 }
 
 void Assembler::pop(Condition cond, EncodingSize size, Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // POP{<c>}{<q>} <single_register_list> ; T4
@@ -8523,7 +8523,7 @@ void Assembler::pop(Condition cond, EncodingSize size, Register rt) {
 void Assembler::push(Condition cond,
                      EncodingSize size,
                      RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // PUSH{<c>}{<q>} <registers> ; T1
@@ -8553,7 +8553,7 @@ void Assembler::push(Condition cond,
 }
 
 void Assembler::push(Condition cond, EncodingSize size, Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // PUSH{<c>}{<q>} <single_register_list> ; T4
@@ -8573,7 +8573,7 @@ void Assembler::push(Condition cond, EncodingSize size, Register rt) {
 }
 
 void Assembler::qadd(Condition cond, Register rd, Register rm, Register rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QADD{<c>}{<q>} {<Rd>}, <Rm>, <Rn> ; T1
@@ -8596,7 +8596,7 @@ void Assembler::qadd(Condition cond, Register rd, Register rm, Register rn) {
 }
 
 void Assembler::qadd16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QADD16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -8619,7 +8619,7 @@ void Assembler::qadd16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::qadd8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QADD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -8642,7 +8642,7 @@ void Assembler::qadd8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::qasx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QASX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -8665,7 +8665,7 @@ void Assembler::qasx(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::qdadd(Condition cond, Register rd, Register rm, Register rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QDADD{<c>}{<q>} {<Rd>}, <Rm>, <Rn> ; T1
@@ -8688,7 +8688,7 @@ void Assembler::qdadd(Condition cond, Register rd, Register rm, Register rn) {
 }
 
 void Assembler::qdsub(Condition cond, Register rd, Register rm, Register rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QDSUB{<c>}{<q>} {<Rd>}, <Rm>, <Rn> ; T1
@@ -8711,7 +8711,7 @@ void Assembler::qdsub(Condition cond, Register rd, Register rm, Register rn) {
 }
 
 void Assembler::qsax(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QSAX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -8734,7 +8734,7 @@ void Assembler::qsax(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::qsub(Condition cond, Register rd, Register rm, Register rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QSUB{<c>}{<q>} {<Rd>}, <Rm>, <Rn> ; T1
@@ -8757,7 +8757,7 @@ void Assembler::qsub(Condition cond, Register rd, Register rm, Register rn) {
 }
 
 void Assembler::qsub16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QSUB16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -8780,7 +8780,7 @@ void Assembler::qsub16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::qsub8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // QSUB8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -8803,7 +8803,7 @@ void Assembler::qsub8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::rbit(Condition cond, Register rd, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // RBIT{<c>}{<q>} <Rd>, <Rm> ; T1
@@ -8829,7 +8829,7 @@ void Assembler::rev(Condition cond,
                     EncodingSize size,
                     Register rd,
                     Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // REV{<c>}{<q>} <Rd>, <Rm> ; T1
@@ -8862,7 +8862,7 @@ void Assembler::rev16(Condition cond,
                       EncodingSize size,
                       Register rd,
                       Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // REV16{<c>}{<q>} <Rd>, <Rm> ; T1
@@ -8895,7 +8895,7 @@ void Assembler::revsh(Condition cond,
                       EncodingSize size,
                       Register rd,
                       Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // REVSH{<c>}{<q>} <Rd>, <Rm> ; T1
@@ -8929,7 +8929,7 @@ void Assembler::ror(Condition cond,
                     Register rd,
                     Register rm,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -8987,7 +8987,7 @@ void Assembler::rors(Condition cond,
                      Register rd,
                      Register rm,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9041,7 +9041,7 @@ void Assembler::rors(Condition cond,
 }
 
 void Assembler::rrx(Condition cond, Register rd, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // RRX{<c>}{<q>} {<Rd>}, <Rm> ; T3
@@ -9062,7 +9062,7 @@ void Assembler::rrx(Condition cond, Register rd, Register rm) {
 }
 
 void Assembler::rrxs(Condition cond, Register rd, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // RRXS{<c>}{<q>} {<Rd>}, <Rm> ; T3
@@ -9087,7 +9087,7 @@ void Assembler::rsb(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9171,7 +9171,7 @@ void Assembler::rsbs(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9254,7 +9254,7 @@ void Assembler::rsc(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9307,7 +9307,7 @@ void Assembler::rscs(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9357,7 +9357,7 @@ void Assembler::rscs(Condition cond,
 }
 
 void Assembler::sadd16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SADD16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9380,7 +9380,7 @@ void Assembler::sadd16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::sadd8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SADD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9403,7 +9403,7 @@ void Assembler::sadd8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::sasx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SASX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9430,7 +9430,7 @@ void Assembler::sbc(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9518,7 +9518,7 @@ void Assembler::sbcs(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -9603,7 +9603,7 @@ void Assembler::sbcs(Condition cond,
 
 void Assembler::sbfx(
     Condition cond, Register rd, Register rn, uint32_t lsb, uint32_t width) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SBFX{<c>}{<q>} <Rd>, <Rn>, #<lsb>, #<width> ; T1
@@ -9631,7 +9631,7 @@ void Assembler::sbfx(
 }
 
 void Assembler::sdiv(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SDIV{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9654,7 +9654,7 @@ void Assembler::sdiv(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::sel(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SEL{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9677,7 +9677,7 @@ void Assembler::sel(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::shadd16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SHADD16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9700,7 +9700,7 @@ void Assembler::shadd16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::shadd8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SHADD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9723,7 +9723,7 @@ void Assembler::shadd8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::shasx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SHASX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9746,7 +9746,7 @@ void Assembler::shasx(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::shsax(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SHSAX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9769,7 +9769,7 @@ void Assembler::shsax(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::shsub16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SHSUB16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9792,7 +9792,7 @@ void Assembler::shsub16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::shsub8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SHSUB8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -9816,7 +9816,7 @@ void Assembler::shsub8(Condition cond, Register rd, Register rn, Register rm) {
 
 void Assembler::smlabb(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLABB{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -9842,7 +9842,7 @@ void Assembler::smlabb(
 
 void Assembler::smlabt(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLABT{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -9868,7 +9868,7 @@ void Assembler::smlabt(
 
 void Assembler::smlad(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLAD{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -9893,7 +9893,7 @@ void Assembler::smlad(
 
 void Assembler::smladx(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLADX{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -9918,7 +9918,7 @@ void Assembler::smladx(
 
 void Assembler::smlal(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLAL{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -9945,7 +9945,7 @@ void Assembler::smlal(
 
 void Assembler::smlalbb(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLALBB{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -9972,7 +9972,7 @@ void Assembler::smlalbb(
 
 void Assembler::smlalbt(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLALBT{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -9999,7 +9999,7 @@ void Assembler::smlalbt(
 
 void Assembler::smlald(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLALD{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10026,7 +10026,7 @@ void Assembler::smlald(
 
 void Assembler::smlaldx(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLALDX{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10053,7 +10053,7 @@ void Assembler::smlaldx(
 
 void Assembler::smlals(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // SMLALS{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; A1
@@ -10071,7 +10071,7 @@ void Assembler::smlals(
 
 void Assembler::smlaltb(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLALTB{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10098,7 +10098,7 @@ void Assembler::smlaltb(
 
 void Assembler::smlaltt(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLALTT{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10125,7 +10125,7 @@ void Assembler::smlaltt(
 
 void Assembler::smlatb(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLATB{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10151,7 +10151,7 @@ void Assembler::smlatb(
 
 void Assembler::smlatt(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLATT{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10177,7 +10177,7 @@ void Assembler::smlatt(
 
 void Assembler::smlawb(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLAWB{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10203,7 +10203,7 @@ void Assembler::smlawb(
 
 void Assembler::smlawt(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLAWT{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10229,7 +10229,7 @@ void Assembler::smlawt(
 
 void Assembler::smlsd(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLSD{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10254,7 +10254,7 @@ void Assembler::smlsd(
 
 void Assembler::smlsdx(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLSDX{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10279,7 +10279,7 @@ void Assembler::smlsdx(
 
 void Assembler::smlsld(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLSLD{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10306,7 +10306,7 @@ void Assembler::smlsld(
 
 void Assembler::smlsldx(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMLSLDX{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10333,7 +10333,7 @@ void Assembler::smlsldx(
 
 void Assembler::smmla(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMMLA{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10358,7 +10358,7 @@ void Assembler::smmla(
 
 void Assembler::smmlar(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMMLAR{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10383,7 +10383,7 @@ void Assembler::smmlar(
 
 void Assembler::smmls(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMMLS{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10409,7 +10409,7 @@ void Assembler::smmls(
 
 void Assembler::smmlsr(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMMLSR{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -10434,7 +10434,7 @@ void Assembler::smmlsr(
 }
 
 void Assembler::smmul(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMMUL{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10457,7 +10457,7 @@ void Assembler::smmul(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smmulr(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMMULR{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10480,7 +10480,7 @@ void Assembler::smmulr(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smuad(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMUAD{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10503,7 +10503,7 @@ void Assembler::smuad(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smuadx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMUADX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10526,7 +10526,7 @@ void Assembler::smuadx(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smulbb(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULBB{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10549,7 +10549,7 @@ void Assembler::smulbb(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smulbt(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULBT{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10573,7 +10573,7 @@ void Assembler::smulbt(Condition cond, Register rd, Register rn, Register rm) {
 
 void Assembler::smull(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULL{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -10600,7 +10600,7 @@ void Assembler::smull(
 
 void Assembler::smulls(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // SMULLS{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; A1
@@ -10617,7 +10617,7 @@ void Assembler::smulls(
 }
 
 void Assembler::smultb(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULTB{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10640,7 +10640,7 @@ void Assembler::smultb(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smultt(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULTT{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10663,7 +10663,7 @@ void Assembler::smultt(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smulwb(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULWB{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10686,7 +10686,7 @@ void Assembler::smulwb(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smulwt(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMULWT{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10709,7 +10709,7 @@ void Assembler::smulwt(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smusd(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMUSD{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10732,7 +10732,7 @@ void Assembler::smusd(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::smusdx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SMUSDX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10758,7 +10758,7 @@ void Assembler::ssat(Condition cond,
                      Register rd,
                      uint32_t imm,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rn = operand.GetBaseRegister();
@@ -10814,7 +10814,7 @@ void Assembler::ssat(Condition cond,
 }
 
 void Assembler::ssat16(Condition cond, Register rd, uint32_t imm, Register rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SSAT16{<c>}{<q>} <Rd>, #<imm>, <Rn> ; T1
@@ -10840,7 +10840,7 @@ void Assembler::ssat16(Condition cond, Register rd, uint32_t imm, Register rn) {
 }
 
 void Assembler::ssax(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SSAX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10863,7 +10863,7 @@ void Assembler::ssax(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::ssub16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SSUB16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10886,7 +10886,7 @@ void Assembler::ssub16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::ssub8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SSUB8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -10909,7 +10909,7 @@ void Assembler::ssub8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::stl(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -10935,7 +10935,7 @@ void Assembler::stl(Condition cond, Register rt, const MemOperand& operand) {
 }
 
 void Assembler::stlb(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -10964,7 +10964,7 @@ void Assembler::stlex(Condition cond,
                       Register rd,
                       Register rt,
                       const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -10994,7 +10994,7 @@ void Assembler::stlexb(Condition cond,
                        Register rd,
                        Register rt,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11025,7 +11025,7 @@ void Assembler::stlexd(Condition cond,
                        Register rt,
                        Register rt2,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11059,7 +11059,7 @@ void Assembler::stlexh(Condition cond,
                        Register rd,
                        Register rt,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11086,7 +11086,7 @@ void Assembler::stlexh(Condition cond,
 }
 
 void Assembler::stlh(Condition cond, Register rt, const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11116,7 +11116,7 @@ void Assembler::stm(Condition cond,
                     Register rn,
                     WriteBack write_back,
                     RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // STM{<c>}{<q>} <Rn>!, <registers> ; T1
@@ -11153,7 +11153,7 @@ void Assembler::stmda(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // STMDA{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -11172,7 +11172,7 @@ void Assembler::stmdb(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // STMDB{<c>}{<q>} SP!, <registers> ; T1
@@ -11210,7 +11210,7 @@ void Assembler::stmea(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // STMEA{<c>}{<q>} <Rn>!, <registers> ; T1
@@ -11257,7 +11257,7 @@ void Assembler::stmed(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // STMED{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -11275,7 +11275,7 @@ void Assembler::stmfa(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // STMFA{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -11293,7 +11293,7 @@ void Assembler::stmfd(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // STMFD{<c>}{<q>} <Rn>{!}, <registers> ; T1
@@ -11322,7 +11322,7 @@ void Assembler::stmib(Condition cond,
                       Register rn,
                       WriteBack write_back,
                       RegisterList registers) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // STMIB{<c>}{<q>} <Rn>{!}, <registers> ; A1
@@ -11340,7 +11340,7 @@ void Assembler::str(Condition cond,
                     EncodingSize size,
                     Register rt,
                     const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -11510,7 +11510,7 @@ void Assembler::strb(Condition cond,
                      EncodingSize size,
                      Register rt,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -11672,7 +11672,7 @@ void Assembler::strd(Condition cond,
                      Register rt,
                      Register rt2,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -11797,7 +11797,7 @@ void Assembler::strex(Condition cond,
                       Register rd,
                       Register rt,
                       const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -11830,7 +11830,7 @@ void Assembler::strexb(Condition cond,
                        Register rd,
                        Register rt,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11861,7 +11861,7 @@ void Assembler::strexd(Condition cond,
                        Register rt,
                        Register rt2,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11895,7 +11895,7 @@ void Assembler::strexh(Condition cond,
                        Register rd,
                        Register rt,
                        const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -11925,7 +11925,7 @@ void Assembler::strh(Condition cond,
                      EncodingSize size,
                      Register rt,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -12082,7 +12082,7 @@ void Assembler::sub(Condition cond,
                     Register rd,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12260,7 +12260,7 @@ void Assembler::sub(Condition cond,
 }
 
 void Assembler::sub(Condition cond, Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12281,7 +12281,7 @@ void Assembler::subs(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12421,7 +12421,7 @@ void Assembler::subs(Condition cond,
 }
 
 void Assembler::subs(Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12441,7 +12441,7 @@ void Assembler::subw(Condition cond,
                      Register rd,
                      Register rn,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12467,7 +12467,7 @@ void Assembler::subw(Condition cond,
 }
 
 void Assembler::svc(Condition cond, uint32_t imm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // SVC{<c>}{<q>} {#}<imm> ; T1
@@ -12490,7 +12490,7 @@ void Assembler::sxtab(Condition cond,
                       Register rd,
                       Register rn,
                       const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -12527,7 +12527,7 @@ void Assembler::sxtab16(Condition cond,
                         Register rd,
                         Register rn,
                         const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -12564,7 +12564,7 @@ void Assembler::sxtah(Condition cond,
                       Register rd,
                       Register rn,
                       const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -12601,7 +12601,7 @@ void Assembler::sxtb(Condition cond,
                      EncodingSize size,
                      Register rd,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -12644,7 +12644,7 @@ void Assembler::sxtb(Condition cond,
 }
 
 void Assembler::sxtb16(Condition cond, Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -12680,7 +12680,7 @@ void Assembler::sxth(Condition cond,
                      EncodingSize size,
                      Register rd,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -12723,7 +12723,7 @@ void Assembler::sxth(Condition cond,
 }
 
 void Assembler::tbb(Condition cond, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // TBB{<c>}{<q>} [<Rn>, <Rm>] ; T1
@@ -12738,7 +12738,7 @@ void Assembler::tbb(Condition cond, Register rn, Register rm) {
 }
 
 void Assembler::tbh(Condition cond, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // TBH{<c>}{<q>} [<Rn>, <Rm>, LSL #1] ; T1
@@ -12753,7 +12753,7 @@ void Assembler::tbh(Condition cond, Register rn, Register rm) {
 }
 
 void Assembler::teq(Condition cond, Register rn, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12826,7 +12826,7 @@ void Assembler::tst(Condition cond,
                     EncodingSize size,
                     Register rn,
                     const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     uint32_t imm = operand.GetImmediate();
@@ -12907,7 +12907,7 @@ void Assembler::tst(Condition cond,
 }
 
 void Assembler::uadd16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UADD16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -12930,7 +12930,7 @@ void Assembler::uadd16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uadd8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UADD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -12953,7 +12953,7 @@ void Assembler::uadd8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uasx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UASX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -12977,7 +12977,7 @@ void Assembler::uasx(Condition cond, Register rd, Register rn, Register rm) {
 
 void Assembler::ubfx(
     Condition cond, Register rd, Register rn, uint32_t lsb, uint32_t width) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UBFX{<c>}{<q>} <Rd>, <Rn>, #<lsb>, #<width> ; T1
@@ -13005,7 +13005,7 @@ void Assembler::ubfx(
 }
 
 void Assembler::udf(Condition cond, EncodingSize size, uint32_t imm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UDF{<c>}{<q>} {#}<imm> ; T1
@@ -13037,7 +13037,7 @@ void Assembler::udf(Condition cond, EncodingSize size, uint32_t imm) {
 }
 
 void Assembler::udiv(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UDIV{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13060,7 +13060,7 @@ void Assembler::udiv(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uhadd16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UHADD16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13083,7 +13083,7 @@ void Assembler::uhadd16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uhadd8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UHADD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13106,7 +13106,7 @@ void Assembler::uhadd8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uhasx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UHASX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13129,7 +13129,7 @@ void Assembler::uhasx(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uhsax(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UHSAX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13152,7 +13152,7 @@ void Assembler::uhsax(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uhsub16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UHSUB16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13175,7 +13175,7 @@ void Assembler::uhsub16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uhsub8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UHSUB8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13199,7 +13199,7 @@ void Assembler::uhsub8(Condition cond, Register rd, Register rn, Register rm) {
 
 void Assembler::umaal(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UMAAL{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -13226,7 +13226,7 @@ void Assembler::umaal(
 
 void Assembler::umlal(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UMLAL{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -13253,7 +13253,7 @@ void Assembler::umlal(
 
 void Assembler::umlals(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // UMLALS{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; A1
@@ -13271,7 +13271,7 @@ void Assembler::umlals(
 
 void Assembler::umull(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UMULL{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; T1
@@ -13298,7 +13298,7 @@ void Assembler::umull(
 
 void Assembler::umulls(
     Condition cond, Register rdlo, Register rdhi, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingA32()) {
     // UMULLS{<c>}{<q>} <Rd>, <Rd>, <Rn>, <Rm> ; A1
@@ -13315,7 +13315,7 @@ void Assembler::umulls(
 }
 
 void Assembler::uqadd16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UQADD16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13338,7 +13338,7 @@ void Assembler::uqadd16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uqadd8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UQADD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13361,7 +13361,7 @@ void Assembler::uqadd8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uqasx(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UQASX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13384,7 +13384,7 @@ void Assembler::uqasx(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uqsax(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UQSAX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13407,7 +13407,7 @@ void Assembler::uqsax(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uqsub16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UQSUB16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13430,7 +13430,7 @@ void Assembler::uqsub16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::uqsub8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // UQSUB8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13453,7 +13453,7 @@ void Assembler::uqsub8(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::usad8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // USAD8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13477,7 +13477,7 @@ void Assembler::usad8(Condition cond, Register rd, Register rn, Register rm) {
 
 void Assembler::usada8(
     Condition cond, Register rd, Register rn, Register rm, Register ra) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // USADA8{<c>}{<q>} <Rd>, <Rn>, <Rm>, <Ra> ; T1
@@ -13504,7 +13504,7 @@ void Assembler::usat(Condition cond,
                      Register rd,
                      uint32_t imm,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rn = operand.GetBaseRegister();
@@ -13554,7 +13554,7 @@ void Assembler::usat(Condition cond,
 }
 
 void Assembler::usat16(Condition cond, Register rd, uint32_t imm, Register rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // USAT16{<c>}{<q>} <Rd>, #<imm>, <Rn> ; T1
@@ -13577,7 +13577,7 @@ void Assembler::usat16(Condition cond, Register rd, uint32_t imm, Register rn) {
 }
 
 void Assembler::usax(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // USAX{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13600,7 +13600,7 @@ void Assembler::usax(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::usub16(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // USUB16{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13623,7 +13623,7 @@ void Assembler::usub16(Condition cond, Register rd, Register rn, Register rm) {
 }
 
 void Assembler::usub8(Condition cond, Register rd, Register rn, Register rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // USUB8{<c>}{<q>} {<Rd>}, <Rn>, <Rm> ; T1
@@ -13649,7 +13649,7 @@ void Assembler::uxtab(Condition cond,
                       Register rd,
                       Register rn,
                       const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -13686,7 +13686,7 @@ void Assembler::uxtab16(Condition cond,
                         Register rd,
                         Register rn,
                         const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -13723,7 +13723,7 @@ void Assembler::uxtah(Condition cond,
                       Register rd,
                       Register rn,
                       const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -13760,7 +13760,7 @@ void Assembler::uxtb(Condition cond,
                      EncodingSize size,
                      Register rd,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -13803,7 +13803,7 @@ void Assembler::uxtb(Condition cond,
 }
 
 void Assembler::uxtb16(Condition cond, Register rd, const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -13839,7 +13839,7 @@ void Assembler::uxth(Condition cond,
                      EncodingSize size,
                      Register rd,
                      const Operand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateShiftedRegister()) {
     Register rm = operand.GetBaseRegister();
@@ -13883,7 +13883,7 @@ void Assembler::uxth(Condition cond,
 
 void Assembler::vaba(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -13913,7 +13913,7 @@ void Assembler::vaba(
 
 void Assembler::vaba(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -13943,7 +13943,7 @@ void Assembler::vaba(
 
 void Assembler::vabal(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -13973,7 +13973,7 @@ void Assembler::vabal(
 
 void Assembler::vabd(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14020,7 +14020,7 @@ void Assembler::vabd(
 
 void Assembler::vabd(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14067,7 +14067,7 @@ void Assembler::vabd(
 
 void Assembler::vabdl(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14096,7 +14096,7 @@ void Assembler::vabdl(
 }
 
 void Assembler::vabs(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14137,7 +14137,7 @@ void Assembler::vabs(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vabs(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14166,7 +14166,7 @@ void Assembler::vabs(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vabs(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VABS{<c>}{<q>}.F32 <Sd>, <Sm> ; T2
@@ -14188,7 +14188,7 @@ void Assembler::vabs(Condition cond, DataType dt, SRegister rd, SRegister rm) {
 
 void Assembler::vacge(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACGE{<c>}{<q>}.F32 {<Dd>}, <Dn>, <Dm> ; T1
@@ -14215,7 +14215,7 @@ void Assembler::vacge(
 
 void Assembler::vacge(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACGE{<c>}{<q>}.F32 {<Qd>}, <Qn>, <Qm> ; T1
@@ -14242,7 +14242,7 @@ void Assembler::vacge(
 
 void Assembler::vacgt(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACGT{<c>}{<q>}.F32 {<Dd>}, <Dn>, <Dm> ; T1
@@ -14269,7 +14269,7 @@ void Assembler::vacgt(
 
 void Assembler::vacgt(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACGT{<c>}{<q>}.F32 {<Qd>}, <Qn>, <Qm> ; T1
@@ -14296,7 +14296,7 @@ void Assembler::vacgt(
 
 void Assembler::vacle(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACLE{<c>}{<q>}.F32 {<Dd>}, <Dn>, <Dm> ; T1
@@ -14323,7 +14323,7 @@ void Assembler::vacle(
 
 void Assembler::vacle(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACLE{<c>}{<q>}.F32 {<Qd>}, <Qn>, <Qm> ; T1
@@ -14350,7 +14350,7 @@ void Assembler::vacle(
 
 void Assembler::vaclt(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACLT{<c>}{<q>}.F32 {<Dd>}, <Dn>, <Dm> ; T1
@@ -14377,7 +14377,7 @@ void Assembler::vaclt(
 
 void Assembler::vaclt(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VACLT{<c>}{<q>}.F32 {<Qd>}, <Qn>, <Qm> ; T1
@@ -14404,7 +14404,7 @@ void Assembler::vaclt(
 
 void Assembler::vadd(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14462,7 +14462,7 @@ void Assembler::vadd(
 
 void Assembler::vadd(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14507,7 +14507,7 @@ void Assembler::vadd(
 
 void Assembler::vadd(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VADD{<c>}{<q>}.F32 {<Sd>}, <Sn>, <Sm> ; T2
@@ -14530,7 +14530,7 @@ void Assembler::vadd(
 
 void Assembler::vaddhn(
     Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14558,7 +14558,7 @@ void Assembler::vaddhn(
 
 void Assembler::vaddl(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14588,7 +14588,7 @@ void Assembler::vaddl(
 
 void Assembler::vaddw(
     Condition cond, DataType dt, QRegister rd, QRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -14621,7 +14621,7 @@ void Assembler::vand(Condition cond,
                      DRegister rd,
                      DRegister rn,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVand encoded_dt(dt, operand.GetNeonImmediate());
@@ -14679,7 +14679,7 @@ void Assembler::vand(Condition cond,
                      QRegister rd,
                      QRegister rn,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVand encoded_dt(dt, operand.GetNeonImmediate());
@@ -14737,7 +14737,7 @@ void Assembler::vbic(Condition cond,
                      DRegister rd,
                      DRegister rn,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVbic encoded_dt(dt, operand.GetNeonImmediate());
@@ -14795,7 +14795,7 @@ void Assembler::vbic(Condition cond,
                      QRegister rd,
                      QRegister rn,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVbic encoded_dt(dt, operand.GetNeonImmediate());
@@ -14850,7 +14850,7 @@ void Assembler::vbic(Condition cond,
 
 void Assembler::vbif(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -14874,7 +14874,7 @@ void Assembler::vbif(
 
 void Assembler::vbif(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -14898,7 +14898,7 @@ void Assembler::vbif(
 
 void Assembler::vbit(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -14922,7 +14922,7 @@ void Assembler::vbit(
 
 void Assembler::vbit(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -14946,7 +14946,7 @@ void Assembler::vbit(
 
 void Assembler::vbsl(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -14970,7 +14970,7 @@ void Assembler::vbsl(
 
 void Assembler::vbsl(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -14997,7 +14997,7 @@ void Assembler::vceq(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15037,7 +15037,7 @@ void Assembler::vceq(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15074,7 +15074,7 @@ void Assembler::vceq(Condition cond,
 
 void Assembler::vceq(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_4 encoded_dt(dt);
   Dt_sz_1 encoded_dt_2(dt);
@@ -15120,7 +15120,7 @@ void Assembler::vceq(
 
 void Assembler::vceq(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_4 encoded_dt(dt);
   Dt_sz_1 encoded_dt_2(dt);
@@ -15169,7 +15169,7 @@ void Assembler::vcge(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15209,7 +15209,7 @@ void Assembler::vcge(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15246,7 +15246,7 @@ void Assembler::vcge(Condition cond,
 
 void Assembler::vcge(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15293,7 +15293,7 @@ void Assembler::vcge(
 
 void Assembler::vcge(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15343,7 +15343,7 @@ void Assembler::vcgt(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15383,7 +15383,7 @@ void Assembler::vcgt(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15420,7 +15420,7 @@ void Assembler::vcgt(Condition cond,
 
 void Assembler::vcgt(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15467,7 +15467,7 @@ void Assembler::vcgt(
 
 void Assembler::vcgt(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15517,7 +15517,7 @@ void Assembler::vcle(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15557,7 +15557,7 @@ void Assembler::vcle(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15594,7 +15594,7 @@ void Assembler::vcle(Condition cond,
 
 void Assembler::vcle(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15641,7 +15641,7 @@ void Assembler::vcle(
 
 void Assembler::vcle(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15687,7 +15687,7 @@ void Assembler::vcle(
 }
 
 void Assembler::vcls(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_5 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15714,7 +15714,7 @@ void Assembler::vcls(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vcls(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_5 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15745,7 +15745,7 @@ void Assembler::vclt(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15785,7 +15785,7 @@ void Assembler::vclt(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -15822,7 +15822,7 @@ void Assembler::vclt(Condition cond,
 
 void Assembler::vclt(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15869,7 +15869,7 @@ void Assembler::vclt(
 
 void Assembler::vclt(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15915,7 +15915,7 @@ void Assembler::vclt(
 }
 
 void Assembler::vclz(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15942,7 +15942,7 @@ void Assembler::vclz(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vclz(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -15972,7 +15972,7 @@ void Assembler::vcmp(Condition cond,
                      DataType dt,
                      SRegister rd,
                      const SOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     SRegister rm = operand.GetRegister();
@@ -16015,7 +16015,7 @@ void Assembler::vcmp(Condition cond,
                      DataType dt,
                      DRegister rd,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     DRegister rm = operand.GetRegister();
@@ -16058,7 +16058,7 @@ void Assembler::vcmpe(Condition cond,
                       DataType dt,
                       SRegister rd,
                       const SOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     SRegister rm = operand.GetRegister();
@@ -16101,7 +16101,7 @@ void Assembler::vcmpe(Condition cond,
                       DataType dt,
                       DRegister rd,
                       const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     DRegister rm = operand.GetRegister();
@@ -16141,7 +16141,7 @@ void Assembler::vcmpe(Condition cond,
 }
 
 void Assembler::vcnt(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCNT{<c>}{<q>}.8 <Dd>, <Dm> ; T1
@@ -16165,7 +16165,7 @@ void Assembler::vcnt(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vcnt(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCNT{<c>}{<q>}.8 <Qd>, <Qm> ; T1
@@ -16190,7 +16190,7 @@ void Assembler::vcnt(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, DRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_2 encoded_dt(dt2);
   if (IsUsingT32()) {
@@ -16227,7 +16227,7 @@ void Assembler::vcvt(
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVT{<c>}{<q>}.F32.F64 <Sd>, <Dm> ; T1
@@ -16277,7 +16277,7 @@ void Assembler::vcvt(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      int32_t fbits) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_U_1 encoded_dt(dt1, dt2);
   Dt_U_sx_1 encoded_dt_2(dt2);
@@ -16381,7 +16381,7 @@ void Assembler::vcvt(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      int32_t fbits) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_U_1 encoded_dt(dt1, dt2);
   if (IsUsingT32()) {
@@ -16417,7 +16417,7 @@ void Assembler::vcvt(Condition cond,
                      SRegister rd,
                      SRegister rm,
                      int32_t fbits) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_sx_1 encoded_dt(dt2);
   Dt_U_sx_1 encoded_dt_2(dt1);
@@ -16495,7 +16495,7 @@ void Assembler::vcvt(Condition cond,
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_1 encoded_dt(dt1, dt2);
   if (IsUsingT32()) {
@@ -16523,7 +16523,7 @@ void Assembler::vcvt(
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_1 encoded_dt(dt1, dt2);
   if (IsUsingT32()) {
@@ -16551,7 +16551,7 @@ void Assembler::vcvt(
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, DRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVT{<c>}{<q>}.F16.F32 <Dd>, <Qm> ; T1
@@ -16576,7 +16576,7 @@ void Assembler::vcvt(
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, QRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVT{<c>}{<q>}.F32.F16 <Qd>, <Dm> ; T1
@@ -16601,7 +16601,7 @@ void Assembler::vcvt(
 
 void Assembler::vcvt(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_2 encoded_dt(dt2);
   if (IsUsingT32()) {
@@ -16649,7 +16649,7 @@ void Assembler::vcvt(
 }
 
 void Assembler::vcvta(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16672,7 +16672,7 @@ void Assembler::vcvta(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vcvta(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16695,7 +16695,7 @@ void Assembler::vcvta(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vcvta(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16718,7 +16718,7 @@ void Assembler::vcvta(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vcvta(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16742,7 +16742,7 @@ void Assembler::vcvta(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
 
 void Assembler::vcvtb(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTB{<c>}{<q>}.F32.F16 <Sd>, <Sm> ; T1
@@ -16776,7 +16776,7 @@ void Assembler::vcvtb(
 
 void Assembler::vcvtb(
     Condition cond, DataType dt1, DataType dt2, DRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTB{<c>}{<q>}.F64.F16 <Dd>, <Sm> ; T1
@@ -16798,7 +16798,7 @@ void Assembler::vcvtb(
 
 void Assembler::vcvtb(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTB{<c>}{<q>}.F16.F64 <Sd>, <Dm> ; T1
@@ -16819,7 +16819,7 @@ void Assembler::vcvtb(
 }
 
 void Assembler::vcvtm(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16842,7 +16842,7 @@ void Assembler::vcvtm(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vcvtm(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16865,7 +16865,7 @@ void Assembler::vcvtm(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vcvtm(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16888,7 +16888,7 @@ void Assembler::vcvtm(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vcvtm(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16911,7 +16911,7 @@ void Assembler::vcvtm(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
 }
 
 void Assembler::vcvtn(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16934,7 +16934,7 @@ void Assembler::vcvtn(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vcvtn(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16957,7 +16957,7 @@ void Assembler::vcvtn(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vcvtn(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -16980,7 +16980,7 @@ void Assembler::vcvtn(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vcvtn(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -17003,7 +17003,7 @@ void Assembler::vcvtn(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
 }
 
 void Assembler::vcvtp(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -17026,7 +17026,7 @@ void Assembler::vcvtp(DataType dt1, DataType dt2, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vcvtp(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_3 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -17049,7 +17049,7 @@ void Assembler::vcvtp(DataType dt1, DataType dt2, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vcvtp(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -17072,7 +17072,7 @@ void Assembler::vcvtp(DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vcvtp(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_op_2 encoded_dt(dt1);
   if (IsUsingT32()) {
@@ -17096,7 +17096,7 @@ void Assembler::vcvtp(DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
 
 void Assembler::vcvtr(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTR{<c>}{<q>}.U32.F32 <Sd>, <Sm> ; T1
@@ -17130,7 +17130,7 @@ void Assembler::vcvtr(
 
 void Assembler::vcvtr(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTR{<c>}{<q>}.U32.F64 <Sd>, <Dm> ; T1
@@ -17164,7 +17164,7 @@ void Assembler::vcvtr(
 
 void Assembler::vcvtt(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTT{<c>}{<q>}.F32.F16 <Sd>, <Sm> ; T1
@@ -17198,7 +17198,7 @@ void Assembler::vcvtt(
 
 void Assembler::vcvtt(
     Condition cond, DataType dt1, DataType dt2, DRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTT{<c>}{<q>}.F64.F16 <Dd>, <Sm> ; T1
@@ -17220,7 +17220,7 @@ void Assembler::vcvtt(
 
 void Assembler::vcvtt(
     Condition cond, DataType dt1, DataType dt2, SRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VCVTT{<c>}{<q>}.F16.F64 <Sd>, <Dm> ; T1
@@ -17242,7 +17242,7 @@ void Assembler::vcvtt(
 
 void Assembler::vdiv(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VDIV{<c>}{<q>}.F32 {<Sd>}, <Sn>, <Sm> ; T1
@@ -17265,7 +17265,7 @@ void Assembler::vdiv(
 
 void Assembler::vdiv(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VDIV{<c>}{<q>}.F64 {<Dd>}, <Dn>, <Dm> ; T1
@@ -17287,7 +17287,7 @@ void Assembler::vdiv(
 }
 
 void Assembler::vdup(Condition cond, DataType dt, QRegister rd, Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_B_E_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -17318,7 +17318,7 @@ void Assembler::vdup(Condition cond, DataType dt, QRegister rd, Register rt) {
 }
 
 void Assembler::vdup(Condition cond, DataType dt, DRegister rd, Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_B_E_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -17352,7 +17352,7 @@ void Assembler::vdup(Condition cond,
                      DataType dt,
                      DRegister rd,
                      DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_imm4_1 encoded_dt(dt, rm);
   if (IsUsingT32()) {
@@ -17382,7 +17382,7 @@ void Assembler::vdup(Condition cond,
                      DataType dt,
                      QRegister rd,
                      DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_imm4_1 encoded_dt(dt, rm);
   if (IsUsingT32()) {
@@ -17410,7 +17410,7 @@ void Assembler::vdup(Condition cond,
 
 void Assembler::veor(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -17434,7 +17434,7 @@ void Assembler::veor(
 
 void Assembler::veor(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -17462,7 +17462,7 @@ void Assembler::vext(Condition cond,
                      DRegister rn,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -17519,7 +17519,7 @@ void Assembler::vext(Condition cond,
                      QRegister rn,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -17572,7 +17572,7 @@ void Assembler::vext(Condition cond,
 
 void Assembler::vfma(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFMA{<c>}{<q>}.F32 <Dd>, <Dn>, <Dm> ; T1
@@ -17612,7 +17612,7 @@ void Assembler::vfma(
 
 void Assembler::vfma(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFMA{<c>}{<q>}.F32 <Qd>, <Qn>, <Qm> ; T1
@@ -17639,7 +17639,7 @@ void Assembler::vfma(
 
 void Assembler::vfma(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFMA{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T2
@@ -17662,7 +17662,7 @@ void Assembler::vfma(
 
 void Assembler::vfms(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFMS{<c>}{<q>}.F32 <Dd>, <Dn>, <Dm> ; T1
@@ -17702,7 +17702,7 @@ void Assembler::vfms(
 
 void Assembler::vfms(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFMS{<c>}{<q>}.F32 <Qd>, <Qn>, <Qm> ; T1
@@ -17729,7 +17729,7 @@ void Assembler::vfms(
 
 void Assembler::vfms(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFMS{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T2
@@ -17752,7 +17752,7 @@ void Assembler::vfms(
 
 void Assembler::vfnma(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFNMA{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -17775,7 +17775,7 @@ void Assembler::vfnma(
 
 void Assembler::vfnma(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFNMA{<c>}{<q>}.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -17798,7 +17798,7 @@ void Assembler::vfnma(
 
 void Assembler::vfnms(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFNMS{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -17821,7 +17821,7 @@ void Assembler::vfnms(
 
 void Assembler::vfnms(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VFNMS{<c>}{<q>}.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -17844,7 +17844,7 @@ void Assembler::vfnms(
 
 void Assembler::vhadd(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -17874,7 +17874,7 @@ void Assembler::vhadd(
 
 void Assembler::vhadd(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -17904,7 +17904,7 @@ void Assembler::vhadd(
 
 void Assembler::vhsub(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -17934,7 +17934,7 @@ void Assembler::vhsub(
 
 void Assembler::vhsub(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -17966,7 +17966,7 @@ void Assembler::vld1(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -17987,7 +17987,7 @@ void Assembler::vld1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -18019,7 +18019,7 @@ void Assembler::vld1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -18110,7 +18110,7 @@ void Assembler::vld1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -18141,7 +18141,7 @@ void Assembler::vld1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -18237,7 +18237,7 @@ void Assembler::vld1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -18298,7 +18298,7 @@ void Assembler::vld1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -18354,7 +18354,7 @@ void Assembler::vld2(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -18726,7 +18726,7 @@ void Assembler::vld3(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -18851,7 +18851,7 @@ void Assembler::vld3(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -19051,7 +19051,7 @@ void Assembler::vld4(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -19366,7 +19366,7 @@ void Assembler::vldm(Condition cond,
                      Register rn,
                      WriteBack write_back,
                      DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -19402,7 +19402,7 @@ void Assembler::vldm(Condition cond,
                      Register rn,
                      WriteBack write_back,
                      SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -19436,7 +19436,7 @@ void Assembler::vldmdb(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -19471,7 +19471,7 @@ void Assembler::vldmdb(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -19503,7 +19503,7 @@ void Assembler::vldmia(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -19539,7 +19539,7 @@ void Assembler::vldmia(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -19572,7 +19572,7 @@ void Assembler::vldr(Condition cond,
                      DataType dt,
                      DRegister rd,
                      Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -19590,10 +19590,10 @@ void Assembler::vldr(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           int32_t target = offset >> 2;
           uint32_t U = (target >= 0);
@@ -19620,10 +19620,10 @@ void Assembler::vldr(Condition cond,
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           int32_t target = offset >> 2;
           uint32_t U = (target >= 0);
@@ -19647,7 +19647,7 @@ bool Assembler::vldr_info(Condition cond,
                           DRegister rd,
                           Location* location,
                           const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   USE(rd);
   if (IsUsingT32()) {
@@ -19670,7 +19670,7 @@ void Assembler::vldr(Condition cond,
                      DataType dt,
                      DRegister rd,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -19726,7 +19726,7 @@ void Assembler::vldr(Condition cond,
                      DataType dt,
                      SRegister rd,
                      Location* location) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Location::Offset offset =
       location->IsBound()
@@ -19744,10 +19744,10 @@ void Assembler::vldr(Condition cond,
         EmitOp() : Location::EmitOperator(T32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kT32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           int32_t target = offset >> 2;
           uint32_t U = (target >= 0);
@@ -19774,10 +19774,10 @@ void Assembler::vldr(Condition cond,
         EmitOp() : Location::EmitOperator(A32) {}
         virtual uint32_t Encode(uint32_t instr,
                                 Location::Offset pc,
-                                const Location* location) const VIXL_OVERRIDE {
+                                const Location* location) const SWANSTATION_VIXL_OVERRIDE {
           pc += kA32PcDelta;
           Location::Offset offset = location->GetLocation() - AlignDown(pc, 4);
-          VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
+          SWANSTATION_VIXL_ASSERT((offset >= -1020) && (offset <= 1020) &&
                       ((offset & 0x3) == 0));
           int32_t target = offset >> 2;
           uint32_t U = (target >= 0);
@@ -19801,7 +19801,7 @@ bool Assembler::vldr_info(Condition cond,
                           SRegister rd,
                           Location* location,
                           const struct ReferenceInfo** info) {
-  VIXL_ASSERT(!location->IsBound());
+  SWANSTATION_VIXL_ASSERT(!location->IsBound());
   USE(location);
   USE(rd);
   if (IsUsingT32()) {
@@ -19824,7 +19824,7 @@ void Assembler::vldr(Condition cond,
                      DataType dt,
                      SRegister rd,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -19878,7 +19878,7 @@ void Assembler::vldr(Condition cond,
 
 void Assembler::vmax(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -19925,7 +19925,7 @@ void Assembler::vmax(
 
 void Assembler::vmax(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -19971,7 +19971,7 @@ void Assembler::vmax(
 }
 
 void Assembler::vmaxnm(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VMAXNM{<q>}.F32 <Dd>, <Dn>, <Dm> ; T1
@@ -20006,7 +20006,7 @@ void Assembler::vmaxnm(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
 }
 
 void Assembler::vmaxnm(DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VMAXNM{<q>}.F32 <Qd>, <Qn>, <Qm> ; T1
@@ -20028,7 +20028,7 @@ void Assembler::vmaxnm(DataType dt, QRegister rd, QRegister rn, QRegister rm) {
 }
 
 void Assembler::vmaxnm(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VMAXNM{<q>}.F32 <Sd>, <Sn>, <Sm> ; T2
@@ -20051,7 +20051,7 @@ void Assembler::vmaxnm(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
 
 void Assembler::vmin(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20098,7 +20098,7 @@ void Assembler::vmin(
 
 void Assembler::vmin(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20144,7 +20144,7 @@ void Assembler::vmin(
 }
 
 void Assembler::vminnm(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VMINNM{<q>}.F32 <Dd>, <Dn>, <Dm> ; T1
@@ -20179,7 +20179,7 @@ void Assembler::vminnm(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
 }
 
 void Assembler::vminnm(DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VMINNM{<q>}.F32 <Qd>, <Qn>, <Qm> ; T1
@@ -20201,7 +20201,7 @@ void Assembler::vminnm(DataType dt, QRegister rd, QRegister rn, QRegister rm) {
 }
 
 void Assembler::vminnm(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VMINNM{<q>}.F32 <Sd>, <Sn>, <Sm> ; T2
@@ -20224,7 +20224,7 @@ void Assembler::vminnm(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
 
 void Assembler::vmla(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_9 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20260,7 +20260,7 @@ void Assembler::vmla(
 
 void Assembler::vmla(
     Condition cond, DataType dt, QRegister rd, QRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_9 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20296,7 +20296,7 @@ void Assembler::vmla(
 
 void Assembler::vmla(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_10 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20354,7 +20354,7 @@ void Assembler::vmla(
 
 void Assembler::vmla(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_10 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20399,7 +20399,7 @@ void Assembler::vmla(
 
 void Assembler::vmla(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMLA{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T2
@@ -20422,7 +20422,7 @@ void Assembler::vmla(
 
 void Assembler::vmlal(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_11 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20458,7 +20458,7 @@ void Assembler::vmlal(
 
 void Assembler::vmlal(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_12 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20488,7 +20488,7 @@ void Assembler::vmlal(
 
 void Assembler::vmls(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_9 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20524,7 +20524,7 @@ void Assembler::vmls(
 
 void Assembler::vmls(
     Condition cond, DataType dt, QRegister rd, QRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_9 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20560,7 +20560,7 @@ void Assembler::vmls(
 
 void Assembler::vmls(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_10 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20618,7 +20618,7 @@ void Assembler::vmls(
 
 void Assembler::vmls(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_10 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20663,7 +20663,7 @@ void Assembler::vmls(
 
 void Assembler::vmls(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMLS{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T2
@@ -20686,7 +20686,7 @@ void Assembler::vmls(
 
 void Assembler::vmlsl(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_11 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20722,7 +20722,7 @@ void Assembler::vmlsl(
 
 void Assembler::vmlsl(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_12 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -20751,7 +20751,7 @@ void Assembler::vmlsl(
 }
 
 void Assembler::vmov(Condition cond, Register rt, SRegister rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMOV{<c>}{<q>} <Rt>, <Sn> ; T1
@@ -20772,7 +20772,7 @@ void Assembler::vmov(Condition cond, Register rt, SRegister rn) {
 }
 
 void Assembler::vmov(Condition cond, SRegister rn, Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMOV{<c>}{<q>} <Sn>, <Rt> ; T1
@@ -20793,7 +20793,7 @@ void Assembler::vmov(Condition cond, SRegister rn, Register rt) {
 }
 
 void Assembler::vmov(Condition cond, Register rt, Register rt2, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMOV{<c>}{<q>} <Rt>, <Rt2>, <Dm> ; T1
@@ -20816,7 +20816,7 @@ void Assembler::vmov(Condition cond, Register rt, Register rt2, DRegister rm) {
 }
 
 void Assembler::vmov(Condition cond, DRegister rm, Register rt, Register rt2) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMOV{<c>}{<q>} <Dm>, <Rt>, <Rt2> ; T1
@@ -20840,7 +20840,7 @@ void Assembler::vmov(Condition cond, DRegister rm, Register rt, Register rt2) {
 
 void Assembler::vmov(
     Condition cond, Register rt, Register rt2, SRegister rm, SRegister rm1) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMOV{<c>}{<q>} <Rt>, <Rt2>, <Sm>, <Sm1> ; T1
@@ -20866,7 +20866,7 @@ void Assembler::vmov(
 
 void Assembler::vmov(
     Condition cond, SRegister rm, SRegister rm1, Register rt, Register rt2) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMOV{<c>}{<q>} <Sm>, <Sm1>, <Rt>, <Rt2> ; T1
@@ -20894,7 +20894,7 @@ void Assembler::vmov(Condition cond,
                      DataType dt,
                      DRegisterLane rd,
                      Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_opc1_opc2_1 encoded_dt(dt, rd);
   if (IsUsingT32()) {
@@ -20924,7 +20924,7 @@ void Assembler::vmov(Condition cond,
                      DataType dt,
                      DRegister rd,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVmov encoded_dt(dt, operand.GetNeonImmediate());
@@ -21019,7 +21019,7 @@ void Assembler::vmov(Condition cond,
                      DataType dt,
                      QRegister rd,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVmov encoded_dt(dt, operand.GetNeonImmediate());
@@ -21081,7 +21081,7 @@ void Assembler::vmov(Condition cond,
                      DataType dt,
                      SRegister rd,
                      const SOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVFP vfp(operand.GetNeonImmediate());
@@ -21129,7 +21129,7 @@ void Assembler::vmov(Condition cond,
                      DataType dt,
                      Register rt,
                      DRegisterLane rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_opc1_opc2_1 encoded_dt(dt, rn);
   if (IsUsingT32()) {
@@ -21158,7 +21158,7 @@ void Assembler::vmov(Condition cond,
 }
 
 void Assembler::vmovl(Condition cond, DataType dt, QRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_imm3H_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21187,7 +21187,7 @@ void Assembler::vmovl(Condition cond, DataType dt, QRegister rd, DRegister rm) {
 }
 
 void Assembler::vmovn(Condition cond, DataType dt, DRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21216,7 +21216,7 @@ void Assembler::vmovn(Condition cond, DataType dt, DRegister rd, QRegister rm) {
 void Assembler::vmrs(Condition cond,
                      RegisterOrAPSR_nzcv rt,
                      SpecialFPRegister spec_reg) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMRS{<c>}{<q>} <Rt>, <spec_reg> ; T1
@@ -21235,7 +21235,7 @@ void Assembler::vmrs(Condition cond,
 }
 
 void Assembler::vmsr(Condition cond, SpecialFPRegister spec_reg, Register rt) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMSR{<c>}{<q>} <spec_reg>, <Rt> ; T1
@@ -21262,7 +21262,7 @@ void Assembler::vmul(Condition cond,
                      DRegister rn,
                      DRegister dm,
                      unsigned index) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21312,7 +21312,7 @@ void Assembler::vmul(Condition cond,
                      QRegister rn,
                      DRegister dm,
                      unsigned index) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21358,7 +21358,7 @@ void Assembler::vmul(Condition cond,
 
 void Assembler::vmul(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21418,7 +21418,7 @@ void Assembler::vmul(
 
 void Assembler::vmul(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21465,7 +21465,7 @@ void Assembler::vmul(
 
 void Assembler::vmul(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VMUL{<c>}{<q>}.F32 {<Sd>}, <Sn>, <Sm> ; T2
@@ -21492,7 +21492,7 @@ void Assembler::vmull(Condition cond,
                       DRegister rn,
                       DRegister dm,
                       unsigned index) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21540,7 +21540,7 @@ void Assembler::vmull(Condition cond,
 
 void Assembler::vmull(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21574,7 +21574,7 @@ void Assembler::vmvn(Condition cond,
                      DataType dt,
                      DRegister rd,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVmvn encoded_dt(dt, operand.GetNeonImmediate());
@@ -21629,7 +21629,7 @@ void Assembler::vmvn(Condition cond,
                      DataType dt,
                      QRegister rd,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVmvn encoded_dt(dt, operand.GetNeonImmediate());
@@ -21681,7 +21681,7 @@ void Assembler::vmvn(Condition cond,
 }
 
 void Assembler::vneg(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21722,7 +21722,7 @@ void Assembler::vneg(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vneg(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -21751,7 +21751,7 @@ void Assembler::vneg(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vneg(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNEG{<c>}{<q>}.F32 <Sd>, <Sm> ; T2
@@ -21773,7 +21773,7 @@ void Assembler::vneg(Condition cond, DataType dt, SRegister rd, SRegister rm) {
 
 void Assembler::vnmla(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNMLA{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -21796,7 +21796,7 @@ void Assembler::vnmla(
 
 void Assembler::vnmla(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNMLA{<c>}{<q>}.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -21819,7 +21819,7 @@ void Assembler::vnmla(
 
 void Assembler::vnmls(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNMLS{<c>}{<q>}.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -21842,7 +21842,7 @@ void Assembler::vnmls(
 
 void Assembler::vnmls(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNMLS{<c>}{<q>}.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -21865,7 +21865,7 @@ void Assembler::vnmls(
 
 void Assembler::vnmul(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNMUL{<c>}{<q>}.F32 {<Sd>}, <Sn>, <Sm> ; T1
@@ -21888,7 +21888,7 @@ void Assembler::vnmul(
 
 void Assembler::vnmul(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VNMUL{<c>}{<q>}.F64 {<Dd>}, <Dn>, <Dm> ; T1
@@ -21914,7 +21914,7 @@ void Assembler::vorn(Condition cond,
                      DRegister rd,
                      DRegister rn,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVorn encoded_dt(dt, operand.GetNeonImmediate());
@@ -21972,7 +21972,7 @@ void Assembler::vorn(Condition cond,
                      QRegister rd,
                      QRegister rn,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     ImmediateVorn encoded_dt(dt, operand.GetNeonImmediate());
@@ -22030,7 +22030,7 @@ void Assembler::vorr(Condition cond,
                      DRegister rd,
                      DRegister rn,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     DRegister rm = operand.GetRegister();
@@ -22088,7 +22088,7 @@ void Assembler::vorr(Condition cond,
                      QRegister rd,
                      QRegister rn,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     QRegister rm = operand.GetRegister();
@@ -22145,7 +22145,7 @@ void Assembler::vpadal(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22177,7 +22177,7 @@ void Assembler::vpadal(Condition cond,
                        DataType dt,
                        QRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22207,7 +22207,7 @@ void Assembler::vpadal(Condition cond,
 
 void Assembler::vpadd(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22254,7 +22254,7 @@ void Assembler::vpaddl(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22286,7 +22286,7 @@ void Assembler::vpaddl(Condition cond,
                        DataType dt,
                        QRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22316,7 +22316,7 @@ void Assembler::vpaddl(Condition cond,
 
 void Assembler::vpmax(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22363,7 +22363,7 @@ void Assembler::vpmax(
 
 void Assembler::vpmin(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22409,7 +22409,7 @@ void Assembler::vpmin(
 }
 
 void Assembler::vpop(Condition cond, DataType dt, DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -22436,7 +22436,7 @@ void Assembler::vpop(Condition cond, DataType dt, DRegisterList dreglist) {
 }
 
 void Assembler::vpop(Condition cond, DataType dt, SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -22460,7 +22460,7 @@ void Assembler::vpop(Condition cond, DataType dt, SRegisterList sreglist) {
 }
 
 void Assembler::vpush(Condition cond, DataType dt, DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -22487,7 +22487,7 @@ void Assembler::vpush(Condition cond, DataType dt, DRegisterList dreglist) {
 }
 
 void Assembler::vpush(Condition cond, DataType dt, SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -22511,7 +22511,7 @@ void Assembler::vpush(Condition cond, DataType dt, SRegisterList sreglist) {
 }
 
 void Assembler::vqabs(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_5 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22538,7 +22538,7 @@ void Assembler::vqabs(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vqabs(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_5 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22566,7 +22566,7 @@ void Assembler::vqabs(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 
 void Assembler::vqadd(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22596,7 +22596,7 @@ void Assembler::vqadd(
 
 void Assembler::vqadd(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22626,7 +22626,7 @@ void Assembler::vqadd(
 
 void Assembler::vqdmlal(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22658,7 +22658,7 @@ void Assembler::vqdmlal(Condition cond,
                         DRegister rn,
                         DRegister dm,
                         unsigned index) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22704,7 +22704,7 @@ void Assembler::vqdmlal(Condition cond,
 
 void Assembler::vqdmlsl(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22736,7 +22736,7 @@ void Assembler::vqdmlsl(Condition cond,
                         DRegister rn,
                         DRegister dm,
                         unsigned index) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22782,7 +22782,7 @@ void Assembler::vqdmlsl(Condition cond,
 
 void Assembler::vqdmulh(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22810,7 +22810,7 @@ void Assembler::vqdmulh(
 
 void Assembler::vqdmulh(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22838,7 +22838,7 @@ void Assembler::vqdmulh(
 
 void Assembler::vqdmulh(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22874,7 +22874,7 @@ void Assembler::vqdmulh(
 
 void Assembler::vqdmulh(
     Condition cond, DataType dt, QRegister rd, QRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22910,7 +22910,7 @@ void Assembler::vqdmulh(
 
 void Assembler::vqdmull(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22938,7 +22938,7 @@ void Assembler::vqdmull(
 
 void Assembler::vqdmull(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -22976,7 +22976,7 @@ void Assembler::vqmovn(Condition cond,
                        DataType dt,
                        DRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_op_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23008,7 +23008,7 @@ void Assembler::vqmovun(Condition cond,
                         DataType dt,
                         DRegister rd,
                         QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_14 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23035,7 +23035,7 @@ void Assembler::vqmovun(Condition cond,
 }
 
 void Assembler::vqneg(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_5 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23062,7 +23062,7 @@ void Assembler::vqneg(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vqneg(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_5 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23090,7 +23090,7 @@ void Assembler::vqneg(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 
 void Assembler::vqrdmulh(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23118,7 +23118,7 @@ void Assembler::vqrdmulh(
 
 void Assembler::vqrdmulh(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23146,7 +23146,7 @@ void Assembler::vqrdmulh(
 
 void Assembler::vqrdmulh(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23182,7 +23182,7 @@ void Assembler::vqrdmulh(
 
 void Assembler::vqrdmulh(
     Condition cond, DataType dt, QRegister rd, QRegister rn, DRegisterLane rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_13 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23218,7 +23218,7 @@ void Assembler::vqrdmulh(
 
 void Assembler::vqrshl(
     Condition cond, DataType dt, DRegister rd, DRegister rm, DRegister rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23248,7 +23248,7 @@ void Assembler::vqrshl(
 
 void Assembler::vqrshl(
     Condition cond, DataType dt, QRegister rd, QRegister rm, QRegister rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23281,7 +23281,7 @@ void Assembler::vqrshrn(Condition cond,
                         DRegister rd,
                         QRegister rm,
                         const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -23344,7 +23344,7 @@ void Assembler::vqrshrun(Condition cond,
                          DRegister rd,
                          QRegister rm,
                          const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -23402,7 +23402,7 @@ void Assembler::vqshl(Condition cond,
                       DRegister rd,
                       DRegister rm,
                       const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     DRegister rn = operand.GetRegister();
@@ -23471,7 +23471,7 @@ void Assembler::vqshl(Condition cond,
                       QRegister rd,
                       QRegister rm,
                       const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsRegister()) {
     QRegister rn = operand.GetRegister();
@@ -23540,7 +23540,7 @@ void Assembler::vqshlu(Condition cond,
                        DRegister rd,
                        DRegister rm,
                        const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -23582,7 +23582,7 @@ void Assembler::vqshlu(Condition cond,
                        QRegister rd,
                        QRegister rm,
                        const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -23624,7 +23624,7 @@ void Assembler::vqshrn(Condition cond,
                        DRegister rd,
                        QRegister rm,
                        const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -23687,7 +23687,7 @@ void Assembler::vqshrun(Condition cond,
                         DRegister rd,
                         QRegister rm,
                         const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -23742,7 +23742,7 @@ void Assembler::vqshrun(Condition cond,
 
 void Assembler::vqsub(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23772,7 +23772,7 @@ void Assembler::vqsub(
 
 void Assembler::vqsub(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23802,7 +23802,7 @@ void Assembler::vqsub(
 
 void Assembler::vraddhn(
     Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23832,7 +23832,7 @@ void Assembler::vrecpe(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23864,7 +23864,7 @@ void Assembler::vrecpe(Condition cond,
                        DataType dt,
                        QRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23894,7 +23894,7 @@ void Assembler::vrecpe(Condition cond,
 
 void Assembler::vrecps(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRECPS{<c>}{<q>}.F32 {<Dd>}, <Dn>, <Dm> ; T1
@@ -23921,7 +23921,7 @@ void Assembler::vrecps(
 
 void Assembler::vrecps(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRECPS{<c>}{<q>}.F32 {<Qd>}, <Qn>, <Qm> ; T1
@@ -23950,7 +23950,7 @@ void Assembler::vrev16(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -23980,7 +23980,7 @@ void Assembler::vrev16(Condition cond,
                        DataType dt,
                        QRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24010,7 +24010,7 @@ void Assembler::vrev32(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_15 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24040,7 +24040,7 @@ void Assembler::vrev32(Condition cond,
                        DataType dt,
                        QRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_15 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24070,7 +24070,7 @@ void Assembler::vrev64(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24100,7 +24100,7 @@ void Assembler::vrev64(Condition cond,
                        DataType dt,
                        QRegister rd,
                        QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24128,7 +24128,7 @@ void Assembler::vrev64(Condition cond,
 
 void Assembler::vrhadd(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24158,7 +24158,7 @@ void Assembler::vrhadd(
 
 void Assembler::vrhadd(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24187,7 +24187,7 @@ void Assembler::vrhadd(
 }
 
 void Assembler::vrinta(DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24221,7 +24221,7 @@ void Assembler::vrinta(DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vrinta(DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24244,7 +24244,7 @@ void Assembler::vrinta(DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vrinta(DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VRINTA{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24264,7 +24264,7 @@ void Assembler::vrinta(DataType dt, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vrintm(DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24298,7 +24298,7 @@ void Assembler::vrintm(DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vrintm(DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24321,7 +24321,7 @@ void Assembler::vrintm(DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vrintm(DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VRINTM{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24341,7 +24341,7 @@ void Assembler::vrintm(DataType dt, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vrintn(DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24375,7 +24375,7 @@ void Assembler::vrintn(DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vrintn(DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24398,7 +24398,7 @@ void Assembler::vrintn(DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vrintn(DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VRINTN{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24418,7 +24418,7 @@ void Assembler::vrintn(DataType dt, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vrintp(DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24452,7 +24452,7 @@ void Assembler::vrintp(DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vrintp(DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24475,7 +24475,7 @@ void Assembler::vrintp(DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vrintp(DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VRINTP{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24498,7 +24498,7 @@ void Assembler::vrintr(Condition cond,
                        DataType dt,
                        SRegister rd,
                        SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRINTR{<c>}{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24522,7 +24522,7 @@ void Assembler::vrintr(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRINTR{<c>}{<q>}.F64 <Dd>, <Dm> ; T1
@@ -24546,7 +24546,7 @@ void Assembler::vrintx(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24581,7 +24581,7 @@ void Assembler::vrintx(Condition cond,
 }
 
 void Assembler::vrintx(DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24607,7 +24607,7 @@ void Assembler::vrintx(Condition cond,
                        DataType dt,
                        SRegister rd,
                        SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRINTX{<c>}{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24631,7 +24631,7 @@ void Assembler::vrintz(Condition cond,
                        DataType dt,
                        DRegister rd,
                        DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24666,7 +24666,7 @@ void Assembler::vrintz(Condition cond,
 }
 
 void Assembler::vrintz(DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   Dt_size_16 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24692,7 +24692,7 @@ void Assembler::vrintz(Condition cond,
                        DataType dt,
                        SRegister rd,
                        SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRINTZ{<c>}{<q>}.F32 <Sd>, <Sm> ; T1
@@ -24714,7 +24714,7 @@ void Assembler::vrintz(Condition cond,
 
 void Assembler::vrshl(
     Condition cond, DataType dt, DRegister rd, DRegister rm, DRegister rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24744,7 +24744,7 @@ void Assembler::vrshl(
 
 void Assembler::vrshl(
     Condition cond, DataType dt, QRegister rd, QRegister rm, QRegister rn) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24777,7 +24777,7 @@ void Assembler::vrshr(Condition cond,
                       DRegister rd,
                       DRegister rm,
                       const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -24836,7 +24836,7 @@ void Assembler::vrshr(Condition cond,
                       QRegister rd,
                       QRegister rm,
                       const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -24895,7 +24895,7 @@ void Assembler::vrshrn(Condition cond,
                        DRegister rd,
                        QRegister rm,
                        const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -24952,7 +24952,7 @@ void Assembler::vrsqrte(Condition cond,
                         DataType dt,
                         DRegister rd,
                         DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -24984,7 +24984,7 @@ void Assembler::vrsqrte(Condition cond,
                         DataType dt,
                         QRegister rd,
                         QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_F_size_4 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -25014,7 +25014,7 @@ void Assembler::vrsqrte(Condition cond,
 
 void Assembler::vrsqrts(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRSQRTS{<c>}{<q>}.F32 {<Dd>}, <Dn>, <Dm> ; T1
@@ -25041,7 +25041,7 @@ void Assembler::vrsqrts(
 
 void Assembler::vrsqrts(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VRSQRTS{<c>}{<q>}.F32 {<Qd>}, <Qn>, <Qm> ; T1
@@ -25071,7 +25071,7 @@ void Assembler::vrsra(Condition cond,
                       DRegister rd,
                       DRegister rm,
                       const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25113,7 +25113,7 @@ void Assembler::vrsra(Condition cond,
                       QRegister rd,
                       QRegister rm,
                       const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25152,7 +25152,7 @@ void Assembler::vrsra(Condition cond,
 
 void Assembler::vrsubhn(
     Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -25179,7 +25179,7 @@ void Assembler::vrsubhn(
 }
 
 void Assembler::vseleq(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELEQ.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -25201,7 +25201,7 @@ void Assembler::vseleq(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
 }
 
 void Assembler::vseleq(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELEQ.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -25223,7 +25223,7 @@ void Assembler::vseleq(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
 }
 
 void Assembler::vselge(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELGE.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -25245,7 +25245,7 @@ void Assembler::vselge(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
 }
 
 void Assembler::vselge(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELGE.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -25267,7 +25267,7 @@ void Assembler::vselge(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
 }
 
 void Assembler::vselgt(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELGT.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -25289,7 +25289,7 @@ void Assembler::vselgt(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
 }
 
 void Assembler::vselgt(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELGT.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -25311,7 +25311,7 @@ void Assembler::vselgt(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
 }
 
 void Assembler::vselvs(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELVS.F64 <Dd>, <Dn>, <Dm> ; T1
@@ -25333,7 +25333,7 @@ void Assembler::vselvs(DataType dt, DRegister rd, DRegister rn, DRegister rm) {
 }
 
 void Assembler::vselvs(DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(al);
   if (IsUsingT32()) {
     // VSELVS.F32 <Sd>, <Sn>, <Sm> ; T1
@@ -25359,7 +25359,7 @@ void Assembler::vshl(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25428,7 +25428,7 @@ void Assembler::vshl(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25497,7 +25497,7 @@ void Assembler::vshll(Condition cond,
                       QRegister rd,
                       DRegister rm,
                       const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25555,7 +25555,7 @@ void Assembler::vshr(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25614,7 +25614,7 @@ void Assembler::vshr(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25673,7 +25673,7 @@ void Assembler::vshrn(Condition cond,
                       DRegister rd,
                       QRegister rm,
                       const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25731,7 +25731,7 @@ void Assembler::vsli(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25773,7 +25773,7 @@ void Assembler::vsli(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25811,7 +25811,7 @@ void Assembler::vsli(Condition cond,
 }
 
 void Assembler::vsqrt(Condition cond, DataType dt, SRegister rd, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VSQRT{<c>}{<q>}.F32 <Sd>, <Sm> ; T1
@@ -25832,7 +25832,7 @@ void Assembler::vsqrt(Condition cond, DataType dt, SRegister rd, SRegister rm) {
 }
 
 void Assembler::vsqrt(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VSQRT{<c>}{<q>}.F64 <Dd>, <Dm> ; T1
@@ -25857,7 +25857,7 @@ void Assembler::vsra(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25899,7 +25899,7 @@ void Assembler::vsra(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25941,7 +25941,7 @@ void Assembler::vsri(Condition cond,
                      DRegister rd,
                      DRegister rm,
                      const DOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -25983,7 +25983,7 @@ void Assembler::vsri(Condition cond,
                      QRegister rd,
                      QRegister rm,
                      const QOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     if (operand.GetNeonImmediate().CanConvert<uint32_t>()) {
@@ -26024,7 +26024,7 @@ void Assembler::vst1(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -26044,7 +26044,7 @@ void Assembler::vst1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -26076,7 +26076,7 @@ void Assembler::vst1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -26135,7 +26135,7 @@ void Assembler::vst1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -26166,7 +26166,7 @@ void Assembler::vst1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -26231,7 +26231,7 @@ void Assembler::vst1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -26277,7 +26277,7 @@ void Assembler::vst1(Condition cond,
           uint32_t len_encoding;
           switch (nreglist.GetLength()) {
             default:
-              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
             case 1:
               len_encoding = 0x7;
               break;
@@ -26319,7 +26319,7 @@ void Assembler::vst2(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -26592,7 +26592,7 @@ void Assembler::vst3(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -26717,7 +26717,7 @@ void Assembler::vst3(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -26828,7 +26828,7 @@ void Assembler::vst4(Condition cond,
                      DataType dt,
                      const NeonRegisterList& nreglist,
                      const AlignedMemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediateZero()) {
     Register rn = operand.GetBaseRegister();
@@ -27042,7 +27042,7 @@ void Assembler::vstm(Condition cond,
                      Register rn,
                      WriteBack write_back,
                      DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27078,7 +27078,7 @@ void Assembler::vstm(Condition cond,
                      Register rn,
                      WriteBack write_back,
                      SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27112,7 +27112,7 @@ void Assembler::vstmdb(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27147,7 +27147,7 @@ void Assembler::vstmdb(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27179,7 +27179,7 @@ void Assembler::vstmia(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        DRegisterList dreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27215,7 +27215,7 @@ void Assembler::vstmia(Condition cond,
                        Register rn,
                        WriteBack write_back,
                        SRegisterList sreglist) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27248,7 +27248,7 @@ void Assembler::vstr(Condition cond,
                      DataType dt,
                      DRegister rd,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -27284,7 +27284,7 @@ void Assembler::vstr(Condition cond,
                      DataType dt,
                      SRegister rd,
                      const MemOperand& operand) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (operand.IsImmediate()) {
     Register rn = operand.GetBaseRegister();
@@ -27318,7 +27318,7 @@ void Assembler::vstr(Condition cond,
 
 void Assembler::vsub(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27376,7 +27376,7 @@ void Assembler::vsub(
 
 void Assembler::vsub(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_2 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27421,7 +27421,7 @@ void Assembler::vsub(
 
 void Assembler::vsub(
     Condition cond, DataType dt, SRegister rd, SRegister rn, SRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VSUB{<c>}{<q>}.F32 {<Sd>}, <Sn>, <Sm> ; T2
@@ -27444,7 +27444,7 @@ void Assembler::vsub(
 
 void Assembler::vsubhn(
     Condition cond, DataType dt, DRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_3 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27472,7 +27472,7 @@ void Assembler::vsubhn(
 
 void Assembler::vsubl(
     Condition cond, DataType dt, QRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27502,7 +27502,7 @@ void Assembler::vsubl(
 
 void Assembler::vsubw(
     Condition cond, DataType dt, QRegister rd, QRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_U_size_1 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27531,7 +27531,7 @@ void Assembler::vsubw(
 }
 
 void Assembler::vswp(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27552,7 +27552,7 @@ void Assembler::vswp(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vswp(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   USE(dt);
   if (IsUsingT32()) {
@@ -27577,7 +27577,7 @@ void Assembler::vtbl(Condition cond,
                      DRegister rd,
                      const NeonRegisterList& nreglist,
                      DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VTBL{<c>}{<q>}.8 <Dd>, <list>, <Dm> ; T1
@@ -27613,7 +27613,7 @@ void Assembler::vtbx(Condition cond,
                      DRegister rd,
                      const NeonRegisterList& nreglist,
                      DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // VTBX{<c>}{<q>}.8 <Dd>, <list>, <Dm> ; T1
@@ -27645,7 +27645,7 @@ void Assembler::vtbx(Condition cond,
 }
 
 void Assembler::vtrn(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27672,7 +27672,7 @@ void Assembler::vtrn(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vtrn(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27700,7 +27700,7 @@ void Assembler::vtrn(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 
 void Assembler::vtst(
     Condition cond, DataType dt, DRegister rd, DRegister rn, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27728,7 +27728,7 @@ void Assembler::vtst(
 
 void Assembler::vtst(
     Condition cond, DataType dt, QRegister rd, QRegister rn, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27755,7 +27755,7 @@ void Assembler::vtst(
 }
 
 void Assembler::vuzp(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_15 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27797,7 +27797,7 @@ void Assembler::vuzp(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vuzp(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27824,7 +27824,7 @@ void Assembler::vuzp(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::vzip(Condition cond, DataType dt, DRegister rd, DRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_15 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27866,7 +27866,7 @@ void Assembler::vzip(Condition cond, DataType dt, DRegister rd, DRegister rm) {
 }
 
 void Assembler::vzip(Condition cond, DataType dt, QRegister rd, QRegister rm) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   Dt_size_7 encoded_dt(dt);
   if (IsUsingT32()) {
@@ -27893,7 +27893,7 @@ void Assembler::vzip(Condition cond, DataType dt, QRegister rd, QRegister rm) {
 }
 
 void Assembler::yield(Condition cond, EncodingSize size) {
-  VIXL_ASSERT(AllowAssembler());
+  SWANSTATION_VIXL_ASSERT(AllowAssembler());
   CheckIT(cond);
   if (IsUsingT32()) {
     // YIELD{<c>}{<q>} ; T1
@@ -27920,4 +27920,4 @@ void Assembler::yield(Condition cond, EncodingSize size) {
 // End of generated code.
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl

@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef VIXL_AARCH64_DECODER_AARCH64_H_
-#define VIXL_AARCH64_DECODER_AARCH64_H_
+#ifndef SWANSTATION_VIXL_AARCH64_DECODER_AARCH64_H_
+#define SWANSTATION_VIXL_AARCH64_DECODER_AARCH64_H_
 
 #include <list>
 
@@ -121,7 +121,7 @@
   VISITOR_LIST_THAT_RETURN(V) \
   VISITOR_LIST_THAT_DONT_RETURN(V)
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // The Visitor interface. Disassembler and simulator (and other tools)
@@ -140,7 +140,7 @@ class DecoderVisitor {
 
   bool IsConstVisitor() const { return constness_ == kConstVisitor; }
   Instruction* MutableInstruction(const Instruction* instr) {
-    VIXL_ASSERT(!IsConstVisitor());
+    SWANSTATION_VIXL_ASSERT(!IsConstVisitor());
     return const_cast<Instruction*>(instr);
   }
 
@@ -157,7 +157,7 @@ class Decoder {
   void Decode(const Instruction* instr) {
     std::list<DecoderVisitor*>::iterator it;
     for (it = visitors_.begin(); it != visitors_.end(); it++) {
-      VIXL_ASSERT((*it)->IsConstVisitor());
+      SWANSTATION_VIXL_ASSERT((*it)->IsConstVisitor());
     }
     DecodeInstruction(instr);
   }
@@ -285,6 +285,6 @@ class Decoder {
 };
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
 
-#endif  // VIXL_AARCH64_DECODER_AARCH64_H_
+#endif  // SWANSTATION_VIXL_AARCH64_DECODER_AARCH64_H_

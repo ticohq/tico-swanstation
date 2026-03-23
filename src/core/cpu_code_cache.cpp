@@ -33,7 +33,7 @@ static constexpr u32 INVALIDATE_THRESHOLD_TO_DISABLE_LINKING = 10;
 static constexpr u32 RECOMPILER_CODE_CACHE_SIZE = 16 * 1024 * 1024;
 static constexpr u32 RECOMPILER_FAR_CODE_CACHE_SIZE = 8 * 1024 * 1024;
 #else
-static constexpr u32 RECOMPILER_CODE_CACHE_SIZE = 32 * 1024 * 1024;
+static constexpr u32 RECOMPILER_CODE_CACHE_SIZE = 128 * 1024 * 1024;
 static constexpr u32 RECOMPILER_FAR_CODE_CACHE_SIZE = 16 * 1024 * 1024;
 #endif
 #define CODE_WRITE_FAULT_THRESHOLD_FOR_SLOWMEM 10
@@ -76,7 +76,7 @@ static CodeBlock::HostCodePointer* OffsetFastMapPointer(FastMapTable fake_ptr, u
 }
 
 static void CompileDispatcher();
-static void FastCompileBlockFunction();
+void FastCompileBlockFunction();
 static void InvalidCodeFunction();
 
 static constexpr u32 GetTableCount(u32 start, u32 end)
@@ -233,11 +233,20 @@ void Initialize()
 #else
     const bool has_buffer = false;
 #endif
-    if (!has_buffer && !s_code_buffer.Allocate(RECOMPILER_CODE_CACHE_SIZE, RECOMPILER_FAR_CODE_CACHE_SIZE)) { }
+    if (!has_buffer && !s_code_buffer.Allocate(RECOMPILER_CODE_CACHE_SIZE, RECOMPILER_FAR_CODE_CACHE_SIZE))
+    {
+    }
 
     AllocateFastMap();
 
-    if (g_settings.IsUsingFastmem() && !InitializeFastmem()) { }
+    if (g_settings.IsUsingFastmem() && !InitializeFastmem())
+    {
+      // Disable fastmem in settings if initialization fails
+      // This prevents JIT from generating fastmem code with a NULL base pointer
+      Log_ErrorPrintf("[InitializeFastmem] Failed to install page fault handler");
+      g_settings.cpu_fastmem_mode = CPUFastmemMode::Disabled;
+      CPU::UpdateFastmemBase();
+    }
 
     CompileDispatcher();
     ResetFastMap();
@@ -424,12 +433,15 @@ void Reinitialize()
   {
 
 #ifdef USE_STATIC_CODE_BUFFER
-    s_code_buffer.Initialize(s_code_storage, sizeof(s_code_storage), RECOMPILER_FAR_CODE_CACHE_SIZE,RECOMPILER_GUARD_SIZE);
+    s_code_buffer.Initialize(s_code_storage, sizeof(s_code_storage), RECOMPILER_FAR_CODE_CACHE_SIZE,
+                             RECOMPILER_GUARD_SIZE);
 #else
     s_code_buffer.Allocate(RECOMPILER_CODE_CACHE_SIZE, RECOMPILER_FAR_CODE_CACHE_SIZE);
 #endif
 
-    if (g_settings.IsUsingFastmem() && !InitializeFastmem()) { }
+    if (g_settings.IsUsingFastmem() && !InitializeFastmem())
+    {
+    }
 
     AllocateFastMap();
     CompileDispatcher();
@@ -710,6 +722,25 @@ void FastCompileBlockFunction()
   CodeBlock* block = LookupBlock(GetNextBlockKey(), true);
   if (block)
   {
+    // Sanity Check
+    uintptr_t code_ptr = reinterpret_cast<uintptr_t>(block->host_code);
+    uintptr_t rx_base = reinterpret_cast<uintptr_t>(s_code_buffer.GetCodePointer());
+    uintptr_t rx_end = rx_base + s_code_buffer.GetTotalSize();
+
+    if (code_ptr < rx_base || code_ptr >= rx_end)
+    {
+      // FILE* fp = fopen("sdmc:/tiicu/debug/debug_jit.txt", "a");
+      // if (fp)
+      // {
+      //   fprintf(fp, "CRITICAL: Bad host_code %p! Range: %p - %p. Diff: %lx\n", (void*)code_ptr, (void*)rx_base,
+      //           (void*)rx_end, rx_base - code_ptr);
+      //   fclose(fp);
+      // }
+      // Force clear block or crash safely
+      block->host_code = nullptr;
+      return; // Fallback to interpreter loop implicitly?
+    }
+
     s_single_block_asm_dispatcher(block->host_code);
     return;
   }
@@ -894,7 +925,9 @@ void UnlinkBlock(CodeBlock* block)
 #ifdef WITH_RECOMPILER
     // Restore blocks linked to this block back to the resolver
     if (li.host_pc)
+    {
       Recompiler::CodeGenerator::BackpatchBranch(li.host_pc, li.host_pc_size, li.host_resolve_pc);
+    }
 #endif
 
     li.block->link_successors.erase(iter);
@@ -910,7 +943,9 @@ void UnlinkBlock(CodeBlock* block)
     // Restore blocks we're linking to back to the resolver, since the successor won't be linked to us to backpatch if
     // it changes.
     if (li.host_pc)
+    {
       Recompiler::CodeGenerator::BackpatchBranch(li.host_pc, li.host_pc_size, li.host_resolve_pc);
+    }
 #endif
 
     // Don't have to do anything special for successors - just let the successor know it's no longer linked.
@@ -1086,6 +1121,13 @@ Common::PageFaultHandler::HandlerResult LUTPageFaultHandler(void* exception_pc, 
 }
 
 #endif // WITH_RECOMPILER
+
+#ifdef WITH_RECOMPILER
+JitCodeBuffer& GetCodeBuffer()
+{
+  return s_code_buffer;
+}
+#endif
 
 } // namespace CPU::CodeCache
 

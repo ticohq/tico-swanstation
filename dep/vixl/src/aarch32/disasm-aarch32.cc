@@ -41,7 +41,7 @@ extern "C" {
 #include "aarch32/instructions-aarch32.h"
 #include "aarch32/operands-aarch32.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch32 {
 
 using internal::Int64;
@@ -7010,7 +7010,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                     Register(rn),
                     Register(rm));
               } else {
-                VIXL_ASSERT(OutsideITBlock());
+                SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                 // ADDS{<q>} {<Rd>}, <Rn>, <Rm> ; T1
                 adds(Condition::None(),
                      Narrow,
@@ -7033,7 +7033,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                     Register(rn),
                     Register(rm));
               } else {
-                VIXL_ASSERT(OutsideITBlock());
+                SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                 // SUBS{<q>} {<Rd>}, <Rn>, <Rm> ; T1
                 subs(Condition::None(),
                      Narrow,
@@ -7052,7 +7052,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                 // ADD<c>{<q>} <Rd>, <Rn>, #<imm3> ; T1
                 add(CurrentCond(), Narrow, Register(rd), Register(rn), imm);
               } else {
-                VIXL_ASSERT(OutsideITBlock());
+                SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                 // ADDS{<q>} <Rd>, <Rn>, #<imm3> ; T1
                 adds(Condition::None(),
                      Narrow,
@@ -7071,7 +7071,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                 // SUB<c>{<q>} <Rd>, <Rn>, #<imm3> ; T1
                 sub(CurrentCond(), Narrow, Register(rd), Register(rn), imm);
               } else {
-                VIXL_ASSERT(OutsideITBlock());
+                SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                 // SUBS{<q>} <Rd>, <Rn>, #<imm3> ; T1
                 subs(Condition::None(),
                      Narrow,
@@ -7160,7 +7160,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         shift_operand.GetType(),
                         shift_operand.GetAmount()));
           } else {
-            VIXL_ASSERT(OutsideITBlock());
+            SWANSTATION_VIXL_ASSERT(OutsideITBlock());
             // MOVS{<q>} <Rd>, <Rm> {, <shift> #<amount> } ; T2
             movs(Condition::None(),
                  Narrow,
@@ -7185,7 +7185,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
             // MOV<c>{<q>} <Rd>, #<imm8> ; T1
             mov(CurrentCond(), Narrow, Register(rd), imm);
           } else {
-            VIXL_ASSERT(OutsideITBlock());
+            SWANSTATION_VIXL_ASSERT(OutsideITBlock());
             // MOVS{<q>} <Rd>, #<imm8> ; T1
             movs(Condition::None(), Narrow, Register(rd), imm);
           }
@@ -7265,7 +7265,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                          Register(rd),
                          Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // ANDS{<q>} {<Rdn>}, <Rdn>, <Rm> ; T1
                     ands(Condition::None(),
                          Narrow,
@@ -7287,7 +7287,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // EORS{<q>} {<Rdn>}, <Rdn>, <Rm> ; T1
                     eors(Condition::None(),
                          Narrow,
@@ -7331,7 +7331,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Operand(Register(rm), LSL, Register(rs)));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // MOVS{<q>} <Rdm>, <Rdm>, LSL <Rs> ; T1
                     movs(Condition::None(),
                          Narrow,
@@ -7374,7 +7374,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Operand(Register(rm), LSR, Register(rs)));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // MOVS{<q>} <Rdm>, <Rdm>, LSR <Rs> ; T1
                     movs(Condition::None(),
                          Narrow,
@@ -7423,7 +7423,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Operand(Register(rm), ASR, Register(rs)));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // MOVS{<q>} <Rdm>, <Rdm>, ASR <Rs> ; T1
                     movs(Condition::None(),
                          Narrow,
@@ -7444,7 +7444,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // ADCS{<q>} {<Rdn>}, <Rdn>, <Rm> ; T1
                     adcs(Condition::None(),
                          Narrow,
@@ -7466,7 +7466,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // SBCS{<q>} {<Rdn>}, <Rdn>, <Rm> ; T1
                     sbcs(Condition::None(),
                          Narrow,
@@ -7510,7 +7510,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Operand(Register(rm), ROR, Register(rs)));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // MOVS{<q>} <Rdm>, <Rdm>, ROR <Rs> ; T1
                     movs(Condition::None(),
                          Narrow,
@@ -7545,7 +7545,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rn),
                         UINT32_C(0));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // RSBS{<q>} {<Rd>}, <Rn>, #0 ; T1
                     rsbs(Condition::None(),
                          Narrow,
@@ -7589,7 +7589,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // ORRS{<q>} {<Rdn>}, <Rdn>, <Rm> ; T1
                     orrs(Condition::None(),
                          Narrow,
@@ -7611,7 +7611,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rn),
                         Register(rd));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // MULS{<q>} <Rdm>, <Rn>, {<Rdm>} ; T1
                     muls(Condition::None(),
                          Register(rd),
@@ -7632,7 +7632,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                         Register(rd),
                         Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // BICS{<q>} {<Rdn>}, <Rdn>, <Rm> ; T1
                     bics(Condition::None(),
                          Narrow,
@@ -7650,7 +7650,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                     // MVN<c>{<q>} <Rd>, <Rm> ; T1
                     mvn(CurrentCond(), Narrow, Register(rd), Register(rm));
                   } else {
-                    VIXL_ASSERT(OutsideITBlock());
+                    SWANSTATION_VIXL_ASSERT(OutsideITBlock());
                     // MVNS{<q>} <Rd>, <Rm> ; T1
                     mvns(Condition::None(), Narrow, Register(rd), Register(rm));
                   }
@@ -11267,7 +11267,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -11316,7 +11316,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -11370,7 +11370,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -11424,7 +11424,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -11481,7 +11481,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -11534,7 +11534,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -11588,7 +11588,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -11643,7 +11643,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -11697,7 +11697,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -11754,7 +11754,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -11812,7 +11812,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -11871,7 +11871,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -11920,7 +11920,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -11974,7 +11974,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -12028,7 +12028,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -12085,7 +12085,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -12138,7 +12138,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -12192,7 +12192,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -12247,7 +12247,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -12301,7 +12301,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -12358,7 +12358,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -12416,7 +12416,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -12480,7 +12480,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x0:
                                   length = 4;
                                   spacing = kSingle;
@@ -12533,7 +12533,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x0:
                                   length = 4;
                                   spacing = kSingle;
@@ -12588,7 +12588,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -12644,7 +12644,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x8:
                                   length = 2;
                                   spacing = kSingle;
@@ -12702,7 +12702,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x4:
                                   length = 3;
                                   spacing = kSingle;
@@ -12756,7 +12756,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x4:
                                   length = 3;
                                   spacing = kSingle;
@@ -12811,7 +12811,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -12868,7 +12868,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -12924,7 +12924,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x8:
                                   length = 2;
                                   spacing = kSingle;
@@ -12982,7 +12982,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x8:
                                   length = 2;
                                   spacing = kSingle;
@@ -13041,7 +13041,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -13111,7 +13111,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -13160,7 +13160,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -13214,7 +13214,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -13268,7 +13268,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -13321,7 +13321,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -13370,7 +13370,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -13424,7 +13424,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -13479,7 +13479,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -13533,7 +13533,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -13590,7 +13590,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -13648,7 +13648,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -13707,7 +13707,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -13756,7 +13756,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -13810,7 +13810,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -13864,7 +13864,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -13917,7 +13917,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -13966,7 +13966,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x4:
                                       length = 3;
                                       spacing = kSingle;
@@ -14020,7 +14020,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -14075,7 +14075,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -14129,7 +14129,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -14186,7 +14186,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x8:
                                       length = 2;
                                       spacing = kSingle;
@@ -14244,7 +14244,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 8) & 0xf) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x7:
                                       length = 1;
                                       break;
@@ -14308,7 +14308,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x0:
                                   length = 4;
                                   spacing = kSingle;
@@ -14361,7 +14361,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x0:
                                   length = 4;
                                   spacing = kSingle;
@@ -14416,7 +14416,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -14472,7 +14472,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x8:
                                   length = 2;
                                   spacing = kSingle;
@@ -14529,7 +14529,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x4:
                                   length = 3;
                                   spacing = kSingle;
@@ -14582,7 +14582,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x4:
                                   length = 3;
                                   spacing = kSingle;
@@ -14637,7 +14637,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -14694,7 +14694,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -14750,7 +14750,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x8:
                                   length = 2;
                                   spacing = kSingle;
@@ -14808,7 +14808,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x8:
                                   length = 2;
                                   spacing = kSingle;
@@ -14867,7 +14867,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                               SpacingType spacing = kSingle;
                               switch ((instr >> 8) & 0xf) {
                                 default:
-                                  VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                  SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                 case 0x7:
                                   length = 1;
                                   break;
@@ -15620,7 +15620,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing = kSingle;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 1;
                                           break;
@@ -15665,7 +15665,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing = kSingle;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 1;
                                           break;
@@ -15715,7 +15715,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing = kSingle;
                                   switch ((instr >> 5) & 0x1) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 1;
                                       break;
@@ -15915,7 +15915,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 2;
                                           spacing = kSingle;
@@ -15965,7 +15965,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 2;
                                           spacing = kSingle;
@@ -16020,7 +16020,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 5) & 0x1) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 2;
                                       spacing = kSingle;
@@ -16229,7 +16229,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                           SpacingType spacing;
                                           switch ((instr >> 5) & 0x1) {
                                             default:
-                                              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                             case 0x0:
                                               length = 3;
                                               spacing = kSingle;
@@ -16271,7 +16271,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                           SpacingType spacing;
                                           switch ((instr >> 5) & 0x1) {
                                             default:
-                                              VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                              SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                             case 0x0:
                                               length = 3;
                                               spacing = kSingle;
@@ -16319,7 +16319,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 3;
                                           spacing = kSingle;
@@ -16529,7 +16529,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 4;
                                           spacing = kSingle;
@@ -16580,7 +16580,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing;
                                       switch ((instr >> 5) & 0x1) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 4;
                                           spacing = kSingle;
@@ -16637,7 +16637,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                   SpacingType spacing;
                                   switch ((instr >> 5) & 0x1) {
                                     default:
-                                      VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                      SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                     case 0x0:
                                       length = 4;
                                       spacing = kSingle;
@@ -28264,7 +28264,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing = kSingle;
                                       switch ((instr >> 8) & 0x3) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 1;
                                           break;
@@ -28303,7 +28303,7 @@ void Disassembler::DecodeT32(uint32_t instr) {
                                       SpacingType spacing = kSingle;
                                       switch ((instr >> 8) & 0x3) {
                                         default:
-                                          VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                          SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                         case 0x0:
                                           length = 1;
                                           break;
@@ -42468,7 +42468,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0x3) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 1;
                                 break;
@@ -42504,7 +42504,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0x3) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 1;
                                 break;
@@ -49513,7 +49513,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -49559,7 +49559,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -49610,7 +49610,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -49662,7 +49662,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -49716,7 +49716,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -49766,7 +49766,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -49817,7 +49817,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -49870,7 +49870,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -49922,7 +49922,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -49976,7 +49976,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -50031,7 +50031,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -50088,7 +50088,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -50134,7 +50134,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -50185,7 +50185,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -50237,7 +50237,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -50291,7 +50291,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -50341,7 +50341,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -50392,7 +50392,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -50445,7 +50445,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -50497,7 +50497,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -50551,7 +50551,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -50606,7 +50606,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -50669,7 +50669,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x0:
                             length = 4;
                             spacing = kSingle;
@@ -50720,7 +50720,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x0:
                             length = 4;
                             spacing = kSingle;
@@ -50773,7 +50773,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -50828,7 +50828,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x8:
                             length = 2;
                             spacing = kSingle;
@@ -50884,7 +50884,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x4:
                             length = 3;
                             spacing = kSingle;
@@ -50936,7 +50936,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x4:
                             length = 3;
                             spacing = kSingle;
@@ -50989,7 +50989,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -51045,7 +51045,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -51100,7 +51100,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x8:
                             length = 2;
                             spacing = kSingle;
@@ -51156,7 +51156,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x8:
                             length = 2;
                             spacing = kSingle;
@@ -51213,7 +51213,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -51974,7 +51974,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -52020,7 +52020,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -52071,7 +52071,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52123,7 +52123,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -52173,7 +52173,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -52219,7 +52219,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -52270,7 +52270,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52323,7 +52323,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52375,7 +52375,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -52429,7 +52429,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -52484,7 +52484,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52541,7 +52541,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -52587,7 +52587,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -52638,7 +52638,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52690,7 +52690,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -52740,7 +52740,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -52786,7 +52786,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x4:
                                 length = 3;
                                 spacing = kSingle;
@@ -52837,7 +52837,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52890,7 +52890,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -52942,7 +52942,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -52996,7 +52996,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x8:
                                 length = 2;
                                 spacing = kSingle;
@@ -53051,7 +53051,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 8) & 0xf) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x7:
                                 length = 1;
                                 break;
@@ -53114,7 +53114,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x0:
                             length = 4;
                             spacing = kSingle;
@@ -53165,7 +53165,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x0:
                             length = 4;
                             spacing = kSingle;
@@ -53218,7 +53218,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -53273,7 +53273,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x8:
                             length = 2;
                             spacing = kSingle;
@@ -53328,7 +53328,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x4:
                             length = 3;
                             spacing = kSingle;
@@ -53379,7 +53379,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x4:
                             length = 3;
                             spacing = kSingle;
@@ -53432,7 +53432,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -53488,7 +53488,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -53543,7 +53543,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x8:
                             length = 2;
                             spacing = kSingle;
@@ -53599,7 +53599,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x8:
                             length = 2;
                             spacing = kSingle;
@@ -53656,7 +53656,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                         SpacingType spacing = kSingle;
                         switch ((instr >> 8) & 0xf) {
                           default:
-                            VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                            SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                           case 0x7:
                             length = 1;
                             break;
@@ -53729,7 +53729,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing = kSingle;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 1;
                                     break;
@@ -53773,7 +53773,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing = kSingle;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 1;
                                     break;
@@ -53821,7 +53821,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing = kSingle;
                             switch ((instr >> 5) & 0x1) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 1;
                                 break;
@@ -54012,7 +54012,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 2;
                                     spacing = kSingle;
@@ -54060,7 +54060,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 2;
                                     spacing = kSingle;
@@ -54112,7 +54112,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 5) & 0x1) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 2;
                                 spacing = kSingle;
@@ -54309,7 +54309,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                     SpacingType spacing;
                                     switch ((instr >> 5) & 0x1) {
                                       default:
-                                        VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                        SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                       case 0x0:
                                         length = 3;
                                         spacing = kSingle;
@@ -54349,7 +54349,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                     SpacingType spacing;
                                     switch ((instr >> 5) & 0x1) {
                                       default:
-                                        VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                        SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                       case 0x0:
                                         length = 3;
                                         spacing = kSingle;
@@ -54395,7 +54395,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 3;
                                     spacing = kSingle;
@@ -54594,7 +54594,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 4;
                                     spacing = kSingle;
@@ -54644,7 +54644,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                                 SpacingType spacing;
                                 switch ((instr >> 5) & 0x1) {
                                   default:
-                                    VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                    SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                                   case 0x0:
                                     length = 4;
                                     spacing = kSingle;
@@ -54698,7 +54698,7 @@ void Disassembler::DecodeA32(uint32_t instr) {
                             SpacingType spacing;
                             switch ((instr >> 5) & 0x1) {
                               default:
-                                VIXL_UNREACHABLE_OR_FALLTHROUGH();
+                                SWANSTATION_VIXL_UNREACHABLE_OR_FALLTHROUGH();
                               case 0x0:
                                 length = 4;
                                 spacing = kSingle;
@@ -67250,8 +67250,8 @@ void PrintDisassembler::DecodeA32(uint32_t instruction) {
 
 void PrintDisassembler::DisassembleA32Buffer(const uint32_t* buffer,
                                              size_t size_in_bytes) {
-  VIXL_ASSERT(IsAligned<sizeof(buffer[0])>(buffer));
-  VIXL_ASSERT(IsMultiple<sizeof(buffer[0])>(size_in_bytes));
+  SWANSTATION_VIXL_ASSERT(IsAligned<sizeof(buffer[0])>(buffer));
+  SWANSTATION_VIXL_ASSERT(IsMultiple<sizeof(buffer[0])>(size_in_bytes));
   const uint32_t* const end_buffer =
       buffer + (size_in_bytes / sizeof(uint32_t));
   while (buffer < end_buffer) {
@@ -67262,15 +67262,15 @@ void PrintDisassembler::DisassembleA32Buffer(const uint32_t* buffer,
 
 void PrintDisassembler::DisassembleT32Buffer(const uint16_t* buffer,
                                              size_t size_in_bytes) {
-  VIXL_ASSERT(IsAligned<sizeof(buffer[0])>(buffer));
-  VIXL_ASSERT(IsMultiple<sizeof(buffer[0])>(size_in_bytes));
+  SWANSTATION_VIXL_ASSERT(IsAligned<sizeof(buffer[0])>(buffer));
+  SWANSTATION_VIXL_ASSERT(IsMultiple<sizeof(buffer[0])>(size_in_bytes));
   const uint16_t* const end_buffer =
       buffer + (size_in_bytes / sizeof(uint16_t));
   while (buffer < end_buffer) {
     buffer = DecodeT32At(buffer, end_buffer);
   }
-  VIXL_ASSERT(buffer == end_buffer);
+  SWANSTATION_VIXL_ASSERT(buffer == end_buffer);
 }
 
 }  // namespace aarch32
-}  // namespace vixl
+}  // namespace swanstation_vixl

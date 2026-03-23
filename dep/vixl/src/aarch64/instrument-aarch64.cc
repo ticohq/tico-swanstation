@@ -26,12 +26,12 @@
 
 #include "instrument-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 Counter::Counter(const char* name, CounterType type)
     : count_(0), enabled_(false), type_(type) {
-  VIXL_ASSERT(name != NULL);
+  SWANSTATION_VIXL_ASSERT(name != NULL);
   strncpy(name_, name, kCounterNameMaxLength);
   // Make sure `name_` is always NULL-terminated, even if the source's length is
   // higher.
@@ -158,7 +158,7 @@ void Instrument::Update() {
   // Increment the instruction counter, and dump all counters if a sample period
   // has elapsed.
   static Counter* counter = GetCounter("Instruction");
-  VIXL_ASSERT(counter->GetType() == Cumulative);
+  SWANSTATION_VIXL_ASSERT(counter->GetType() == Cumulative);
   counter->Increment();
 
   if ((sample_period_ != 0) && counter->IsEnabled() &&
@@ -433,12 +433,12 @@ void Instrument::InstrumentLoadStore(const Instruction* instr) {
     case STRB_w:
     case STRH_w:
     case STR_w:
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case STR_x:
       store_int_counter->Increment();
       break;
     case STR_s:
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case STR_d:
       store_fp_counter->Increment();
       break;
@@ -450,12 +450,12 @@ void Instrument::InstrumentLoadStore(const Instruction* instr) {
     case LDRSH_x:
     case LDRSW_x:
     case LDRSB_w:
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case LDRSH_w:
       load_int_counter->Increment();
       break;
     case LDR_s:
-      VIXL_FALLTHROUGH();
+      SWANSTATION_VIXL_FALLTHROUGH();
     case LDR_d:
       load_fp_counter->Increment();
       break;
@@ -913,4 +913,4 @@ void Instrument::VisitUnimplemented(const Instruction* instr) {
 
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl

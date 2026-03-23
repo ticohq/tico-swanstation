@@ -28,7 +28,7 @@
 
 #include "cpu-aarch64.h"
 
-namespace vixl {
+namespace swanstation_vixl {
 namespace aarch64 {
 
 // Initialise to smallest possible cache size.
@@ -65,7 +65,7 @@ uint32_t CPU::GetCacheType() {
   // Copy the content of the cache type register to a core register.
   __asm__ __volatile__("mrs %[ctr], ctr_el0"  // NOLINT(runtime/references)
                        : [ctr] "=r"(cache_type_register));
-  VIXL_ASSERT(IsUint32(cache_type_register));
+  SWANSTATION_VIXL_ASSERT(IsUint32(cache_type_register));
   return static_cast<uint32_t>(cache_type_register);
 #else
   // This will lead to a cache with 1 byte long lines, which is fine since
@@ -98,8 +98,8 @@ void CPU::EnsureIAndDCacheCoherency(void *address, size_t length) {
   uintptr_t iline = start & ~(isize - 1);
 
   // Cache line sizes are always a power of 2.
-  VIXL_ASSERT(IsPowerOf2(dsize));
-  VIXL_ASSERT(IsPowerOf2(isize));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(dsize));
+  SWANSTATION_VIXL_ASSERT(IsPowerOf2(isize));
   uintptr_t end = start + length;
 
   do {
@@ -175,4 +175,4 @@ void CPU::EnsureIAndDCacheCoherency(void *address, size_t length) {
 }
 
 }  // namespace aarch64
-}  // namespace vixl
+}  // namespace swanstation_vixl
