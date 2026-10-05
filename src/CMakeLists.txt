@@ -1,7 +1,5 @@
 include(CheckSymbolExists)
 
-add_definitions("-DLIBRETRO=1")
-
 check_symbol_exists(mkstemp "stdlib.h" HAVE_MKSTEMP)
 check_symbol_exists(alloca "alloca.h" HAVE_ALLOCA_H)
 if(NOT HAVE_ALLOCA_H)

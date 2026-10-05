@@ -21,19 +21,19 @@ public:
   bool DoState(StateWrapper& sw);
 
   // I/O
-  u32 ReadRegister(u32 offset);
-  void WriteRegister(u32 offset, u32 value);
+  uint32_t ReadRegister(uint32_t offset);
+  void WriteRegister(uint32_t offset, uint32_t value);
 
-  void DMARead(u32* words, u32 word_count);
-  void DMAWrite(const u32* words, u32 word_count);
+  void DMARead(uint32_t* words, uint32_t word_count);
+  void DMAWrite(const uint32_t* words, uint32_t word_count);
 
 private:
-  static constexpr u32 DATA_IN_FIFO_SIZE = 1024;
-  static constexpr u32 DATA_OUT_FIFO_SIZE = 768;
-  static constexpr u32 NUM_BLOCKS = 6;
+  static constexpr uint32_t DATA_IN_FIFO_SIZE = 1024;
+  static constexpr uint32_t DATA_OUT_FIFO_SIZE = 768;
+  static constexpr uint32_t NUM_BLOCKS = 6;
   static constexpr TickCount TICKS_PER_BLOCK = 448;
 
-  enum DataOutputDepth : u8
+  enum DataOutputDepth : uint8_t
   {
     DataOutputDepth_4Bit = 0,
     DataOutputDepth_8Bit = 1,
@@ -41,7 +41,7 @@ private:
     DataOutputDepth_15Bit = 3
   };
 
-  enum class Command : u8
+  enum class Command : uint8_t
   {
     None = 0,
     DecodeMacroblock = 1,
@@ -49,7 +49,7 @@ private:
     SetScale = 3
   };
 
-  enum class State : u8
+  enum class State : uint8_t
   {
     Idle,
     DecodingMacroblock,
@@ -61,37 +61,37 @@ private:
 
   union StatusRegister
   {
-    u32 bits;
+    uint32_t bits;
 
-    BitField<u32, bool, 31, 1> data_out_fifo_empty;
-    BitField<u32, bool, 30, 1> data_in_fifo_full;
-    BitField<u32, bool, 29, 1> command_busy;
-    BitField<u32, bool, 28, 1> data_in_request;
-    BitField<u32, bool, 27, 1> data_out_request;
-    BitField<u32, DataOutputDepth, 25, 2> data_output_depth;
-    BitField<u32, bool, 24, 1> data_output_signed;
-    BitField<u32, u8, 23, 1> data_output_bit15;
-    BitField<u32, u8, 16, 3> current_block;
-    BitField<u32, u16, 0, 16> parameter_words_remaining;
+    BitField<uint32_t, bool, 31, 1> data_out_fifo_empty;
+    BitField<uint32_t, bool, 30, 1> data_in_fifo_full;
+    BitField<uint32_t, bool, 29, 1> command_busy;
+    BitField<uint32_t, bool, 28, 1> data_in_request;
+    BitField<uint32_t, bool, 27, 1> data_out_request;
+    BitField<uint32_t, DataOutputDepth, 25, 2> data_output_depth;
+    BitField<uint32_t, bool, 24, 1> data_output_signed;
+    BitField<uint32_t, uint8_t, 23, 1> data_output_bit15;
+    BitField<uint32_t, uint8_t, 16, 3> current_block;
+    BitField<uint32_t, uint16_t, 0, 16> parameter_words_remaining;
   };
 
   union ControlRegister
   {
-    u32 bits;
-    BitField<u32, bool, 31, 1> reset;
-    BitField<u32, bool, 30, 1> enable_dma_in;
-    BitField<u32, bool, 29, 1> enable_dma_out;
+    uint32_t bits;
+    BitField<uint32_t, bool, 31, 1> reset;
+    BitField<uint32_t, bool, 30, 1> enable_dma_in;
+    BitField<uint32_t, bool, 29, 1> enable_dma_out;
   };
 
   union CommandWord
   {
-    u32 bits;
+    uint32_t bits;
 
-    BitField<u32, Command, 29, 3> command;
-    BitField<u32, DataOutputDepth, 27, 2> data_output_depth;
-    BitField<u32, bool, 26, 1> data_output_signed;
-    BitField<u32, u8, 25, 1> data_output_bit15;
-    BitField<u32, u16, 0, 16> parameter_word_count;
+    BitField<uint32_t, Command, 29, 3> command;
+    BitField<uint32_t, DataOutputDepth, 27, 2> data_output_depth;
+    BitField<uint32_t, bool, 26, 1> data_output_signed;
+    BitField<uint32_t, uint8_t, 25, 1> data_output_bit15;
+    BitField<uint32_t, uint16_t, 0, 16> parameter_word_count;
   };
 
   bool HasPendingBlockCopyOut() const;
@@ -100,8 +100,8 @@ private:
   void ResetDecoder();
   void UpdateStatus();
 
-  u32 ReadDataRegister();
-  void WriteCommandRegister(u32 value);
+  uint32_t ReadDataRegister();
+  void WriteCommandRegister(uint32_t value);
   void Execute();
 
   bool HandleDecodeMacroblockCommand();
@@ -113,43 +113,43 @@ private:
   void ScheduleBlockCopyOut(TickCount ticks);
   void CopyOutBlock();
 
-  bool DecodeRLE_Old(s16* blk, const u8* qt);
-  void IDCT_Old(s16* blk);
-  void YUVToRGB_Old(u32 xx, u32 yy, const std::array<s16, 64>& Crblk, const std::array<s16, 64>& Cbblk,
-                         const std::array<s16, 64>& Yblk);
+  bool DecodeRLE_Old(int16_t* blk, const uint8_t* qt);
+  void IDCT_Old(int16_t* blk);
+  void YUVToRGB_Old(uint32_t xx, uint32_t yy, const std::array<int16_t, 64>& Crblk, const std::array<int16_t, 64>& Cbblk,
+                         const std::array<int16_t, 64>& Yblk);
 
-  bool DecodeRLE_New(s16* blk, const u8* qt);
-  void IDCT_New(s16* blk);
-  void YUVToRGB_New(u32 xx, u32 yy, const std::array<s16, 64>& Crblk, const std::array<s16, 64>& Cbblk,
-                         const std::array<s16, 64>& Yblk);
+  bool DecodeRLE_New(int16_t* blk, const uint8_t* qt);
+  void IDCT_New(int16_t* blk);
+  void YUVToRGB_New(uint32_t xx, uint32_t yy, const std::array<int16_t, 64>& Crblk, const std::array<int16_t, 64>& Cbblk,
+                         const std::array<int16_t, 64>& Yblk);
 
-  void YUVToMono(const std::array<s16, 64>& Yblk);
+  void YUVToMono(const std::array<int16_t, 64>& Yblk);
 
   StatusRegister m_status = {};
   bool m_enable_dma_in = false;
   bool m_enable_dma_out = false;
 
   // Even though the DMA is in words, we access the FIFO as halfwords.
-  InlineFIFOQueue<u16, DATA_IN_FIFO_SIZE / sizeof(u16)> m_data_in_fifo;
-  InlineFIFOQueue<u32, DATA_OUT_FIFO_SIZE / sizeof(u32)> m_data_out_fifo;
+  InlineFIFOQueue<uint16_t, DATA_IN_FIFO_SIZE / sizeof(uint16_t)> m_data_in_fifo;
+  InlineFIFOQueue<uint32_t, DATA_OUT_FIFO_SIZE / sizeof(uint32_t)> m_data_out_fifo;
   State m_state = State::Idle;
-  u32 m_remaining_halfwords = 0;
+  uint32_t m_remaining_halfwords = 0;
 
-  std::array<u8, 64> m_iq_uv{};
-  std::array<u8, 64> m_iq_y{};
+  std::array<uint8_t, 64> m_iq_uv{};
+  std::array<uint8_t, 64> m_iq_y{};
 
-  std::array<s16, 64> m_scale_table{};
+  std::array<int16_t, 64> m_scale_table{};
 
   // blocks, for colour: 0 - Crblk, 1 - Cbblk, 2-5 - Y 1-4
-  std::array<std::array<s16, 64>, NUM_BLOCKS> m_blocks;
-  u32 m_current_block = 0;        // block (0-5)
-  u32 m_current_coefficient = 64; // k (in block)
-  u16 m_current_q_scale = 0;
+  std::array<std::array<int16_t, 64>, NUM_BLOCKS> m_blocks;
+  uint32_t m_current_block = 0;        // block (0-5)
+  uint32_t m_current_coefficient = 64; // k (in block)
+  uint16_t m_current_q_scale = 0;
 
-  std::array<u32, 256> m_block_rgb{};
+  std::array<uint32_t, 256> m_block_rgb{};
   std::unique_ptr<TimingEvent> m_block_copy_out_event;
 
-  u32 m_total_blocks_decoded = 0;
+  uint32_t m_total_blocks_decoded = 0;
 };
 
 extern MDEC g_mdec;

@@ -20,32 +20,32 @@ public:
   void Reset();
   bool DoState(StateWrapper& sw);
 
-  void SetGate(u32 timer, bool state);
+  void SetGate(uint32_t timer, bool state);
 
   void CPUClocksChanged();
 
   // dot clock/hblank/sysclk div 8
-  ALWAYS_INLINE bool IsUsingExternalClock(u32 timer) const { return m_states[timer].external_counting_enabled; }
-  ALWAYS_INLINE bool IsSyncEnabled(u32 timer) const { return m_states[timer].mode.sync_enable; }
+  ALWAYS_INLINE bool IsUsingExternalClock(uint32_t timer) const { return m_states[timer].external_counting_enabled; }
+  ALWAYS_INLINE bool IsSyncEnabled(uint32_t timer) const { return m_states[timer].mode.sync_enable; }
 
   // queries for GPU
-  ALWAYS_INLINE bool IsExternalIRQEnabled(u32 timer) const
+  ALWAYS_INLINE bool IsExternalIRQEnabled(uint32_t timer) const
   {
     const CounterState& cs = m_states[timer];
     return (cs.external_counting_enabled && (cs.mode.bits & ((1u << 4) | (1u << 5))) != 0);
   }
 
-  TickCount GetTicksUntilIRQ(u32 timer) const;
+  TickCount GetTicksUntilIRQ(uint32_t timer) const;
 
-  void AddTicks(u32 timer, TickCount ticks);
+  void AddTicks(uint32_t timer, TickCount ticks);
 
-  u32 ReadRegister(u32 offset);
-  void WriteRegister(u32 offset, u32 value);
+  uint32_t ReadRegister(uint32_t offset);
+  void WriteRegister(uint32_t offset, uint32_t value);
 
 private:
-  static constexpr u32 NUM_TIMERS = 3;
+  static constexpr uint32_t NUM_TIMERS = 3;
 
-  enum class SyncMode : u8
+  enum class SyncMode : uint8_t
   {
     PauseOnGate = 0,
     ResetOnGate = 1,
@@ -55,26 +55,26 @@ private:
 
   union CounterMode
   {
-    u32 bits;
+    uint32_t bits;
 
-    BitField<u32, bool, 0, 1> sync_enable;
-    BitField<u32, SyncMode, 1, 2> sync_mode;
-    BitField<u32, bool, 3, 1> reset_at_target;
-    BitField<u32, bool, 4, 1> irq_at_target;
-    BitField<u32, bool, 5, 1> irq_on_overflow;
-    BitField<u32, bool, 6, 1> irq_repeat;
-    BitField<u32, bool, 7, 1> irq_pulse_n;
-    BitField<u32, u8, 8, 2> clock_source;
-    BitField<u32, bool, 10, 1> interrupt_request_n;
-    BitField<u32, bool, 11, 1> reached_target;
-    BitField<u32, bool, 12, 1> reached_overflow;
+    BitField<uint32_t, bool, 0, 1> sync_enable;
+    BitField<uint32_t, SyncMode, 1, 2> sync_mode;
+    BitField<uint32_t, bool, 3, 1> reset_at_target;
+    BitField<uint32_t, bool, 4, 1> irq_at_target;
+    BitField<uint32_t, bool, 5, 1> irq_on_overflow;
+    BitField<uint32_t, bool, 6, 1> irq_repeat;
+    BitField<uint32_t, bool, 7, 1> irq_pulse_n;
+    BitField<uint32_t, uint8_t, 8, 2> clock_source;
+    BitField<uint32_t, bool, 10, 1> interrupt_request_n;
+    BitField<uint32_t, bool, 11, 1> reached_target;
+    BitField<uint32_t, bool, 12, 1> reached_overflow;
   };
 
   struct CounterState
   {
     CounterMode mode;
-    u32 counter;
-    u32 target;
+    uint32_t counter;
+    uint32_t target;
     bool gate;
     bool use_external_clock;
     bool external_counting_enabled;
@@ -83,8 +83,8 @@ private:
   };
 
   void UpdateCountingEnabled(CounterState& cs);
-  void CheckForIRQ(u32 index, u32 old_counter);
-  void UpdateIRQ(u32 index);
+  void CheckForIRQ(uint32_t index, uint32_t old_counter);
+  void UpdateIRQ(uint32_t index);
 
   void AddSysClkTicks(TickCount sysclk_ticks);
 
@@ -95,7 +95,7 @@ private:
 
   std::array<CounterState, NUM_TIMERS> m_states{};
   TickCount m_syclk_ticks_carry = 0; // 0 unless overclocking is enabled
-  u32 m_sysclk_div_8_carry = 0;      // partial ticks for timer 3 with sysclk/8
+  uint32_t m_sysclk_div_8_carry = 0;      // partial ticks for timer 3 with sysclk/8
 };
 
 extern Timers g_timers;

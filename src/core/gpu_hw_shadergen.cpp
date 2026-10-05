@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <glad.h>
 
-GPU_HW_ShaderGen::GPU_HW_ShaderGen(HostDisplay::RenderAPI render_api, u32 resolution_scale, u32 multisamples,
+GPU_HW_ShaderGen::GPU_HW_ShaderGen(HostDisplay::RenderAPI render_api, uint32_t resolution_scale, uint32_t multisamples,
                                    bool per_sample_shading, bool true_color, bool scaled_dithering,
                                    GPUTextureFilter texture_filtering, bool uv_limits, bool pgxp_depth,
                                    bool disable_color_perspective, bool supports_dual_source_blend)
@@ -15,13 +15,26 @@ GPU_HW_ShaderGen::GPU_HW_ShaderGen(HostDisplay::RenderAPI render_api, u32 resolu
 
 GPU_HW_ShaderGen::~GPU_HW_ShaderGen() = default;
 
-void GPU_HW_ShaderGen::WriteCommonFunctions(std::stringstream& ss)
+void GPU_HW_ShaderGen::WriteCommonFunctions(std::stringstream& ss, bool batch_uniform_buffer)
 {
   DefineMacro(ss, "MULTISAMPLING", UsingMSAA());
 
-  ss << "CONSTANT uint RESOLUTION_SCALE = " << m_resolution_scale << "u;\n";
-  ss << "CONSTANT uint2 VRAM_SIZE = uint2(" << VRAM_WIDTH << ", " << VRAM_HEIGHT << ") * RESOLUTION_SCALE;\n";
-  ss << "CONSTANT float2 RCP_VRAM_SIZE = float2(1.0, 1.0) / float2(VRAM_SIZE);\n";
+  // RESOLUTION_SCALE / VRAM_SIZE / RCP_VRAM_SIZE are emitted either
+  // as file-scope literals (the legacy path - used for non-batch
+  // shaders that don't bind the batch UBO) or are derived from
+  // u_resolution_scale inside the batch UBO (the per-session path).
+  // The batch path lets the same DXBC / GLSL serve every resolution
+  // scale without recompile; the legacy path keeps the literal
+  // baking that non-batch shaders rely on. WriteBatchUniformBuffer
+  // emits the #defines for the batch path; we just skip the
+  // file-scope CONSTANT block here when it's going to.
+  if (!batch_uniform_buffer)
+  {
+    ss << "CONSTANT uint RESOLUTION_SCALE = " << m_resolution_scale << "u;\n";
+    ss << "CONSTANT uint2 VRAM_SIZE = uint2(" << VRAM_WIDTH << ", " << VRAM_HEIGHT << ") * RESOLUTION_SCALE;\n";
+    ss << "CONSTANT float2 RCP_VRAM_SIZE = float2(1.0, 1.0) / float2(VRAM_SIZE);\n";
+  }
+
   ss << "CONSTANT uint MULTISAMPLES = " << m_multisamples << "u;\n";
   ss << "CONSTANT bool PER_SAMPLE_SHADING = " << (m_per_sample_shading ? "true" : "false") << ";\n";
   ss << R"(
@@ -70,8 +83,35 @@ void GPU_HW_ShaderGen::WriteBatchUniformBuffer(std::stringstream& ss)
   DeclareUniformBuffer(ss,
                        {"uint2 u_texture_window_and", "uint2 u_texture_window_or", "float u_src_alpha_factor",
                         "float u_dst_alpha_factor", "uint u_interlaced_displayed_field",
-                        "bool u_set_mask_while_drawing"},
+                        "bool u_set_mask_while_drawing", "uint u_resolution_scale", "uint u_true_color",
+                        "uint u_scaled_dithering", "uint u_dithering",
+                        "uint u_interlacing", "uint u_pgxp_depth", "uint u_uv_limits", "uint u_render_mode"},
                        false);
+
+  // Alias the historical compile-time constants to their cbuffer-
+  // backed equivalents. Every existing reference in the shader body
+  // (RESOLUTION_SCALE, VRAM_SIZE, RCP_VRAM_SIZE) keeps working as-is;
+  // the preprocessor just substitutes them with arithmetic over
+  // u_resolution_scale. VRAM_WIDTH / VRAM_HEIGHT stay compile-time
+  // literals because they are fixed PSX geometry, not session state.
+  WriteCBufferResolutionScaleAliases(ss);
+}
+
+void GPU_HW_ShaderGen::WriteCBufferResolutionScaleAliases(std::stringstream& ss)
+{
+  // The caller has already declared a cbuffer that contains
+  // `uint u_resolution_scale` (either the batch UBO via
+  // WriteBatchUniformBuffer, or a per-shader UBO that grew the field
+  // as part of the non-batch cbuffer-routing refactor). All we do
+  // here is alias the legacy compile-time constants to the cbuffer
+  // field so existing shader bodies that reference RESOLUTION_SCALE /
+  // VRAM_SIZE / RCP_VRAM_SIZE keep compiling. The arithmetic over
+  // u_resolution_scale happens once per shader invocation - HLSL /
+  // GLSL fold the constant-folding-friendly bits (the VRAM_WIDTH /
+  // VRAM_HEIGHT literals) at compile time.
+  ss << "#define RESOLUTION_SCALE u_resolution_scale\n";
+  ss << "#define VRAM_SIZE (uint2(" << VRAM_WIDTH << "u, " << VRAM_HEIGHT << "u) * u_resolution_scale)\n";
+  ss << "#define RCP_VRAM_SIZE (float2(1.0, 1.0) / float2(VRAM_SIZE))\n";
 }
 
 std::string GPU_HW_ShaderGen::GenerateBatchVertexShader(bool textured)
@@ -79,11 +119,46 @@ std::string GPU_HW_ShaderGen::GenerateBatchVertexShader(bool textured)
   std::stringstream ss;
   WriteHeader(ss);
   DefineMacro(ss, "TEXTURED", textured);
-  DefineMacro(ss, "UV_LIMITS", m_uv_limits);
-  DefineMacro(ss, "PGXP_DEPTH", m_pgxp_depth);
+  // UV_LIMITS used to live as a compile-time #define gating the
+  // a_uv_limits vertex input + v_uv_limits varying + body
+  // population in this VS. It is now routed through the batch UBO
+  // (u_uv_limits) and the VS source unconditionally declares
+  // a_uv_limits / v_uv_limits when textured. BatchVertex always
+  // carries the uv_limits field regardless of m_using_uv_limits
+  // (see gpu_hw.h:47), so the input layout always points at a
+  // valid 4-byte slot - the value is 0 in vertex paths that don't
+  // call ComputePolygonUVLimits, and the FS gates whether to read
+  // it via u_uv_limits. Toggling m_using_uv_limits is now a single
+  // 4-byte cbuffer write; the VS / FS sources are invariant. The
+  // D3D11 / D3D12 input layouts also become unconditional (always
+  // bind ATTR4 when textured); OpenGL was already unconditional;
+  // Vulkan untouched (its own pre-baked SPIR-V path lives in
+  // data/shaders/vulkan/batch.vert.glsl).
+  // PGXP_DEPTH used to live as a compile-time #define driving the
+  // pos_z source selection in the VS body. It is now routed through
+  // the batch UBO (u_pgxp_depth) and the former #if/#else block is
+  // a uniform-control-flow ternary. Toggling PGXP-depth mode mid-
+  // session is a single 4-byte cbuffer write picked up on the next
+  // FlushRender on the VS side - the VS source is now invariant
+  // under the m_pgxp_depth member.
+  // The FS-side PGXP_DEPTH routing also exists now (this commit's
+  // sibling): the FS unconditionally declares SV_Depth and the four
+  // per-branch o_depth writes in the body collapse to a single
+  // runtime-branch ternary at the end of main(). Both VS and FS
+  // bytecode are invariant under m_pgxp_depth post-routing. PSO
+  // depth comparison func still depends on m_pgxp_depth_buffer
+  // (LESS_EQUAL vs GREATER_EQUAL set at PSO build), so a PGXP flip
+  // still triggers PSO rebuild for the depth-comp swap - but the
+  // FS bytecode is cache-served and the variant count is halved.
 
-  WriteCommonFunctions(ss);
+  // Order matters: WriteBatchUniformBuffer must emit before
+  // WriteCommonFunctions so the #define aliases for RESOLUTION_SCALE
+  // / VRAM_SIZE / RCP_VRAM_SIZE are in scope when fixYCoord (defined
+  // in WriteCommonFunctions) references them, and so that the
+  // resulting u_resolution_scale references resolve against an
+  // already-declared cbuffer member.
   WriteBatchUniformBuffer(ss);
+  WriteCommonFunctions(ss, true);
 
   ss << R"(
 
@@ -104,19 +179,15 @@ std::string GPU_HW_ShaderGen::GenerateBatchVertexShader(bool textured)
 
   if (textured)
   {
-    if (m_uv_limits)
-    {
-      DeclareVertexEntryPoint(
-        ss, {"float4 a_pos", "float4 a_col0", "uint a_texcoord", "uint a_texpage", "float4 a_uv_limits"}, 1, 1,
-        {{"nointerpolation", "uint4 v_texpage"}, {"nointerpolation", "float4 v_uv_limits"}}, false, "", UsingMSAA(),
-        UsingPerSampleShading(), m_disable_color_perspective);
-    }
-    else
-    {
-      DeclareVertexEntryPoint(ss, {"float4 a_pos", "float4 a_col0", "uint a_texcoord", "uint a_texpage"}, 1, 1,
-                              {{"nointerpolation", "uint4 v_texpage"}}, false, "", UsingMSAA(), UsingPerSampleShading(),
-                              m_disable_color_perspective);
-    }
+    // a_uv_limits / v_uv_limits emitted unconditionally now. The
+    // FS-side runtime branch on u_uv_limits gates whether the value
+    // is consumed; the VS just always passes it through. BatchVertex
+    // always carries the uv_limits field so the input layout's
+    // ATTR4 binding is always valid.
+    DeclareVertexEntryPoint(
+      ss, {"float4 a_pos", "float4 a_col0", "uint a_texcoord", "uint a_texpage", "float4 a_uv_limits"}, 1, 1,
+      {{"nointerpolation", "uint4 v_texpage"}, {"nointerpolation", "float4 v_uv_limits"}}, false, "", UsingMSAA(),
+      UsingPerSampleShading(), m_disable_color_perspective);
   }
   else
   {
@@ -135,18 +206,21 @@ std::string GPU_HW_ShaderGen::GenerateBatchVertexShader(bool textured)
   float pos_x = ((a_pos.x + vertex_offset) / 512.0) - 1.0;
   float pos_y = ((a_pos.y + vertex_offset) / -256.0) + 1.0;
 
-#if PGXP_DEPTH
-  // Ignore mask Z when using PGXP depth.
-  float pos_z = a_pos.w;
-  float pos_w = a_pos.w;
-#else
-  float pos_z = a_pos.z;
-  float pos_w = a_pos.w;
-#endif
-
 #if API_OPENGL || API_OPENGL_ES
   pos_y += POS_EPSILON;
+#endif
 
+  // PGXP-depth mode (u_pgxp_depth != 0) ignores mask Z and uses
+  // a_pos.w as the depth source; the legacy path reads a_pos.z.
+  // u_pgxp_depth is a cbuffer scalar so this is a uniform-control-
+  // flow select - the driver collapses it to a single conditional
+  // move at compile time. Was a compile-time #if PGXP_DEPTH /
+  // #else / #endif gate (m_pgxp_depth captured at shadergen ctor);
+  // now a runtime branch on the cbuffer field.
+  float pos_z = (u_pgxp_depth != 0u) ? a_pos.w : a_pos.z;
+  float pos_w = a_pos.w;
+
+#if API_OPENGL || API_OPENGL_ES
   // 0..1 to -1..1 depth range.
   pos_z = (pos_z * 2.0) - 1.0;
 #endif
@@ -169,9 +243,13 @@ std::string GPU_HW_ShaderGen::GenerateBatchVertexShader(bool textured)
     v_texpage.z = ((a_texpage >> 16) & 63u) * 16u * RESOLUTION_SCALE;
     v_texpage.w = ((a_texpage >> 22) & 511u) * RESOLUTION_SCALE;
 
-    #if UV_LIMITS
-      v_uv_limits = a_uv_limits * float4(255.0, 255.0, 255.0, 255.0);
-    #endif
+    // v_uv_limits is always written when textured. When u_uv_limits=0
+    // at runtime the FS short-circuits and doesn't consume this
+    // value, so the (potentially-zero) contents of a_uv_limits are
+    // harmless. The unconditional write costs one MUL per vertex and
+    // one vec4 of interpolant bandwidth - sub-noise on PSX vertex
+    // throughput.
+    v_uv_limits = a_uv_limits * float4(255.0, 255.0, 255.0, 255.0);
   #endif
 }
 )";
@@ -677,33 +755,104 @@ std::string GPU_HW_ShaderGen::GenerateBatchFragmentShader(GPU_HW::BatchRenderMod
 
   std::stringstream ss;
   WriteHeader(ss);
-  DefineMacro(ss, "TRANSPARENCY", transparency != GPU_HW::BatchRenderMode::TransparencyDisabled);
-  DefineMacro(ss, "TRANSPARENCY_ONLY_OPAQUE", transparency == GPU_HW::BatchRenderMode::OnlyOpaque);
-  DefineMacro(ss, "TRANSPARENCY_ONLY_TRANSPARENT", transparency == GPU_HW::BatchRenderMode::OnlyTransparent);
+  // TRANSPARENCY used to live as 3 compile-time DefineMacro calls
+  // here (TRANSPARENCY / TRANSPARENCY_ONLY_OPAQUE /
+  // TRANSPARENCY_ONLY_TRANSPARENT) encoding the 4-state
+  // BatchRenderMode enum across 3 booleans. They are now routed
+  // through the batch UBO (u_render_mode at offset 60 - the former
+  // u_pad2 slot) and the four former #if/elif sites below are
+  // uniform-control-flow runtime branches on the cbuffer scalar.
+  // Toggling render_mode mid-FlushRender (e.g. the two-pass
+  // OnlyOpaque -> OnlyTransparent case in NeedsTwoPassRendering)
+  // is a single 4-byte cbuffer write between the two DrawInstanced
+  // calls; the FS bytecode is invariant across the flip. Same
+  // shape as the prior cbuffer-routing arc (DITHERING / INTERLACING
+  // / UV_LIMITS / PGXP_DEPTH). The PSO render_mode dim
+  // (m_batch_pipelines's [render_mode] axis) stays because PSO
+  // blend state still varies per BatchRenderMode value at the
+  // GraphicsPipelineBuilder level - what changes is just the FS
+  // bytecode variant count.
   DefineMacro(ss, "TEXTURED", textured);
   DefineMacro(ss, "PALETTE",
               actual_texture_mode == GPUTextureMode::Palette4Bit || actual_texture_mode == GPUTextureMode::Palette8Bit);
   DefineMacro(ss, "PALETTE_4_BIT", actual_texture_mode == GPUTextureMode::Palette4Bit);
   DefineMacro(ss, "PALETTE_8_BIT", actual_texture_mode == GPUTextureMode::Palette8Bit);
   DefineMacro(ss, "RAW_TEXTURE", raw_texture);
-  DefineMacro(ss, "DITHERING", dithering);
-  DefineMacro(ss, "DITHERING_SCALED", m_scaled_dithering);
-  DefineMacro(ss, "INTERLACING", interlacing);
-  DefineMacro(ss, "TRUE_COLOR", m_true_color);
+  // DITHERING used to live as a compile-time #define driving three
+  // #if/#else blocks in the FS body. It is now routed through the
+  // batch UBO (u_dithering) and the three former #if sites below
+  // are uniform-control-flow runtime branches. Toggling dithering
+  // (per-batch, owned by m_batch.dithering) is a single 4-byte
+  // cbuffer write picked up on the next FlushRender - no DXBC
+  // recompile and no PSO rebuild needed when the PSX
+  // GP0(E1).dither_enable bit flips mid-frame. Same shape as
+  // u_scaled_dithering above, just lifted from the per-call axis
+  // rather than per-session.
+  // DITHERING_SCALED and TRUE_COLOR used to live as compile-time
+  // #defines, baking a fresh shader compile for every flip of either.
+  // They are now routed through the batch UBO (u_scaled_dithering,
+  // u_true_color), checked at runtime via uniform-control-flow
+  // branches in the FS body. Toggling either is a single cbuffer
+  // write picked up on the next FlushRender, with no DXBC recompile
+  // and no PSO rebuild.
+  // INTERLACING used to live as a compile-time #define driving the
+  // y-LSB / u_interlaced_displayed_field discard guard in the FS
+  // body. It is now routed through the batch UBO (u_interlacing) and
+  // the former #if site below is a uniform-control-flow short-circuit
+  // branch on the cbuffer scalar. Same shape as the u_dithering
+  // routing in 3af8e02 - one runtime check instead of two compiled
+  // shader variants, and toggling display-mode interlace state is a
+  // single 4-byte cbuffer write. u_interlaced_displayed_field still
+  // carries the active-field LSB (0 or 1) when interlacing is on;
+  // u_interlacing gates whether the discard runs at all. The two
+  // are kept as separate fields so each can be updated independently
+  // - the field LSB changes per frame, the interlacing on/off bit
+  // changes on display-mode changes.
   DefineMacro(ss, "TEXTURE_FILTERING", m_texture_filter != GPUTextureFilter::Nearest);
-  DefineMacro(ss, "UV_LIMITS", m_uv_limits);
+  // UV_LIMITS: routed to the batch UBO (u_uv_limits) alongside the
+  // VS-side routing - see the GenerateBatchVertexShader prelude
+  // comment for the full reasoning. The FS body has two former
+  // #if UV_LIMITS sites: the texture-filtering path (always uses
+  // v_uv_limits because the settings-layer ShouldUseUVLimits()
+  // couples TEXTURE_FILTERING != Nearest to m_using_uv_limits=true,
+  // so u_uv_limits is guaranteed 1 here) and the non-filtered path
+  // (gated by runtime branch on u_uv_limits).
   DefineMacro(ss, "USE_DUAL_SOURCE", use_dual_source);
-  DefineMacro(ss, "PGXP_DEPTH", m_pgxp_depth);
+  // PGXP_DEPTH used to live as a compile-time #define driving four
+  // `#if !PGXP_DEPTH / o_depth = oalpha * v_pos.z / #endif` writes in
+  // the body and the depth_output argument to
+  // DeclareFragmentEntryPoint (which gates SV_Depth declaration). It
+  // is now routed through the batch UBO (u_uv_limits's neighbour
+  // u_pgxp_depth, added to the cbuffer for the VS-side routing in
+  // 49c0f82); the FS unconditionally declares SV_Depth and writes a
+  // single ternary expression at the end of main() that picks
+  // v_pos.z when u_pgxp_depth != 0 (pass-through of the PGXP-replayed
+  // depth from the VS) or oalpha * v_pos.z when u_pgxp_depth == 0
+  // (mask-bit encoding for the legacy non-PGXP depth-buffer use).
+  // m_pgxp_depth at shadergen ctor capture is now unused for the FS
+  // body / signature. The PSO depth comparison func still depends on
+  // m_pgxp_depth_buffer (LESS_EQUAL vs GREATER_EQUAL) and that
+  // dependency is OUTSIDE the shader source - it lives in the
+  // backend's SetDepthState call at PSO build time - so flipping
+  // PGXP still triggers a PSO rebuild for the depth-comp swap, just
+  // not a shader recompile (the FS bytecode is identical across
+  // flips post-routing). The pre-bake win is that FS bytecode loses
+  // PGXP_DEPTH as a variant axis - 9408 / 2 = 4704 variants for the
+  // eventual full bake.
 
-  WriteCommonFunctions(ss);
+  // Same ordering rule as in GenerateBatchVertexShader: cbuffer
+  // declaration before helpers, so RESOLUTION_SCALE / VRAM_SIZE /
+  // RCP_VRAM_SIZE are macro-aliased to u_resolution_scale before
+  // fixYCoord references them.
   WriteBatchUniformBuffer(ss);
+  WriteCommonFunctions(ss, true);
   DeclareTexture(ss, "samp0", 0);
 
   if (m_glsl)
     ss << "CONSTANT int[16] s_dither_values = int[16]( ";
   else
     ss << "CONSTANT int s_dither_values[] = {";
-  for (u32 i = 0; i < 16; i++)
+  for (uint32_t i = 0; i < 16; i++)
   {
     if (i > 0)
       ss << ", ";
@@ -717,18 +866,17 @@ std::string GPU_HW_ShaderGen::GenerateBatchFragmentShader(GPU_HW::BatchRenderMod
   ss << R"(
 uint3 ApplyDithering(uint2 coord, uint3 icol)
 {
-  #if DITHERING_SCALED
-    uint2 fc = coord & uint2(3u, 3u);
-  #else
-    uint2 fc = (coord / uint2(RESOLUTION_SCALE, RESOLUTION_SCALE)) & uint2(3u, 3u);
-  #endif
+  uint2 fc;
+  if (u_scaled_dithering != 0u)
+    fc = coord & uint2(3u, 3u);
+  else
+    fc = (coord / uint2(RESOLUTION_SCALE, RESOLUTION_SCALE)) & uint2(3u, 3u);
   int offset = s_dither_values[fc.y * 4u + fc.x];
 
-  #if !TRUE_COLOR
-    return uint3(clamp((int3(icol) + int3(offset, offset, offset)) >> 3, 0, 31));
-  #else
+  if (u_true_color != 0u)
     return uint3(clamp(int3(icol) + int3(offset, offset, offset), 0, 255));
-  #endif
+  else
+    return uint3(clamp((int3(icol) + int3(offset, offset, offset)) >> 3, 0, 31));
 }
 
 #if TEXTURED
@@ -801,23 +949,37 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
     if (m_texture_filter != GPUTextureFilter::Nearest)
       WriteBatchTextureFilter(ss, m_texture_filter);
 
-    if (m_uv_limits)
-    {
-      DeclareFragmentEntryPoint(ss, 1, 1,
-                                {{"nointerpolation", "uint4 v_texpage"}, {"nointerpolation", "float4 v_uv_limits"}},
-                                true, use_dual_source ? 2 : 1, !m_pgxp_depth, UsingMSAA(), UsingPerSampleShading(),
-                                false, m_disable_color_perspective);
-    }
-    else
-    {
-      DeclareFragmentEntryPoint(ss, 1, 1, {{"nointerpolation", "uint4 v_texpage"}}, true, use_dual_source ? 2 : 1,
-                                !m_pgxp_depth, UsingMSAA(), UsingPerSampleShading(), false,
-                                m_disable_color_perspective);
-    }
+    // v_uv_limits emitted unconditionally now; runtime branch on
+    // u_uv_limits inside the FS body decides whether to consume it
+    // for clamping. TEXTURE_FILTERING != Nearest is settings-coupled
+    // to u_uv_limits=1 via ShouldUseUVLimits(), so the
+    // FilteredSampleFromVRAM path can rely on v_uv_limits being
+    // valid without an explicit runtime check there.
+    //
+    // depth_output is now passed unconditionally true (was: !m_pgxp_depth).
+    // Pre-routing, the PGXP-on path omitted SV_Depth so the rasterizer-
+    // interpolated v_pos.z passed through to the depth buffer
+    // unmodified, while the PGXP-off path declared SV_Depth and wrote
+    // (oalpha * v_pos.z) to encode the PSX mask bit. Post-routing,
+    // SV_Depth is always declared; the body picks v_pos.z or
+    // oalpha * v_pos.z via a single runtime ternary on u_pgxp_depth at
+    // the end of main(). The PGXP-on path was the only batch FS
+    // variant that still had early-Z TEST (every other variant lost it
+    // to SV_Depth already, and they all lost early-Z WRITEBACK to
+    // discard); this commit loses that one remaining early-Z TEST
+    // path. For PSX on modern GPUs the cost is sub-noise: native
+    // framebuffer is half a megapixel, overdraw is low (painter's-
+    // algorithm sorting in stock content), the FS itself is cheap,
+    // and the depth buffer is mask-bit storage with random values
+    // that Hi-Z can't compress anyway.
+    DeclareFragmentEntryPoint(ss, 1, 1,
+                              {{"nointerpolation", "uint4 v_texpage"}, {"nointerpolation", "float4 v_uv_limits"}},
+                              true, use_dual_source ? 2 : 1, true, UsingMSAA(), UsingPerSampleShading(),
+                              false, m_disable_color_perspective);
   }
   else
   {
-    DeclareFragmentEntryPoint(ss, 1, 0, {}, true, use_dual_source ? 2 : 1, !m_pgxp_depth, UsingMSAA(),
+    DeclareFragmentEntryPoint(ss, 1, 0, {}, true, use_dual_source ? 2 : 1, true, UsingMSAA(),
                               UsingPerSampleShading(), false, m_disable_color_perspective);
   }
 
@@ -830,10 +992,19 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
   float ialpha;
   float oalpha;
 
-  #if INTERLACING
-    if ((fixYCoord(uint(v_pos.y)) & 1u) == u_interlaced_displayed_field)
-      discard;
-  #endif
+  // Was a compile-time #if INTERLACING guard. Now u_interlacing is
+  // a cbuffer scalar (0 = off, 1 = on) and the inner LSB compare
+  // gates on it. HLSL short-circuits &&, so the y-LSB / fixYCoord
+  // arithmetic only runs when interlacing is actually on. The
+  // discard keyword's presence in the source disables early-Z
+  // writeback for both the on and off cases - a known trade for
+  // cbuffer routing - but for PSX content this matters little:
+  // most geometry is back-to-front, the depth values come from
+  // VS interpolation so early depth TEST still works, and the
+  // 5090's FS throughput is many orders of magnitude in excess
+  // of what PSX rendering can saturate.
+  if (u_interlacing != 0u && (fixYCoord(uint(v_pos.y)) & 1u) == u_interlaced_displayed_field)
+    discard;
 
   #if TEXTURED
 
@@ -844,27 +1015,43 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
       coords /= float2(RESOLUTION_SCALE, RESOLUTION_SCALE);
     #endif
 
-    #if UV_LIMITS
+    float4 texcol;
+    #if TEXTURE_FILTERING
+      // TEXTURE_FILTERING != Nearest is settings-coupled to
+      // m_using_uv_limits=true via ShouldUseUVLimits(), so u_uv_limits
+      // is guaranteed 1 here and v_uv_limits is valid. No runtime
+      // gate needed for this path.
       float4 uv_limits = v_uv_limits;
       #if !PALETTE
-        // Extend the UV range to all "upscaled" pixels. This means 1-pixel-high polygon-based 
+        // Extend the UV range to all "upscaled" pixels. This means 1-pixel-high polygon-based
         // framebuffer effects won't be downsampled. (e.g. Mega Man Legends 2 haze effect)
         uv_limits *= float(RESOLUTION_SCALE);
         uv_limits.zw += float(RESOLUTION_SCALE - 1u);
       #endif
-    #endif
-
-    float4 texcol;
-    #if TEXTURE_FILTERING
       FilteredSampleFromVRAM(v_texpage, coords, uv_limits, texcol, ialpha);
       if (ialpha < 0.5)
         discard;
     #else
-      #if UV_LIMITS
+      // Non-filtered path: u_uv_limits gates whether to clamp. When
+      // PGXP is on (and texture filter is Nearest) the settings layer
+      // sets m_using_uv_limits=true and u_uv_limits=1; we sample with
+      // clamping. When both PGXP and filtering are off, u_uv_limits=0
+      // and we sample without clamping (and v_uv_limits contents are
+      // potentially-zero junk - which is fine because the runtime
+      // branch never reads them).
+      if (u_uv_limits != 0u)
+      {
+        float4 uv_limits = v_uv_limits;
+        #if !PALETTE
+          uv_limits *= float(RESOLUTION_SCALE);
+          uv_limits.zw += float(RESOLUTION_SCALE - 1u);
+        #endif
         texcol = SampleFromVRAM(v_texpage, clamp(coords, uv_limits.xy, uv_limits.zw));
-      #else
+      }
+      else
+      {
         texcol = SampleFromVRAM(v_texpage, coords);
-      #endif
+      }
       if (VECTOR_EQ(texcol, TRANSPARENT_PIXEL_COLOR))
         discard;
 
@@ -874,27 +1061,33 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
     semitransparent = (texcol.a >= 0.5);
 
     // If not using true color, truncate the framebuffer colors to 5-bit.
-    #if !TRUE_COLOR
-      icolor = uint3(texcol.rgb * float3(255.0, 255.0, 255.0)) >> 3;
-      #if !RAW_TEXTURE
-        icolor = (icolor * vertcol) >> 4;
-        #if DITHERING
-          icolor = ApplyDithering(uint2(v_pos.xy), icolor);
-        #else
-          icolor = min(icolor >> 3, uint3(31u, 31u, 31u));
-        #endif
-      #endif
-    #else
+    // Runtime branch on u_true_color (was a compile-time #if). The
+    // inner RAW_TEXTURE #if stays compile-time because that is still
+    // structural in the shader matrix; the inner dithering choice
+    // is itself a runtime branch on u_dithering for the same
+    // cbuffer-routing reason as u_true_color above.
+    if (u_true_color != 0u)
+    {
       icolor = uint3(texcol.rgb * float3(255.0, 255.0, 255.0));
       #if !RAW_TEXTURE
         icolor = (icolor * vertcol) >> 7;
-        #if DITHERING
+        if (u_dithering != 0u)
           icolor = ApplyDithering(uint2(v_pos.xy), icolor);
-        #else
+        else
           icolor = min(icolor, uint3(255u, 255u, 255u));
-        #endif
       #endif
-    #endif
+    }
+    else
+    {
+      icolor = uint3(texcol.rgb * float3(255.0, 255.0, 255.0)) >> 3;
+      #if !RAW_TEXTURE
+        icolor = (icolor * vertcol) >> 4;
+        if (u_dithering != 0u)
+          icolor = ApplyDithering(uint2(v_pos.xy), icolor);
+        else
+          icolor = min(icolor >> 3, uint3(31u, 31u, 31u));
+      #endif
+    }
 
     // Compute output alpha (mask bit)
     oalpha = float(u_set_mask_while_drawing ? 1 : int(semitransparent));
@@ -904,36 +1097,57 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
     icolor = vertcol;
     ialpha = 1.0;
 
-    #if DITHERING
+    if (u_dithering != 0u)
+    {
       icolor = ApplyDithering(uint2(v_pos.xy), icolor);
-    #else
-      #if !TRUE_COLOR
+    }
+    else
+    {
+      if (u_true_color == 0u)
         icolor >>= 3;
-      #endif
-    #endif
+    }
 
     // However, the mask bit is cleared if set mask bit is false.
     oalpha = float(u_set_mask_while_drawing);
   #endif
 
   // Premultiply alpha so we don't need to use a colour output for it.
+  // Was a compile-time #if TRANSPARENCY guard pre-routing. The
+  // (u_render_mode != 0u) runtime check picks the same value as
+  // the macro did at compile time.
   float premultiply_alpha = ialpha;
-  #if TRANSPARENCY
+  if (u_render_mode != 0u)
     premultiply_alpha = ialpha * (semitransparent ? u_src_alpha_factor : 1.0);
-  #endif
 
   float3 color;
-  #if !TRUE_COLOR
+  if (u_true_color != 0u)
+  {
+    // True color is actually simpler here since we want to preserve the precision.
+    color = (float3(icolor) * premultiply_alpha) / float3(255.0, 255.0, 255.0);
+  }
+  else
+  {
     // We want to apply the alpha before the truncation to 16-bit, otherwise we'll be passing a 32-bit precision color
     // into the blend unit, which can cause a small amount of error to accumulate.
     color = floor(float3(icolor) * premultiply_alpha) / float3(31.0, 31.0, 31.0);
-  #else
-    // True color is actually simpler here since we want to preserve the precision.
-    color = (float3(icolor) * premultiply_alpha) / float3(255.0, 255.0, 255.0);
-  #endif
+  }
 
-  #if TRANSPARENCY && TEXTURED
-    // Apply semitransparency. If not a semitransparent texel, destination alpha is ignored.
+  // Output. Pre-routing this was a compile-time
+  // `#if TRANSPARENCY && TEXTURED / #elif TRANSPARENCY / #else`
+  // tri-state on the 3-boolean TRANSPARENCY macros. Post-routing
+  // it is a single runtime branch on u_render_mode, with the
+  // TEXTURED gate kept compile-time because that affects whether
+  // the inner discard arms even reach the build (texture_mode-
+  // dependent shadergen branch). The PSX behavioural shape is
+  // unchanged: TransparencyDisabled (u_render_mode=0) writes
+  // o_col0 once and skips the semitransparent / opaque-only
+  // discards; the three transparency modes each take their
+  // matching arm.
+#if TEXTURED
+  if (u_render_mode != 0u)
+  {
+    // Textured + transparency. Apply semitransparency. If not a
+    // semitransparent texel, destination alpha is ignored.
     if (semitransparent)
     {
       #if USE_DUAL_SOURCE
@@ -943,13 +1157,12 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
         o_col0 = float4(color, oalpha);
       #endif
 
-      #if !PGXP_DEPTH
-        o_depth = oalpha * v_pos.z;
-      #endif
-
-      #if TRANSPARENCY_ONLY_OPAQUE
+      // u_render_mode == 2 is BatchRenderMode::OnlyOpaque - the
+      // two-pass first pass that keeps only the opaque pixels and
+      // discards the semitransparent ones. Was
+      // `#if TRANSPARENCY_ONLY_OPAQUE` pre-routing.
+      if (u_render_mode == 2u)
         discard;
-      #endif
     }
     else
     {
@@ -960,38 +1173,69 @@ float4 SampleFromVRAM(uint4 texpage, float2 coords)
         o_col0 = float4(color, oalpha);
       #endif
 
-      #if !PGXP_DEPTH
-        o_depth = oalpha * v_pos.z;
-      #endif
-
-      #if TRANSPARENCY_ONLY_TRANSPARENT
+      // u_render_mode == 3 is BatchRenderMode::OnlyTransparent -
+      // the two-pass second pass that keeps only the
+      // semitransparent pixels and discards the opaque ones. Was
+      // `#if TRANSPARENCY_ONLY_TRANSPARENT` pre-routing.
+      if (u_render_mode == 3u)
         discard;
-      #endif
     }
-  #elif TRANSPARENCY
-    // We shouldn't be rendering opaque geometry only when untextured, so no need to test/discard here.
+  }
+  else
+  {
+    // Textured non-transparency. Blending is disabled at the PSO
+    // level so the mask alpha sits directly in the colour write.
+    o_col0 = float4(color, oalpha);
+    #if USE_DUAL_SOURCE
+      o_col1 = float4(0.0, 0.0, 0.0, 1.0 - ialpha);
+    #endif
+  }
+#else
+  if (u_render_mode != 0u)
+  {
+    // Untextured + transparency. Single colour arm - the
+    // OnlyOpaque / OnlyTransparent inner discards are unreachable
+    // here per the shadergen long-standing rule "We shouldn't be
+    // rendering opaque geometry only when untextured."
     #if USE_DUAL_SOURCE
       o_col0 = float4(color, oalpha);
       o_col1 = float4(0.0, 0.0, 0.0, u_dst_alpha_factor / ialpha);
     #else
       o_col0 = float4(color, oalpha);
     #endif
-
-    #if !PGXP_DEPTH
-      o_depth = oalpha * v_pos.z;
-    #endif
-  #else
-    // Non-transparency won't enable blending so we can write the mask here regardless.
+  }
+  else
+  {
+    // Untextured non-transparency.
     o_col0 = float4(color, oalpha);
-
     #if USE_DUAL_SOURCE
       o_col1 = float4(0.0, 0.0, 0.0, 1.0 - ialpha);
     #endif
+  }
+#endif
 
-    #if !PGXP_DEPTH
-      o_depth = oalpha * v_pos.z;
-    #endif
-  #endif
+  // SV_Depth output (always declared now - was conditional on !PGXP_DEPTH
+  // pre-routing). The four per-branch `#if !PGXP_DEPTH / o_depth = oalpha *
+  // v_pos.z / #endif` writes that used to live inside each transparency
+  // arm above collapse to this single runtime-branch write at the end of
+  // main(). All four old sites wrote the same expression with the same
+  // operand values in scope (oalpha, v_pos.z), so hoisting is
+  // value-equivalent; the discards inside the transparency-only-opaque /
+  // transparency-only-transparent arms above end the FS before this line
+  // runs, just as they ended the FS before the per-branch writes ran
+  // pre-routing.
+  //
+  // u_pgxp_depth != 0: PGXP-perspective-correct depth mode. The
+  // rasterizer interpolates v_pos.z from a_pos.w (PGXP-replayed), so
+  // writing v_pos.z back is a pass-through that matches what the
+  // pre-routing PGXP-on path got from omitting SV_Depth entirely. The
+  // PSO depth comparison func is LESS_EQUAL in this mode (set in the
+  // backend at PSO build time per m_pgxp_depth_buffer).
+  // u_pgxp_depth == 0: legacy mask-bit depth mode. The
+  // (oalpha * v_pos.z) expression encodes the PSX mask bit into the
+  // depth buffer (oalpha is 0 or 1 in this mode, so depth is either 0
+  // or v_pos.z). The PSO depth comparison func is GREATER_EQUAL.
+  o_depth = (u_pgxp_depth != 0u) ? v_pos.z : (oalpha * v_pos.z);
 }
 )";
 
@@ -1009,8 +1253,28 @@ std::string GPU_HW_ShaderGen::GenerateDisplayFragmentShader(bool depth_24bit,
   DefineMacro(ss, "INTERLEAVED", interlace_mode == GPU_HW::InterlacedRenderMode::InterleavedFields);
   DefineMacro(ss, "SMOOTH_CHROMA", smooth_chroma);
 
-  WriteCommonFunctions(ss);
-  DeclareUniformBuffer(ss, {"uint2 u_vram_offset", "uint u_crop_left", "uint u_field_offset"}, true);
+  // u_resolution_scale appended; u_pad0 keeps the cbuffer 16-byte-
+  // aligned. The 4 callers (D3D11 / D3D12 / OpenGL / Vulkan
+  // GPU_HW_*::UpdateDisplay) must push uniforms in this exact
+  // order: u_vram_offset.x, u_vram_offset.y, u_crop_left,
+  // u_field_offset, u_resolution_scale, u_pad0.
+  DeclareUniformBuffer(ss,
+                       {"uint2 u_vram_offset", "uint u_crop_left", "uint u_field_offset", "uint u_resolution_scale",
+                        "uint u_pad0"},
+                       true);
+
+  // Route RESOLUTION_SCALE / VRAM_SIZE / RCP_VRAM_SIZE through the
+  // cbuffer above. Same pattern as e56d4d4 / 9d2b49d / 2980961.
+  // display_ps body uses RESOLUTION_SCALE in SampleVRAM24 (24-bit
+  // colour mode coord scaling) and VRAM_SIZE in the 16-bit path's
+  // modulo wrap. The 24-bit path is hit during FMV playback and any
+  // game that uses true-colour mode for the framebuffer; the 16-bit
+  // path is the common case (every game's standard framebuffer
+  // present). Both expand to the same #define aliases as
+  // u_resolution_scale-derived arithmetic.
+  WriteCBufferResolutionScaleAliases(ss);
+  WriteCommonFunctions(ss, true);
+
   DeclareTexture(ss, "samp0", 0, UsingMSAA());
 
   ss << R"(
@@ -1126,8 +1390,31 @@ std::string GPU_HW_ShaderGen::GenerateVRAMReadFragmentShader()
 {
   std::stringstream ss;
   WriteHeader(ss);
-  WriteCommonFunctions(ss);
-  DeclareUniformBuffer(ss, {"uint2 u_base_coords", "uint2 u_size"}, true);
+
+  // u_resolution_scale appended; u_pad0 keeps the cbuffer 16-byte-
+  // aligned. The 4 callers (D3D11 / D3D12 / OpenGL / Vulkan
+  // GPU_HW_*::ReadVRAM) must push uniforms in this exact order:
+  // u_base_coords.x, u_base_coords.y, u_size.x, u_size.y,
+  // u_resolution_scale, u_pad0.
+  DeclareUniformBuffer(ss,
+                       {"uint2 u_base_coords", "uint2 u_size", "uint u_resolution_scale", "uint u_pad0"},
+                       true);
+
+  // Route RESOLUTION_SCALE / VRAM_SIZE / RCP_VRAM_SIZE through the
+  // cbuffer above. Same pattern as e56d4d4 / 9d2b49d. vram_read_ps
+  // is the heaviest user of RESOLUTION_SCALE in the body:
+  //   * `if (RESOLUTION_SCALE == 1u)` for the fast 1x path
+  //   * Inner box-filter loops `for (offset < RESOLUTION_SCALE; ...)`
+  //   * Final divisor `RESOLUTION_SCALE * RESOLUTION_SCALE`
+  // The fast-path branch becomes a runtime branch on
+  // u_resolution_scale, but the branch is uniform across the wave
+  // (same cbuffer value for all SIMD lanes) so divergence cost
+  // is zero. The loops can no longer be fully unrolled at compile
+  // time, but the runtime loop overhead is microscopic compared
+  // to the texture-load cost - and vram_read runs on-demand
+  // (screenshot capture, libretro readback) not every frame.
+  WriteCBufferResolutionScaleAliases(ss);
+  WriteCommonFunctions(ss, true);
 
   DeclareTexture(ss, "samp0", 0, UsingMSAA());
 
@@ -1192,12 +1479,24 @@ std::string GPU_HW_ShaderGen::GenerateVRAMWriteFragmentShader(bool use_ssbo)
 {
   std::stringstream ss;
   WriteHeader(ss);
-  WriteCommonFunctions(ss);
   DefineMacro(ss, "PGXP_DEPTH", m_pgxp_depth);
+
+  // u_resolution_scale appended; u_pad0 keeps the cbuffer 16-byte-
+  // aligned. VRAMWriteUBOData in gpu_hw.h must match this layout.
   DeclareUniformBuffer(ss,
                        {"uint2 u_base_coords", "uint2 u_end_coords", "uint2 u_size", "uint u_buffer_base_offset",
-                        "uint u_mask_or_bits", "float u_depth_value"},
+                        "uint u_mask_or_bits", "float u_depth_value", "uint u_resolution_scale", "uint u_pad0"},
                        true);
+
+  // Route RESOLUTION_SCALE / VRAM_SIZE / RCP_VRAM_SIZE through the
+  // cbuffer above. Same pattern as vram_copy_ps - the body references
+  // to RESOLUTION_SCALE / VRAM_SIZE at lines 1304-1305 below resolve
+  // through the #define aliases. This removes the scale axis from
+  // vram_write_ps's variant matrix; what remains is PGXP_DEPTH x
+  // use_ssbo = 4 variants, down from 4 x N where N is the count of
+  // distinct resolution scale values the user has cycled through.
+  WriteCBufferResolutionScaleAliases(ss);
+  WriteCommonFunctions(ss, true);
 
   if (use_ssbo && m_glsl)
   {
@@ -1258,12 +1557,26 @@ std::string GPU_HW_ShaderGen::GenerateVRAMCopyFragmentShader()
 
   std::stringstream ss;
   WriteHeader(ss);
-  WriteCommonFunctions(ss);
   DefineMacro(ss, "PGXP_DEPTH", m_pgxp_depth);
+
+  // u_resolution_scale is at the END of the cbuffer (after u_depth_value)
+  // so existing field offsets stay stable - the only change is a new
+  // 4-byte field appended. VRAMCopyUBOData in gpu_hw.h must match.
   DeclareUniformBuffer(ss,
                        {"uint2 u_src_coords", "uint2 u_dst_coords", "uint2 u_end_coords", "uint2 u_size",
-                        "bool u_set_mask_bit", "float u_depth_value"},
+                        "bool u_set_mask_bit", "float u_depth_value", "uint u_resolution_scale", "uint u_pad0"},
                        true);
+
+  // Route RESOLUTION_SCALE / VRAM_SIZE / RCP_VRAM_SIZE through
+  // u_resolution_scale in the cbuffer above instead of having
+  // m_resolution_scale baked compile-time via WriteCommonFunctions's
+  // CONSTANT-emit path. After this, a resolution-scale toggle no
+  // longer changes the HLSL source string - same source, same hash,
+  // same DXBC - which is what makes vram_copy_ps pre-bakeable in a
+  // follow-up patch (cuts the variant axis from PGXP x scale down
+  // to just PGXP).
+  WriteCBufferResolutionScaleAliases(ss);
+  WriteCommonFunctions(ss, true);
 
   DeclareTexture(ss, "samp0", 0, msaa);
   DefineMacro(ss, "MSAA_COPY", msaa);

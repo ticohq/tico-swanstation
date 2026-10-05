@@ -5,7 +5,7 @@
 
 namespace GL {
 
-StreamBuffer::StreamBuffer(GLenum target, GLuint buffer_id, u32 size)
+StreamBuffer::StreamBuffer(GLenum target, GLuint buffer_id, uint32_t size)
   : m_target(target), m_buffer_id(buffer_id), m_size(size)
 {
 }
@@ -33,12 +33,12 @@ class BufferSubDataStreamBuffer final : public StreamBuffer
 public:
   ~BufferSubDataStreamBuffer() override = default;
 
-  MappingResult Map(u32 alignment, u32 min_size) override
+  MappingResult Map(uint32_t alignment, uint32_t min_size) override
   {
     return MappingResult{static_cast<void*>(m_cpu_buffer.data()), 0, 0, m_size / alignment};
   }
 
-  void Unmap(u32 used_size) override
+  void Unmap(uint32_t used_size) override
   {
     if (used_size == 0)
       return;
@@ -47,7 +47,7 @@ public:
     glBufferSubData(m_target, 0, used_size, m_cpu_buffer.data());
   }
 
-  static std::unique_ptr<StreamBuffer> Create(GLenum target, u32 size)
+  static std::unique_ptr<StreamBuffer> Create(GLenum target, uint32_t size)
   {
     glGetError();
 
@@ -67,12 +67,12 @@ public:
   }
 
 private:
-  BufferSubDataStreamBuffer(GLenum target, GLuint buffer_id, u32 size)
+  BufferSubDataStreamBuffer(GLenum target, GLuint buffer_id, uint32_t size)
     : StreamBuffer(target, buffer_id, size), m_cpu_buffer(size)
   {
   }
 
-  std::vector<u8> m_cpu_buffer;
+  std::vector<uint8_t> m_cpu_buffer;
 };
 
 // Uses BufferData() to orphan the buffer after every update. Used on Mali where BufferSubData forces a sync.
@@ -81,12 +81,12 @@ class BufferDataStreamBuffer final : public StreamBuffer
 public:
   ~BufferDataStreamBuffer() override = default;
 
-  MappingResult Map(u32 alignment, u32 min_size) override
+  MappingResult Map(uint32_t alignment, uint32_t min_size) override
   {
     return MappingResult{static_cast<void*>(m_cpu_buffer.data()), 0, 0, m_size / alignment};
   }
 
-  void Unmap(u32 used_size) override
+  void Unmap(uint32_t used_size) override
   {
     if (used_size == 0)
       return;
@@ -95,7 +95,7 @@ public:
     glBufferData(m_target, used_size, m_cpu_buffer.data(), GL_STREAM_DRAW);
   }
 
-  static std::unique_ptr<StreamBuffer> Create(GLenum target, u32 size)
+  static std::unique_ptr<StreamBuffer> Create(GLenum target, uint32_t size)
   {
     glGetError();
 
@@ -115,40 +115,40 @@ public:
   }
 
 private:
-  BufferDataStreamBuffer(GLenum target, GLuint buffer_id, u32 size)
+  BufferDataStreamBuffer(GLenum target, GLuint buffer_id, uint32_t size)
     : StreamBuffer(target, buffer_id, size), m_cpu_buffer(size)
   {
   }
 
-  std::vector<u8> m_cpu_buffer;
+  std::vector<uint8_t> m_cpu_buffer;
 };
 
 // Base class for implementations which require syncing.
 class SyncingStreamBuffer : public StreamBuffer
 {
 public:
-  enum : u32
+  enum : uint32_t
   {
     NUM_SYNC_POINTS = 16
   };
 
   virtual ~SyncingStreamBuffer() override
   {
-    for (u32 i = m_available_block_index; i <= m_used_block_index; i++)
+    for (uint32_t i = m_available_block_index; i <= m_used_block_index; i++)
       glDeleteSync(m_sync_objects[i]);
   }
 
 protected:
-  SyncingStreamBuffer(GLenum target, GLuint buffer_id, u32 size)
+  SyncingStreamBuffer(GLenum target, GLuint buffer_id, uint32_t size)
     : StreamBuffer(target, buffer_id, size), m_bytes_per_block((size + (NUM_SYNC_POINTS)-1) / NUM_SYNC_POINTS)
   {
   }
 
-  u32 GetSyncIndexForOffset(u32 offset) { return offset / m_bytes_per_block; }
+  uint32_t GetSyncIndexForOffset(uint32_t offset) { return offset / m_bytes_per_block; }
 
-  void AddSyncsForOffset(u32 offset)
+  void AddSyncsForOffset(uint32_t offset)
   {
-    const u32 end = GetSyncIndexForOffset(offset);
+    const uint32_t end = GetSyncIndexForOffset(offset);
     for (; m_used_block_index < end; m_used_block_index++)
       m_sync_objects[m_used_block_index] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   }
@@ -160,14 +160,14 @@ protected:
     sync = nullptr;
   }
 
-  void EnsureSyncsWaitedForOffset(u32 offset)
+  void EnsureSyncsWaitedForOffset(uint32_t offset)
   {
-    const u32 end = std::min<u32>(GetSyncIndexForOffset(offset) + 1, NUM_SYNC_POINTS);
+    const uint32_t end = std::min<uint32_t>(GetSyncIndexForOffset(offset) + 1, NUM_SYNC_POINTS);
     for (; m_available_block_index < end; m_available_block_index++)
       WaitForSync(m_sync_objects[m_available_block_index]);
   }
 
-  void AllocateSpace(u32 size)
+  void AllocateSpace(uint32_t size)
   {
     // add sync objects for writes since the last allocation
     AddSyncsForOffset(m_position);
@@ -194,10 +194,10 @@ protected:
     }
   }
 
-  u32 m_position = 0;
-  u32 m_used_block_index = 0;
-  u32 m_available_block_index = NUM_SYNC_POINTS;
-  u32 m_bytes_per_block;
+  uint32_t m_position = 0;
+  uint32_t m_used_block_index = 0;
+  uint32_t m_available_block_index = NUM_SYNC_POINTS;
+  uint32_t m_bytes_per_block;
   std::array<GLsync, NUM_SYNC_POINTS> m_sync_objects{};
 };
 
@@ -210,19 +210,19 @@ public:
     glUnmapBuffer(m_target);
   }
 
-  MappingResult Map(u32 alignment, u32 min_size) override
+  MappingResult Map(uint32_t alignment, uint32_t min_size) override
   {
     if (m_position > 0)
       m_position = Common::AlignUp(m_position, alignment);
 
     AllocateSpace(min_size);
 
-    const u32 free_space_in_block = ((m_available_block_index * m_bytes_per_block) - m_position);
+    const uint32_t free_space_in_block = ((m_available_block_index * m_bytes_per_block) - m_position);
     return MappingResult{static_cast<void*>(m_mapped_ptr + m_position), m_position, m_position / alignment,
                          free_space_in_block / alignment};
   }
 
-  void Unmap(u32 used_size) override
+  void Unmap(uint32_t used_size) override
   {
     if (!m_coherent)
     {
@@ -233,7 +233,7 @@ public:
     m_position += used_size;
   }
 
-  static std::unique_ptr<StreamBuffer> Create(GLenum target, u32 size, bool coherent = true)
+  static std::unique_ptr<StreamBuffer> Create(GLenum target, uint32_t size, bool coherent = true)
   {
     glGetError();
 
@@ -241,8 +241,8 @@ public:
     glGenBuffers(1, &buffer_id);
     glBindBuffer(target, buffer_id);
 
-    const u32 flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? GL_MAP_COHERENT_BIT : 0);
-    const u32 map_flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? 0 : GL_MAP_FLUSH_EXPLICIT_BIT);
+    const uint32_t flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? GL_MAP_COHERENT_BIT : 0);
+    const uint32_t map_flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? 0 : GL_MAP_FLUSH_EXPLICIT_BIT);
     if (GLAD_GL_VERSION_4_4 || GLAD_GL_ARB_buffer_storage)
       glBufferStorage(target, size, nullptr, flags);
     else if (GLAD_GL_EXT_buffer_storage)
@@ -255,23 +255,23 @@ public:
       return {};
     }
 
-    u8* mapped_ptr = static_cast<u8*>(glMapBufferRange(target, 0, size, map_flags));
+    uint8_t* mapped_ptr = static_cast<uint8_t*>(glMapBufferRange(target, 0, size, map_flags));
     return std::unique_ptr<StreamBuffer>(new BufferStorageStreamBuffer(target, buffer_id, size, mapped_ptr, coherent));
   }
 
 private:
-  BufferStorageStreamBuffer(GLenum target, GLuint buffer_id, u32 size, u8* mapped_ptr, bool coherent)
+  BufferStorageStreamBuffer(GLenum target, GLuint buffer_id, uint32_t size, uint8_t* mapped_ptr, bool coherent)
     : SyncingStreamBuffer(target, buffer_id, size), m_mapped_ptr(mapped_ptr), m_coherent(coherent)
   {
   }
 
-  u8* m_mapped_ptr;
+  uint8_t* m_mapped_ptr;
   bool m_coherent;
 };
 
 } // namespace detail
 
-std::unique_ptr<StreamBuffer> StreamBuffer::Create(GLenum target, u32 size)
+std::unique_ptr<StreamBuffer> StreamBuffer::Create(GLenum target, uint32_t size)
 {
   std::unique_ptr<StreamBuffer> buf;
   if (GLAD_GL_VERSION_4_4 || GLAD_GL_ARB_buffer_storage || GLAD_GL_EXT_buffer_storage)

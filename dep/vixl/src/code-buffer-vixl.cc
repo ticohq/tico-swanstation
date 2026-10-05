@@ -24,7 +24,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MMAP
+#ifdef VIXL_CODE_BUFFER_MMAP
 extern "C" {
 #include <sys/mman.h>
 }
@@ -33,7 +33,7 @@ extern "C" {
 #include "code-buffer-vixl.h"
 #include "utils-vixl.h"
 
-namespace swanstation_vixl {
+namespace vixl {
 
 
 CodeBuffer::CodeBuffer(size_t capacity)
@@ -45,9 +45,9 @@ CodeBuffer::CodeBuffer(size_t capacity)
   if (capacity_ == 0) {
     return;
   }
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MALLOC
+#ifdef VIXL_CODE_BUFFER_MALLOC
   buffer_ = reinterpret_cast<byte*>(malloc(capacity_));
-#elif defined(SWANSTATION_VIXL_CODE_BUFFER_MMAP)
+#elif defined(VIXL_CODE_BUFFER_MMAP)
   buffer_ = reinterpret_cast<byte*>(mmap(NULL,
                                          capacity,
                                          PROT_READ | PROT_WRITE,
@@ -57,10 +57,10 @@ CodeBuffer::CodeBuffer(size_t capacity)
 #else
 #error Unknown code buffer allocator.
 #endif
-  SWANSTATION_VIXL_CHECK(buffer_ != NULL);
+  VIXL_CHECK(buffer_ != NULL);
   // Aarch64 instructions must be word aligned, we assert the default allocator
   // always returns word align memory.
-  SWANSTATION_VIXL_ASSERT(IsWordAligned(buffer_));
+  VIXL_ASSERT(IsWordAligned(buffer_));
 
   cursor_ = buffer_;
 }
@@ -72,16 +72,16 @@ CodeBuffer::CodeBuffer(byte* buffer, size_t capacity)
       cursor_(reinterpret_cast<byte*>(buffer)),
       dirty_(false),
       capacity_(capacity) {
-  SWANSTATION_VIXL_ASSERT(buffer_ != NULL);
+  VIXL_ASSERT(buffer_ != NULL);
 }
 
 
 CodeBuffer::~CodeBuffer() {
-  SWANSTATION_VIXL_ASSERT(!IsDirty());
+  VIXL_ASSERT(!IsDirty());
   if (managed_) {
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MALLOC
+#ifdef VIXL_CODE_BUFFER_MALLOC
     free(buffer_);
-#elif defined(SWANSTATION_VIXL_CODE_BUFFER_MMAP)
+#elif defined(VIXL_CODE_BUFFER_MMAP)
     munmap(buffer_, capacity_);
 #else
 #error Unknown code buffer allocator.
@@ -90,24 +90,24 @@ CodeBuffer::~CodeBuffer() {
 }
 
 
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MMAP
+#ifdef VIXL_CODE_BUFFER_MMAP
 void CodeBuffer::SetExecutable() {
   int ret = mprotect(buffer_, capacity_, PROT_READ | PROT_EXEC);
-  SWANSTATION_VIXL_CHECK(ret == 0);
+  VIXL_CHECK(ret == 0);
 }
 #endif
 
 
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MMAP
+#ifdef VIXL_CODE_BUFFER_MMAP
 void CodeBuffer::SetWritable() {
   int ret = mprotect(buffer_, capacity_, PROT_READ | PROT_WRITE);
-  SWANSTATION_VIXL_CHECK(ret == 0);
+  VIXL_CHECK(ret == 0);
 }
 #endif
 
 
 void CodeBuffer::EmitString(const char* string) {
-  SWANSTATION_VIXL_ASSERT(HasSpaceFor(strlen(string) + 1));
+  VIXL_ASSERT(HasSpaceFor(strlen(string) + 1));
   char* dst = reinterpret_cast<char*>(cursor_);
   dirty_ = true;
   char* null_char = strcpy(dst, string);
@@ -116,7 +116,7 @@ void CodeBuffer::EmitString(const char* string) {
 
 
 void CodeBuffer::EmitData(const void* data, size_t size) {
-  SWANSTATION_VIXL_ASSERT(HasSpaceFor(size));
+  VIXL_ASSERT(HasSpaceFor(size));
   dirty_ = true;
   memcpy(cursor_, data, size);
   cursor_ = cursor_ + size;
@@ -126,7 +126,7 @@ void CodeBuffer::EmitData(const void* data, size_t size) {
 void CodeBuffer::UpdateData(size_t offset, const void* data, size_t size) {
   dirty_ = true;
   byte* dst = buffer_ + offset;
-  SWANSTATION_VIXL_ASSERT(dst + size <= cursor_);
+  VIXL_ASSERT(dst + size <= cursor_);
   memcpy(dst, data, size);
 }
 
@@ -134,7 +134,7 @@ void CodeBuffer::UpdateData(size_t offset, const void* data, size_t size) {
 void CodeBuffer::Align() {
   byte* end = AlignUp(cursor_, 4);
   const size_t padding_size = end - cursor_;
-  SWANSTATION_VIXL_ASSERT(padding_size <= 4);
+  VIXL_ASSERT(padding_size <= 4);
   EmitZeroedBytes(static_cast<int>(padding_size));
 }
 
@@ -146,7 +146,7 @@ void CodeBuffer::EmitZeroedBytes(int n) {
 }
 
 void CodeBuffer::Reset() {
-#ifdef SWANSTATION_VIXL_DEBUG
+#ifdef VIXL_DEBUG
   if (managed_) {
     // Fill with zeros (there is no useful value common to A32 and T32).
     memset(buffer_, 0, capacity_);
@@ -158,16 +158,16 @@ void CodeBuffer::Reset() {
 
 
 void CodeBuffer::Grow(size_t new_capacity) {
-  SWANSTATION_VIXL_ASSERT(managed_);
-  SWANSTATION_VIXL_ASSERT(new_capacity > capacity_);
+  VIXL_ASSERT(managed_);
+  VIXL_ASSERT(new_capacity > capacity_);
   ptrdiff_t cursor_offset = GetCursorOffset();
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MALLOC
+#ifdef VIXL_CODE_BUFFER_MALLOC
   buffer_ = static_cast<byte*>(realloc(buffer_, new_capacity));
-  SWANSTATION_VIXL_CHECK(buffer_ != NULL);
-#elif defined(SWANSTATION_VIXL_CODE_BUFFER_MMAP)
+  VIXL_CHECK(buffer_ != NULL);
+#elif defined(VIXL_CODE_BUFFER_MMAP)
   buffer_ = static_cast<byte*>(
       mremap(buffer_, capacity_, new_capacity, MREMAP_MAYMOVE));
-  SWANSTATION_VIXL_CHECK(buffer_ != MAP_FAILED);
+  VIXL_CHECK(buffer_ != MAP_FAILED);
 #else
 #error Unknown code buffer allocator.
 #endif
@@ -177,4 +177,4 @@ void CodeBuffer::Grow(size_t new_capacity) {
 }
 
 
-}  // namespace swanstation_vixl
+}  // namespace vixl

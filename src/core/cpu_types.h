@@ -6,9 +6,9 @@
 namespace CPU {
 
 // Memory address mask used for fetching as well as loadstores (removes cached/uncached/user/kernel bits).
-inline constexpr u32 PHYSICAL_MEMORY_ADDRESS_MASK = 0x1FFFFFFF;
+inline constexpr uint32_t PHYSICAL_MEMORY_ADDRESS_MASK = 0x1FFFFFFF;
 
-inline constexpr u32 INSTRUCTION_SIZE = sizeof(u32);
+inline constexpr uint32_t INSTRUCTION_SIZE = sizeof(uint32_t);
 
 enum class Segment
 {
@@ -18,7 +18,7 @@ enum class Segment
   KSEG2
 };
 
-enum class Reg : u8
+enum class Reg : uint8_t
 {
   zero,
   at,
@@ -62,7 +62,7 @@ enum class Reg : u8
   count
 };
 
-enum class InstructionOp : u8
+enum class InstructionOp : uint8_t
 {
   funct = 0,
   b = 1, // i.rt 0 - bltz, 1 - bgez, 16 - bltzal, 17 - bgezal
@@ -105,11 +105,8 @@ enum class InstructionOp : u8
   swc2 = 58,
   swc3 = 59,
 };
-constexpr u8 INSTRUCTION_COP_BITS = 0x10;
-constexpr u8 INSTRUCTION_COP_MASK = 0x3C;
-constexpr u8 INSTRUCTION_COP_N_MASK = 0x03;
 
-enum class InstructionFunct : u8
+enum class InstructionFunct : uint8_t
 {
   sll = 0,
   srl = 2,
@@ -141,7 +138,7 @@ enum class InstructionFunct : u8
   sltu = 43
 };
 
-enum class CopCommonInstruction : u32
+enum class CopCommonInstruction : uint32_t
 {
   mfcn = 0b0000,
   cfcn = 0b0010,
@@ -149,7 +146,7 @@ enum class CopCommonInstruction : u32
   ctcn = 0b0110,
 };
 
-enum class Cop0Instruction : u32
+enum class Cop0Instruction : uint32_t
 {
   tlbr = 0x01,
   tlbwi = 0x02,
@@ -160,40 +157,40 @@ enum class Cop0Instruction : u32
 
 union Instruction
 {
-  u32 bits;
+  uint32_t bits;
 
-  BitField<u32, InstructionOp, 26, 6> op; // function/instruction
+  BitField<uint32_t, InstructionOp, 26, 6> op; // function/instruction
 
   union
   {
-    BitField<u32, Reg, 21, 5> rs;
-    BitField<u32, Reg, 16, 5> rt;
-    BitField<u32, u16, 0, 16> imm;
+    BitField<uint32_t, Reg, 21, 5> rs;
+    BitField<uint32_t, Reg, 16, 5> rt;
+    BitField<uint32_t, uint16_t, 0, 16> imm;
 
-    ALWAYS_INLINE u32 imm_sext32() const { return SignExtend32(imm.GetValue()); }
-    ALWAYS_INLINE u32 imm_zext32() const { return ZeroExtend32(imm.GetValue()); }
+    ALWAYS_INLINE uint32_t imm_sext32() const { return static_cast<uint32_t>(static_cast<int16_t>(imm.GetValue())); }
+    ALWAYS_INLINE uint32_t imm_zext32() const { return static_cast<uint32_t>(imm.GetValue()); }
   } i;
 
   union
   {
-    BitField<u32, u32, 0, 26> target;
+    BitField<uint32_t, uint32_t, 0, 26> target;
   } j;
 
   union
   {
-    BitField<u32, Reg, 21, 5> rs;
-    BitField<u32, Reg, 16, 5> rt;
-    BitField<u32, Reg, 11, 5> rd;
-    BitField<u32, u8, 6, 5> shamt;
-    BitField<u32, InstructionFunct, 0, 6> funct;
+    BitField<uint32_t, Reg, 21, 5> rs;
+    BitField<uint32_t, Reg, 16, 5> rt;
+    BitField<uint32_t, Reg, 11, 5> rd;
+    BitField<uint32_t, uint8_t, 6, 5> shamt;
+    BitField<uint32_t, InstructionFunct, 0, 6> funct;
   } r;
 
   union
   {
-    u32 bits;
-    BitField<u32, u8, 26, 2> cop_n;
-    BitField<u32, u16, 0, 16> imm16;
-    BitField<u32, u32, 0, 25> imm25;
+    uint32_t bits;
+    BitField<uint32_t, uint8_t, 26, 2> cop_n;
+    BitField<uint32_t, uint16_t, 0, 16> imm16;
+    BitField<uint32_t, uint32_t, 0, 25> imm25;
 
     ALWAYS_INLINE bool IsCommonInstruction() const { return (bits & (UINT32_C(1) << 25)) == 0; }
 
@@ -230,55 +227,55 @@ struct Registers
 {
   union
   {
-    u32 r[static_cast<u8>(Reg::count)];
+    uint32_t r[static_cast<uint8_t>(Reg::count)];
 
     struct
     {
-      u32 zero; // r0
-      u32 at;   // r1
-      u32 v0;   // r2
-      u32 v1;   // r3
-      u32 a0;   // r4
-      u32 a1;   // r5
-      u32 a2;   // r6
-      u32 a3;   // r7
-      u32 t0;   // r8
-      u32 t1;   // r9
-      u32 t2;   // r10
-      u32 t3;   // r11
-      u32 t4;   // r12
-      u32 t5;   // r13
-      u32 t6;   // r14
-      u32 t7;   // r15
-      u32 s0;   // r16
-      u32 s1;   // r17
-      u32 s2;   // r18
-      u32 s3;   // r19
-      u32 s4;   // r20
-      u32 s5;   // r21
-      u32 s6;   // r22
-      u32 s7;   // r23
-      u32 t8;   // r24
-      u32 t9;   // r25
-      u32 k0;   // r26
-      u32 k1;   // r27
-      u32 gp;   // r28
-      u32 sp;   // r29
-      u32 fp;   // r30
-      u32 ra;   // r31
+      uint32_t zero; // r0
+      uint32_t at;   // r1
+      uint32_t v0;   // r2
+      uint32_t v1;   // r3
+      uint32_t a0;   // r4
+      uint32_t a1;   // r5
+      uint32_t a2;   // r6
+      uint32_t a3;   // r7
+      uint32_t t0;   // r8
+      uint32_t t1;   // r9
+      uint32_t t2;   // r10
+      uint32_t t3;   // r11
+      uint32_t t4;   // r12
+      uint32_t t5;   // r13
+      uint32_t t6;   // r14
+      uint32_t t7;   // r15
+      uint32_t s0;   // r16
+      uint32_t s1;   // r17
+      uint32_t s2;   // r18
+      uint32_t s3;   // r19
+      uint32_t s4;   // r20
+      uint32_t s5;   // r21
+      uint32_t s6;   // r22
+      uint32_t s7;   // r23
+      uint32_t t8;   // r24
+      uint32_t t9;   // r25
+      uint32_t k0;   // r26
+      uint32_t k1;   // r27
+      uint32_t gp;   // r28
+      uint32_t sp;   // r29
+      uint32_t fp;   // r30
+      uint32_t ra;   // r31
 
       // not accessible to instructions
-      u32 hi;
-      u32 lo;
-      u32 pc;  // at execution time: the address of the next instruction to execute (already fetched)
-      u32 npc; // at execution time: the address of the next instruction to fetch
+      uint32_t hi;
+      uint32_t lo;
+      uint32_t pc;  // at execution time: the address of the next instruction to execute (already fetched)
+      uint32_t npc; // at execution time: the address of the next instruction to fetch
     };
   };
 };
 
 std::optional<VirtualMemoryAddress> GetLoadStoreEffectiveAddress(const Instruction& instruction, const Registers* regs);
 
-enum class Cop0Reg : u8
+enum class Cop0Reg : uint8_t
 {
   BPC = 3,
   BDA = 5,
@@ -293,7 +290,7 @@ enum class Cop0Reg : u8
   PRID = 15
 };
 
-enum class Exception : u8
+enum class Exception : uint8_t
 {
   INT = 0x00,     // interrupt
   MOD = 0x01,     // tlb modification
@@ -312,57 +309,57 @@ enum class Exception : u8
 
 struct Cop0Registers
 {
-  u32 BPC;      // breakpoint on execute
-  u32 BDA;      // breakpoint on data access
-  u32 TAR;      // randomly memorized jump address
-  u32 BadVaddr; // bad virtual address value
-  u32 BDAM;     // data breakpoint mask
-  u32 BPCM;     // execute breakpoint mask
-  u32 EPC;      // return address from trap
-  u32 PRID;     // processor ID
+  uint32_t BPC;      // breakpoint on execute
+  uint32_t BDA;      // breakpoint on data access
+  uint32_t TAR;      // randomly memorized jump address
+  uint32_t BadVaddr; // bad virtual address value
+  uint32_t BDAM;     // data breakpoint mask
+  uint32_t BPCM;     // execute breakpoint mask
+  uint32_t EPC;      // return address from trap
+  uint32_t PRID;     // processor ID
 
   union SR
   {
-    u32 bits;
-    BitField<u32, bool, 0, 1> IEc;  // current interrupt enable
-    BitField<u32, bool, 1, 1> KUc;  // current kernel/user mode, user = 1
-    BitField<u32, bool, 2, 1> IEp;  // previous interrupt enable
-    BitField<u32, bool, 3, 1> KUp;  // previous kernel/user mode, user = 1
-    BitField<u32, bool, 4, 1> IEo;  // old interrupt enable
-    BitField<u32, bool, 5, 1> KUo;  // old kernel/user mode, user = 1
-    BitField<u32, u8, 8, 8> Im;     // interrupt mask, set to 1 = allowed to trigger
-    BitField<u32, bool, 16, 1> Isc; // isolate cache, no writes to memory occur
-    BitField<u32, bool, 17, 1> Swc; // swap data and instruction caches
-    BitField<u32, bool, 18, 1> PZ;  // zero cache parity bits
-    BitField<u32, bool, 19, 1> CM;  // last isolated load contains data from memory (tag matches?)
-    BitField<u32, bool, 20, 1> PE;  // cache parity error
-    BitField<u32, bool, 21, 1> TS;  // tlb shutdown - matched two entries
-    BitField<u32, bool, 22, 1> BEV; // boot exception vectors, 0 = KSEG0, 1 = KSEG1
-    BitField<u32, bool, 25, 1> RE;  // reverse endianness in user mode
-    BitField<u32, bool, 28, 1> CU0; // coprocessor 0 enable in user mode
-    BitField<u32, bool, 29, 1> CE1; // coprocessor 1 enable
-    BitField<u32, bool, 30, 1> CE2; // coprocessor 2 enable
-    BitField<u32, bool, 31, 1> CE3; // coprocessor 3 enable
+    uint32_t bits;
+    BitField<uint32_t, bool, 0, 1> IEc;  // current interrupt enable
+    BitField<uint32_t, bool, 1, 1> KUc;  // current kernel/user mode, user = 1
+    BitField<uint32_t, bool, 2, 1> IEp;  // previous interrupt enable
+    BitField<uint32_t, bool, 3, 1> KUp;  // previous kernel/user mode, user = 1
+    BitField<uint32_t, bool, 4, 1> IEo;  // old interrupt enable
+    BitField<uint32_t, bool, 5, 1> KUo;  // old kernel/user mode, user = 1
+    BitField<uint32_t, uint8_t, 8, 8> Im;     // interrupt mask, set to 1 = allowed to trigger
+    BitField<uint32_t, bool, 16, 1> Isc; // isolate cache, no writes to memory occur
+    BitField<uint32_t, bool, 17, 1> Swc; // swap data and instruction caches
+    BitField<uint32_t, bool, 18, 1> PZ;  // zero cache parity bits
+    BitField<uint32_t, bool, 19, 1> CM;  // last isolated load contains data from memory (tag matches?)
+    BitField<uint32_t, bool, 20, 1> PE;  // cache parity error
+    BitField<uint32_t, bool, 21, 1> TS;  // tlb shutdown - matched two entries
+    BitField<uint32_t, bool, 22, 1> BEV; // boot exception vectors, 0 = KSEG0, 1 = KSEG1
+    BitField<uint32_t, bool, 25, 1> RE;  // reverse endianness in user mode
+    BitField<uint32_t, bool, 28, 1> CU0; // coprocessor 0 enable in user mode
+    BitField<uint32_t, bool, 29, 1> CE1; // coprocessor 1 enable
+    BitField<uint32_t, bool, 30, 1> CE2; // coprocessor 2 enable
+    BitField<uint32_t, bool, 31, 1> CE3; // coprocessor 3 enable
 
-    BitField<u32, u8, 0, 6> mode_bits;
-    BitField<u32, u8, 28, 2> coprocessor_enable_mask;
+    BitField<uint32_t, uint8_t, 0, 6> mode_bits;
+    BitField<uint32_t, uint8_t, 28, 2> coprocessor_enable_mask;
 
-    static constexpr u32 WRITE_MASK = 0b1111'0010'0111'1111'1111'1111'0011'1111;
+    static constexpr uint32_t WRITE_MASK = 0b1111'0010'0111'1111'1111'1111'0011'1111;
   } sr;
 
   union CAUSE
   {
-    u32 bits;
-    BitField<u32, Exception, 2, 5> Excode; // which exception occurred
-    BitField<u32, u8, 8, 8> Ip;            // interrupt pending
-    BitField<u32, u8, 28, 2> CE;           // coprocessor number if caused by a coprocessor
-    BitField<u32, bool, 30, 1> BT;         // exception occurred in branch delay slot, and the branch was taken
-    BitField<u32, bool, 31, 1> BD;         // exception occurred in branch delay slot, but pushed IP is for branch
+    uint32_t bits;
+    BitField<uint32_t, Exception, 2, 5> Excode; // which exception occurred
+    BitField<uint32_t, uint8_t, 8, 8> Ip;            // interrupt pending
+    BitField<uint32_t, uint8_t, 28, 2> CE;           // coprocessor number if caused by a coprocessor
+    BitField<uint32_t, bool, 30, 1> BT;         // exception occurred in branch delay slot, and the branch was taken
+    BitField<uint32_t, bool, 31, 1> BD;         // exception occurred in branch delay slot, but pushed IP is for branch
 
-    static constexpr u32 WRITE_MASK = 0b0000'0000'0000'0000'0000'0011'0000'0000;
-    static constexpr u32 EXCEPTION_WRITE_MASK = 0b1111'0000'0000'0000'0000'0000'0111'1100;
+    static constexpr uint32_t WRITE_MASK = 0b0000'0000'0000'0000'0000'0011'0000'0000;
+    static constexpr uint32_t EXCEPTION_WRITE_MASK = 0b1111'0000'0000'0000'0000'0000'0111'1100;
 
-    static u32 MakeValueForException(Exception excode, bool BD, bool BT, u8 CE)
+    static uint32_t MakeValueForException(Exception excode, bool BD, bool BT, uint8_t CE)
     {
       CAUSE c = {};
       c.Excode = excode;
@@ -375,44 +372,44 @@ struct Cop0Registers
 
   union DCIC
   {
-    u32 bits;
-    BitField<u32, bool, 0, 1> status_any_break;
-    BitField<u32, bool, 1, 1> status_bpc_code_break;
-    BitField<u32, bool, 2, 1> status_bda_data_break;
-    BitField<u32, bool, 3, 1> status_bda_data_read_break;
-    BitField<u32, bool, 4, 1> status_bda_data_write_break;
-    BitField<u32, bool, 5, 1> status_any_jump_break;
-    BitField<u32, u8, 12, 2> jump_redirection;
-    BitField<u32, bool, 23, 1> super_master_enable_1;
-    BitField<u32, bool, 24, 1> execution_breakpoint_enable;
-    BitField<u32, bool, 25, 1> data_access_breakpoint;
-    BitField<u32, bool, 26, 1> break_on_data_read;
-    BitField<u32, bool, 27, 1> break_on_data_write;
-    BitField<u32, bool, 28, 1> break_on_any_jump;
-    BitField<u32, bool, 29, 1> master_enable_any_jump;
-    BitField<u32, bool, 30, 1> master_enable_break;
-    BitField<u32, bool, 31, 1> super_master_enable_2;
+    uint32_t bits;
+    BitField<uint32_t, bool, 0, 1> status_any_break;
+    BitField<uint32_t, bool, 1, 1> status_bpc_code_break;
+    BitField<uint32_t, bool, 2, 1> status_bda_data_break;
+    BitField<uint32_t, bool, 3, 1> status_bda_data_read_break;
+    BitField<uint32_t, bool, 4, 1> status_bda_data_write_break;
+    BitField<uint32_t, bool, 5, 1> status_any_jump_break;
+    BitField<uint32_t, uint8_t, 12, 2> jump_redirection;
+    BitField<uint32_t, bool, 23, 1> super_master_enable_1;
+    BitField<uint32_t, bool, 24, 1> execution_breakpoint_enable;
+    BitField<uint32_t, bool, 25, 1> data_access_breakpoint;
+    BitField<uint32_t, bool, 26, 1> break_on_data_read;
+    BitField<uint32_t, bool, 27, 1> break_on_data_write;
+    BitField<uint32_t, bool, 28, 1> break_on_any_jump;
+    BitField<uint32_t, bool, 29, 1> master_enable_any_jump;
+    BitField<uint32_t, bool, 30, 1> master_enable_break;
+    BitField<uint32_t, bool, 31, 1> super_master_enable_2;
 
-    static constexpr u32 WRITE_MASK = 0b1111'1111'1000'0000'1111'0000'0011'1111;
+    static constexpr uint32_t WRITE_MASK = 0b1111'1111'1000'0000'1111'0000'0011'1111;
 
-    static constexpr u32 ANY_BREAKPOINTS_ENABLED_BITS = (1u << 24) | (1u << 26) | (1u << 27) | (1u << 28);
-    static constexpr u32 MASTER_ENABLE_BITS = (1u << 23) | (1u << 31);
+    static constexpr uint32_t ANY_BREAKPOINTS_ENABLED_BITS = (1u << 24) | (1u << 26) | (1u << 27) | (1u << 28);
+    static constexpr uint32_t MASTER_ENABLE_BITS = (1u << 23) | (1u << 31);
 
     constexpr bool ExecutionBreakpointsEnabled() const
     {
-      const u32 mask = (1u << 23) | (1u << 24) | (1u << 31);
+      const uint32_t mask = (1u << 23) | (1u << 24) | (1u << 31);
       return ((bits & mask) == mask);
     }
 
     constexpr bool DataReadBreakpointsEnabled() const
     {
-      const u32 mask = (1u << 23) | (1u << 25) | (1u << 26) | (1u << 31);
+      const uint32_t mask = (1u << 23) | (1u << 25) | (1u << 26) | (1u << 31);
       return ((bits & mask) == mask);
     }
 
     constexpr bool DataWriteBreakpointsEnabled() const
     {
-      const u32 mask = (1u << 23) | (1u << 25) | (1u << 27) | (1u << 31);
+      const uint32_t mask = (1u << 23) | (1u << 25) | (1u << 27) | (1u << 31);
       return ((bits & mask) == mask);
     }
   } dcic;

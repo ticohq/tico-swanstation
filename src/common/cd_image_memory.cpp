@@ -2,8 +2,10 @@
 #include "cd_subchannel_replacement.h"
 #include "file_system.h"
 #include "log.h"
-#include <algorithm>
+#include <formats/data_transfer.h>
 #include <cerrno>
+#include <cstring>
+#include <limits>
 Log_SetChannel(CDImageMemory);
 
 class CDImageMemory : public CDImage
@@ -21,8 +23,8 @@ protected:
   bool ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index) override;
 
 private:
-  u8* m_memory = nullptr;
-  u32 m_memory_sectors = 0;
+  uint8_t* m_memory = nullptr;
+  uint32_t m_memory_sectors = 0;
   CDSubChannelReplacement m_sbi;
 };
 
@@ -34,19 +36,93 @@ CDImageMemory::~CDImageMemory()
     std::free(m_memory);
 }
 
+namespace {
+
+/// Producer state for the data_transfer source below: pulls decoded
+/// sectors out of the parent CDImage in index order.
+struct SectorProducer
+{
+  CDImage* image;
+  uint32_t index_index;
+  uint32_t lba_in_index;
+  bool failed;
+};
+
+/// data_transfer source callback: fill dst with as many whole decoded
+/// sectors as the pacing hint asks for (rounded up to one - producers
+/// with chunked granularity may overshoot; dst always has room to the
+/// declared end).  Returns bytes produced, 0 at end, negative on a
+/// read failure.
+int64_t ReadImageSectors(void* ud, uint8_t* dst, size_t n)
+{
+  SectorProducer* prod = static_cast<SectorProducer*>(ud);
+  int64_t produced = 0;
+
+  do
+  {
+    // advance past exhausted and zero-sized (blank pregap) indices
+    while (prod->index_index < prod->image->GetIndexCount())
+    {
+      const CDImage::Index& idx = prod->image->GetIndex(prod->index_index);
+      if (idx.file_sector_size == 0 || prod->lba_in_index >= idx.length)
+      {
+        prod->index_index++;
+        prod->lba_in_index = 0;
+        continue;
+      }
+      break;
+    }
+
+    if (prod->index_index >= prod->image->GetIndexCount())
+      return produced; // end of stream (0 when nothing was produced)
+
+    const CDImage::Index& index = prod->image->GetIndex(prod->index_index);
+    if (!prod->image->ReadSectorFromIndex(dst, index, prod->lba_in_index))
+    {
+      Log_ErrorPrintf("Failed to read LBA %u in index %u", prod->lba_in_index, prod->index_index);
+      prod->failed = true;
+      return -1;
+    }
+
+    prod->lba_in_index++;
+    dst += CDImage::RAW_SECTOR_SIZE;
+    produced += CDImage::RAW_SECTOR_SIZE;
+  } while (static_cast<size_t>(produced) < n);
+
+  return produced;
+}
+
+struct ProgressHook
+{
+  ProgressCallback* progress;
+};
+
+/// Consulted between the fill's internal pulls: report progress from
+/// inside the fill rather than wrapping iterate() in a timing loop.
+bool ReportProgress(void* ud, size_t avail, size_t len)
+{
+  ProgressHook* hook = static_cast<ProgressHook*>(ud);
+  (void)len;
+  hook->progress->SetProgressValue(static_cast<uint32_t>(avail / CDImage::RAW_SECTOR_SIZE));
+  return true;
+}
+
+} // namespace
+
 bool CDImageMemory::CopyImage(CDImage* image, ProgressCallback* progress)
 {
   // figure out the total number of sectors (not including blank pregaps)
   m_memory_sectors = 0;
-  for (u32 i = 0; i < image->GetIndexCount(); i++)
+  for (uint32_t i = 0; i < image->GetIndexCount(); i++)
   {
     const Index& index = image->GetIndex(i);
     if (index.file_sector_size > 0)
       m_memory_sectors += image->GetIndex(i).length;
   }
 
-  if ((static_cast<u64>(RAW_SECTOR_SIZE) * static_cast<u64>(m_memory_sectors)) >=
-      static_cast<u64>(std::numeric_limits<size_t>::max()))
+  const uint64_t memory_size =
+    static_cast<uint64_t>(RAW_SECTOR_SIZE) * static_cast<uint64_t>(m_memory_sectors);
+  if (memory_size >= static_cast<uint64_t>(std::numeric_limits<size_t>::max()))
   {
     progress->DisplayFormattedModalError("Insufficient address space");
     return false;
@@ -54,9 +130,17 @@ bool CDImageMemory::CopyImage(CDImage* image, ProgressCallback* progress)
 
   progress->SetFormattedStatusText("Allocating memory for %u sectors...", m_memory_sectors);
 
-  m_memory =
-    static_cast<u8*>(std::malloc(static_cast<size_t>(RAW_SECTOR_SIZE) * static_cast<size_t>(m_memory_sectors)));
-  if (!m_memory)
+  // Decode the parent image through a producer-backed data_transfer:
+  // the total length is known up front, so the buffer is one exact
+  // malloc the image adopts on detach.  The producer decodes a full
+  // pacing chunk of sectors per pull instead of one 2352-byte call
+  // per sector, and the
+  // continue-hook reports progress from between those pulls - no
+  // per-sector callback, no partial fill mistaken for completion (a
+  // short read settles the transfer failed, never complete).
+  SectorProducer producer = {image, 0, 0, false};
+  data_transfer_t* dt = data_transfer_open_source(static_cast<size_t>(memory_size), ReadImageSectors, &producer);
+  if (!dt)
   {
     progress->DisplayFormattedModalError("Failed to allocate memory for %u sectors", m_memory_sectors);
     return false;
@@ -66,33 +150,33 @@ bool CDImageMemory::CopyImage(CDImage* image, ProgressCallback* progress)
   progress->SetProgressRange(m_memory_sectors);
   progress->SetProgressValue(0);
 
-  u8* memory_ptr = m_memory;
-  u32 sectors_read = 0;
-  for (u32 i = 0; i < image->GetIndexCount(); i++)
+  ProgressHook hook = {progress};
+  data_transfer_iterate_while(dt, 0, ReportProgress, &hook);
+
+  if (!data_transfer_complete(dt))
   {
-    const Index& index = image->GetIndex(i);
-    if (index.file_sector_size == 0)
-      continue;
-
-    for (u32 lba = 0; lba < index.length; lba++)
-    {
-      if (!image->ReadSectorFromIndex(memory_ptr, index, lba))
-      {
-        Log_ErrorPrintf("Failed to read LBA %u in index %u", lba, i);
-        return false;
-      }
-
-      progress->SetProgressValue(sectors_read);
-      memory_ptr += RAW_SECTOR_SIZE;
-      sectors_read++;
-    }
+    data_transfer_free(dt);
+    return false;
   }
 
-  for (u32 i = 1; i <= image->GetTrackCount(); i++)
+  size_t detached_len = 0;
+  m_memory = data_transfer_source_detach(dt, &detached_len);
+  if (!m_memory || detached_len != static_cast<size_t>(memory_size))
+  {
+    // detach frees the transfer on success; only a NULL return leaves
+    // it alive
+    if (!m_memory)
+      data_transfer_free(dt);
+    return false;
+  }
+
+  progress->SetProgressValue(m_memory_sectors);
+
+  for (uint32_t i = 1; i <= image->GetTrackCount(); i++)
     m_tracks.push_back(image->GetTrack(i));
 
-  u32 current_offset = 0;
-  for (u32 i = 0; i < image->GetIndexCount(); i++)
+  uint32_t current_offset = 0;
+  for (uint32_t i = 0; i < image->GetIndexCount(); i++)
   {
     Index new_index = image->GetIndex(i);
     new_index.file_index = 0;
@@ -127,7 +211,7 @@ bool CDImageMemory::HasNonStandardSubchannel() const
 
 bool CDImageMemory::ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index)
 {
-  const u64 sector_number = index.file_offset + lba_in_index;
+  const uint64_t sector_number = index.file_offset + lba_in_index;
   if (sector_number >= m_memory_sectors)
     return false;
 

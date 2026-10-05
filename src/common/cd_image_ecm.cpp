@@ -5,6 +5,7 @@
 #include "log.h"
 #include <array>
 #include <cerrno>
+#include <cstring>
 #include <map>
 Log_SetChannel(CDImageEcm);
 
@@ -12,59 +13,59 @@ Log_SetChannel(CDImageEcm);
 
 /* LUTs used for computing ECC/EDC */
 
-static constexpr std::array<u8, 256> ComputeECCFLUT()
+static constexpr std::array<uint8_t, 256> ComputeECCFLUT()
 {
-  std::array<u8, 256> ecc_lut{};
-  for (u32 i = 0; i < 256; i++)
+  std::array<uint8_t, 256> ecc_lut{};
+  for (uint32_t i = 0; i < 256; i++)
   {
-    u32 j = (i << 1) ^ (i & 0x80 ? 0x11D : 0);
-    ecc_lut[i] = static_cast<u8>(j);
+    uint32_t j = (i << 1) ^ (i & 0x80 ? 0x11D : 0);
+    ecc_lut[i] = static_cast<uint8_t>(j);
   }
   return ecc_lut;
 }
 
-static constexpr std::array<u8, 256> ComputeECCBLUT()
+static constexpr std::array<uint8_t, 256> ComputeECCBLUT()
 {
-  std::array<u8, 256> ecc_lut{};
-  for (u32 i = 0; i < 256; i++)
+  std::array<uint8_t, 256> ecc_lut{};
+  for (uint32_t i = 0; i < 256; i++)
   {
-    u32 j = (i << 1) ^ (i & 0x80 ? 0x11D : 0);
-    ecc_lut[i ^ j] = static_cast<u8>(i);
+    uint32_t j = (i << 1) ^ (i & 0x80 ? 0x11D : 0);
+    ecc_lut[i ^ j] = static_cast<uint8_t>(i);
   }
   return ecc_lut;
 }
 
-static constexpr std::array<u32, 256> ComputeEDCLUT()
+static constexpr std::array<uint32_t, 256> ComputeEDCLUT()
 {
-  std::array<u32, 256> edc_lut{};
-  for (u32 i = 0; i < 256; i++)
+  std::array<uint32_t, 256> edc_lut{};
+  for (uint32_t i = 0; i < 256; i++)
   {
-    u32 edc = i;
-    for (u32 k = 0; k < 8; k++)
+    uint32_t edc = i;
+    for (uint32_t k = 0; k < 8; k++)
       edc = (edc >> 1) ^ (edc & 1 ? 0xD8018001 : 0);
     edc_lut[i] = edc;
   }
   return edc_lut;
 }
 
-static constexpr std::array<u8, 256> ecc_f_lut = ComputeECCFLUT();
-static constexpr std::array<u8, 256> ecc_b_lut = ComputeECCBLUT();
-static constexpr std::array<u32, 256> edc_lut = ComputeEDCLUT();
+static constexpr std::array<uint8_t, 256> ecc_f_lut = ComputeECCFLUT();
+static constexpr std::array<uint8_t, 256> ecc_b_lut = ComputeECCBLUT();
+static constexpr std::array<uint32_t, 256> edc_lut = ComputeEDCLUT();
 
 /***************************************************************************/
 /*
 ** Compute EDC for a block
 */
-static u32 edc_partial_computeblock(u32 edc, const u8* src, u16 size)
+static uint32_t edc_partial_computeblock(uint32_t edc, const uint8_t* src, uint16_t size)
 {
   while (size--)
     edc = (edc >> 8) ^ edc_lut[(edc ^ (*src++)) & 0xFF];
   return edc;
 }
 
-static void edc_computeblock(const u8* src, u16 size, u8* dest)
+static void edc_computeblock(const uint8_t* src, uint16_t size, uint8_t* dest)
 {
-  u32 edc = edc_partial_computeblock(0, src, size);
+  uint32_t edc = edc_partial_computeblock(0, src, size);
   dest[0] = (edc >> 0) & 0xFF;
   dest[1] = (edc >> 8) & 0xFF;
   dest[2] = (edc >> 16) & 0xFF;
@@ -75,18 +76,18 @@ static void edc_computeblock(const u8* src, u16 size, u8* dest)
 /*
 ** Compute ECC for a block (can do either P or Q)
 */
-static void ecc_computeblock(u8* src, u32 major_count, u32 minor_count, u32 major_mult, u32 minor_inc, u8* dest)
+static void ecc_computeblock(uint8_t* src, uint32_t major_count, uint32_t minor_count, uint32_t major_mult, uint32_t minor_inc, uint8_t* dest)
 {
-  u32 size = major_count * minor_count;
-  u32 major, minor;
+  uint32_t size = major_count * minor_count;
+  uint32_t major, minor;
   for (major = 0; major < major_count; major++)
   {
-    u32 index = (major >> 1) * major_mult + (major & 1);
-    u8 ecc_a = 0;
-    u8 ecc_b = 0;
+    uint32_t index = (major >> 1) * major_mult + (major & 1);
+    uint8_t ecc_a = 0;
+    uint8_t ecc_b = 0;
     for (minor = 0; minor < minor_count; minor++)
     {
-      u8 temp = src[index];
+      uint8_t temp = src[index];
       index += minor_inc;
       if (index >= size)
         index -= size;
@@ -103,9 +104,9 @@ static void ecc_computeblock(u8* src, u32 major_count, u32 minor_count, u32 majo
 /*
 ** Generate ECC P and Q codes for a block
 */
-static void ecc_generate(u8* sector, int zeroaddress)
+static void ecc_generate(uint8_t* sector, int zeroaddress)
 {
-  u8 address[4], i;
+  uint8_t address[4], i;
   /* Save the address and zero it out */
   if (zeroaddress)
     for (i = 0; i < 4; i++)
@@ -128,7 +129,7 @@ static void ecc_generate(u8* sector, int zeroaddress)
 ** Generate ECC/EDC information for a sector (must be 2352 = 0x930 bytes)
 ** Returns 0 on success
 */
-static void eccedc_generate(u8* sector, int type)
+static void eccedc_generate(uint8_t* sector, int type)
 {
   switch (type)
   {
@@ -136,7 +137,7 @@ static void eccedc_generate(u8* sector, int type)
       /* Compute EDC */
       edc_computeblock(sector + 0x00, 0x810, sector + 0x810);
       /* Write out zero bytes */
-      for (u32 i = 0; i < 8; i++)
+      for (uint32_t i = 0; i < 8; i++)
         sector[0x814 + i] = 0;
       /* Generate ECC P/Q codes */
       ecc_generate(sector, 0);
@@ -169,11 +170,19 @@ protected:
   bool ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index) override;
 
 private:
-  bool ReadChunks(u32 disc_offset, u32 size);
+  bool ReadChunks(uint32_t disc_offset, uint32_t size);
+
+  /// Read @size bytes at absolute file @offset: memcpy out of the
+  /// whole-file mapping when the open produced one, else a
+  /// position-guarded seek + read (adjacent chunks skip the seek).
+  bool ReadFileBytes(int64_t offset, void* dst, uint32_t size);
 
   RFILE* m_fp = nullptr;
+  const uint8_t* m_map = nullptr;
+  int64_t m_map_size = 0;
+  int64_t m_file_position = -1;
 
-  enum class SectorType : u32
+  enum class SectorType : uint32_t
   {
     Raw = 0x00,
     Mode1 = 0x01,
@@ -182,14 +191,14 @@ private:
     Count,
   };
 
-  static constexpr std::array<u32, static_cast<u32>(SectorType::Count)> s_sector_sizes = {
+  static constexpr std::array<uint32_t, static_cast<uint32_t>(SectorType::Count)> s_sector_sizes = {
     0x930, // raw
     0x803, // mode1
     0x804, // mode2form1
     0x918, // mode2form2
   };
 
-  static constexpr std::array<u32, static_cast<u32>(SectorType::Count)> s_chunk_sizes = {
+  static constexpr std::array<uint32_t, static_cast<uint32_t>(SectorType::Count)> s_chunk_sizes = {
     0,    // raw
     2352, // mode1
     2336, // mode2form1
@@ -198,16 +207,16 @@ private:
 
   struct SectorEntry
   {
-    u32 file_offset;
-    u32 chunk_size;
+    uint32_t file_offset;
+    uint32_t chunk_size;
     SectorType type;
   };
 
-  using DataMap = std::map<u32, SectorEntry>;
+  using DataMap = std::map<uint32_t, SectorEntry>;
 
   DataMap m_data_map;
-  std::vector<u8> m_chunk_buffer;
-  u32 m_chunk_start = 0;
+  std::vector<uint8_t> m_chunk_buffer;
+  uint32_t m_chunk_start = 0;
 
   CDSubChannelReplacement m_sbi;
 };
@@ -220,22 +229,93 @@ CDImageEcm::~CDImageEcm()
     rfclose(m_fp);
 }
 
+namespace {
+
+/// Forward-only reader over the chunk-header bytes of an ECM file.
+///
+/// ECM interleaves 1-5 byte chunk headers with 2-4 KiB payloads, and
+/// the natural parse - getc per header byte, seek past each payload -
+/// costs two VFS round trips per chunk.  A typical 330k-chunk disc
+/// paid ~700k calls, and with a lookahead-buffered getc it was worse:
+/// every seek discards the 16 KiB the previous getc pulled in, ~5 GiB
+/// of read amplification against a 700 MiB file.
+///
+/// This reader works from the whole-file mapping when the open
+/// produced one (no I/O calls at all - the header pages fault in via
+/// OS readahead), and otherwise scans in 256 KiB blocks: one refill
+/// covers ~110 chunks' worth of headers, in-block payload skips are
+/// pointer arithmetic, and only a skip past the block's end (large
+/// Raw runs) costs a seek.
+struct EcmHeaderReader
+{
+  RFILE* fp;
+  const uint8_t* map;
+  int64_t file_size;
+  std::vector<uint8_t> buf;
+  int64_t buf_base = 0;
+  uint32_t buf_len = 0;
+
+  static constexpr uint32_t BLOCK_SIZE = 256 * 1024;
+
+  EcmHeaderReader(RFILE* fp_, const uint8_t* map_, int64_t file_size_) : fp(fp_), map(map_), file_size(file_size_) {}
+
+  /// Byte at absolute file offset, or EOF past the end / on error.
+  int GetByte(int64_t offset)
+  {
+    if (offset < 0 || offset >= file_size)
+      return EOF;
+    if (map)
+      return map[offset];
+
+    if (offset < buf_base || offset >= (buf_base + static_cast<int64_t>(buf_len)))
+    {
+      if (buf.empty())
+        buf.resize(BLOCK_SIZE);
+      if (rfseek(fp, offset, SEEK_SET) != 0)
+        return EOF;
+
+      const int64_t nread = rfread(buf.data(), 1, BLOCK_SIZE, fp);
+      if (nread <= 0)
+        return EOF;
+
+      buf_base = offset;
+      buf_len = static_cast<uint32_t>(nread);
+    }
+
+    return buf[static_cast<size_t>(offset - buf_base)];
+  }
+};
+
+} // namespace
+
 bool CDImageEcm::Open(const char* filename, Common::Error* error)
 {
   m_filename = filename;
-  m_fp = FileSystem::OpenRFile(filename, "rb");
+  m_fp = FileSystem::OpenMappableRFile(filename);
   if (!m_fp)
   {
     Log_ErrorPrintf("Failed to open binfile '%s': errno %d", filename, errno);
     return false;
   }
 
-  s64 file_size;
+  int64_t file_size;
   if (FileSystem::FSeek64(m_fp, 0, SEEK_END) != 0 || (file_size = FileSystem::FTell64(m_fp)) <= 0 ||
       FileSystem::FSeek64(m_fp, 0, SEEK_SET) != 0)
   {
     Log_ErrorPrintf("Get file size failed: errno %d", errno);
     return false;
+  }
+
+  // Borrowed view of the whole file when the platform mapped it;
+  // nullptr is a normal answer (32-bit host, frontend-backed handle,
+  // no mapping support) and every consumer below keeps a read path.
+  m_map = FileSystem::GetMappedView(m_fp, &m_map_size);
+  if (m_map && m_map_size < file_size)
+  {
+    // A mapping shorter than the file would turn bounds checks
+    // against file_size into out-of-bounds reads; use plain I/O.
+    m_map = nullptr;
+    m_map_size = 0;
   }
 
   char header[4];
@@ -250,12 +330,13 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
   }
 
   // build sector map
-  u32 file_offset = static_cast<u32>(rftell(m_fp));
-  u32 disc_offset = 0;
+  EcmHeaderReader reader(m_fp, m_map, file_size);
+  int64_t file_offset = FileSystem::FTell64(m_fp);
+  uint32_t disc_offset = 0;
 
   for (;;)
   {
-    int bits = rfgetc(m_fp);
+    int bits = reader.GetByte(file_offset);
     if (bits == EOF)
     {
       Log_ErrorPrintf("Unexpected EOF after %zu chunks", m_data_map.size());
@@ -266,12 +347,12 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
     }
 
     file_offset++;
-    const SectorType type = static_cast<SectorType>(static_cast<u32>(bits) & 0x03u);
-    u32 count = (static_cast<u32>(bits) >> 2) & 0x1F;
-    u32 shift = 5;
+    const SectorType type = static_cast<SectorType>(static_cast<uint32_t>(bits) & 0x03u);
+    uint32_t count = (static_cast<uint32_t>(bits) >> 2) & 0x1F;
+    uint32_t shift = 5;
     while (bits & 0x80)
     {
-      bits = rfgetc(m_fp);
+      bits = reader.GetByte(file_offset);
       if (bits == EOF)
       {
         Log_ErrorPrintf("Unexpected EOF after %zu chunks", m_data_map.size());
@@ -281,7 +362,7 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
         return false;
       }
 
-      count |= (static_cast<u32>(bits) & 0x7F) << shift;
+      count |= (static_cast<uint32_t>(bits) & 0x7F) << shift;
       shift += 7;
       file_offset++;
     }
@@ -305,13 +386,13 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
     {
       while (count > 0)
       {
-        const u32 size = std::min<u32>(count, 2352);
-        m_data_map.emplace(disc_offset, SectorEntry{file_offset, size, type});
+        const uint32_t size = std::min<uint32_t>(count, 2352);
+        m_data_map.emplace(disc_offset, SectorEntry{static_cast<uint32_t>(file_offset), size, type});
         disc_offset += size;
         file_offset += size;
         count -= size;
 
-        if (static_cast<s64>(file_offset) > file_size)
+        if (file_offset > file_size)
         {
           Log_ErrorPrintf("Out of file bounds after %zu chunks", m_data_map.size());
           if (error)
@@ -321,15 +402,15 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
     }
     else
     {
-      const u32 size = s_sector_sizes[static_cast<u32>(type)];
-      const u32 chunk_size = s_chunk_sizes[static_cast<u32>(type)];
-      for (u32 i = 0; i < count; i++)
+      const uint32_t size = s_sector_sizes[static_cast<uint32_t>(type)];
+      const uint32_t chunk_size = s_chunk_sizes[static_cast<uint32_t>(type)];
+      for (uint32_t i = 0; i < count; i++)
       {
-        m_data_map.emplace(disc_offset, SectorEntry{file_offset, chunk_size, type});
+        m_data_map.emplace(disc_offset, SectorEntry{static_cast<uint32_t>(file_offset), chunk_size, type});
         disc_offset += chunk_size;
         file_offset += size;
 
-        if (static_cast<s64>(file_offset) > file_size)
+        if (file_offset > file_size)
         {
           Log_ErrorPrintf("Out of file bounds after %zu chunks", m_data_map.size());
           if (error)
@@ -338,14 +419,8 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
       }
     }
 
-    if (rfseek(m_fp, file_offset, SEEK_SET) != 0)
-    {
-      Log_ErrorPrintf("Failed to seek to offset %u after %zu chunks", file_offset, m_data_map.size());
-      if (error)
-        error->SetFormattedMessage("Failed to seek to offset %u after %zu chunks", file_offset, m_data_map.size());
-
-      return false;
-    }
+    // No per-chunk seek: the reader addresses header bytes by
+    // absolute offset and skips payloads arithmetically.
   }
 
   if (m_data_map.empty())
@@ -368,11 +443,11 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
   control.data = mode != TrackMode::Audio;
 
   // Two seconds default pregap.
-  const u32 pregap_frames = 2 * FRAMES_PER_SECOND;
+  const uint32_t pregap_frames = 2 * FRAMES_PER_SECOND;
   Index pregap_index = {};
   pregap_index.file_sector_size = RAW_SECTOR_SIZE;
   pregap_index.start_lba_on_disc = 0;
-  pregap_index.start_lba_in_track = static_cast<LBA>(-static_cast<s32>(pregap_frames));
+  pregap_index.start_lba_in_track = static_cast<LBA>(-static_cast<int32_t>(pregap_frames));
   pregap_index.length = pregap_frames;
   pregap_index.track_number = 1;
   pregap_index.index_number = 0;
@@ -397,7 +472,7 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
 
   // Assume a single track.
   m_tracks.push_back(
-    Track{static_cast<u32>(1), data_index.start_lba_on_disc, static_cast<u32>(0), m_lba_count, mode, control});
+    Track{static_cast<uint32_t>(1), data_index.start_lba_on_disc, static_cast<uint32_t>(0), m_lba_count, mode, control});
 
   AddLeadOutIndex();
 
@@ -407,7 +482,34 @@ bool CDImageEcm::Open(const char* filename, Common::Error* error)
   return Seek(1, Position{0, 0, 0});
 }
 
-bool CDImageEcm::ReadChunks(u32 disc_offset, u32 size)
+bool CDImageEcm::ReadFileBytes(int64_t offset, void* dst, uint32_t size)
+{
+  if (m_map)
+  {
+    if (offset < 0 || size > m_map_size || offset > (m_map_size - static_cast<int64_t>(size)))
+      return false;
+    std::memcpy(dst, m_map + offset, size);
+    return true;
+  }
+
+  if (m_file_position != offset)
+  {
+    if (rfseek(m_fp, offset, SEEK_SET) != 0)
+      return false;
+    m_file_position = offset;
+  }
+
+  if (rfread(dst, 1, size, m_fp) != static_cast<int64_t>(size))
+  {
+    m_file_position = -1;
+    return false;
+  }
+
+  m_file_position += size;
+  return true;
+}
+
+bool CDImageEcm::ReadChunks(uint32_t disc_offset, uint32_t size)
 {
   DataMap::iterator next =
     m_data_map.lower_bound((disc_offset > RAW_SECTOR_SIZE) ? (disc_offset - RAW_SECTOR_SIZE) : 0);
@@ -421,39 +523,40 @@ bool CDImageEcm::ReadChunks(u32 disc_offset, u32 size)
   if (m_chunk_start < disc_offset)
     size += (disc_offset - current->first);
 
-  u32 total_bytes_read = 0;
+  uint32_t total_bytes_read = 0;
   while (total_bytes_read < size)
   {
-    if (current == m_data_map.end() || rfseek(m_fp, current->second.file_offset, SEEK_SET) != 0)
+    if (current == m_data_map.end())
       return false;
 
-    const u32 chunk_size = current->second.chunk_size;
-    const u32 chunk_start = static_cast<u32>(m_chunk_buffer.size());
+    const int64_t file_offset = current->second.file_offset;
+    const uint32_t chunk_size = current->second.chunk_size;
+    const uint32_t chunk_start = static_cast<uint32_t>(m_chunk_buffer.size());
     m_chunk_buffer.resize(chunk_start + chunk_size);
 
     if (current->second.type == SectorType::Raw)
     {
-      if (rfread(&m_chunk_buffer[chunk_start], chunk_size, 1, m_fp) != 1)
+      if (!ReadFileBytes(file_offset, &m_chunk_buffer[chunk_start], chunk_size))
         return false;
 
       total_bytes_read += chunk_size;
     }
     else
     {
-      // u8* sector = &m_chunk_buffer[chunk_start];
-      u8 sector[RAW_SECTOR_SIZE];
+      uint8_t sector[RAW_SECTOR_SIZE];
 
       // TODO: needed?
       std::memset(sector, 0, RAW_SECTOR_SIZE);
       std::memset(sector + 1, 0xFF, 10);
 
-      u32 skip;
+      uint32_t skip;
       switch (current->second.type)
       {
         case SectorType::Mode1:
         {
           sector[0x0F] = 0x01;
-          if (rfread(sector + 0x00C, 0x003, 1, m_fp) != 1 || rfread(sector + 0x010, 0x800, 1, m_fp) != 1)
+          if (!ReadFileBytes(file_offset, sector + 0x00C, 0x003) ||
+              !ReadFileBytes(file_offset + 0x003, sector + 0x010, 0x800))
             return false;
 
           eccedc_generate(sector, 1);
@@ -464,7 +567,7 @@ bool CDImageEcm::ReadChunks(u32 disc_offset, u32 size)
         case SectorType::Mode2Form1:
         {
           sector[0x0F] = 0x02;
-          if (rfread(sector + 0x014, 0x804, 1, m_fp) != 1)
+          if (!ReadFileBytes(file_offset, sector + 0x014, 0x804))
             return false;
 
           sector[0x10] = sector[0x14];
@@ -480,7 +583,7 @@ bool CDImageEcm::ReadChunks(u32 disc_offset, u32 size)
         case SectorType::Mode2Form2:
         {
           sector[0x0F] = 0x02;
-          if (rfread(sector + 0x014, 0x918, 1, m_fp) != 1)
+          if (!ReadFileBytes(file_offset, sector + 0x014, 0x918))
             return false;
 
           sector[0x10] = sector[0x14];
@@ -522,8 +625,8 @@ bool CDImageEcm::HasNonStandardSubchannel() const
 
 bool CDImageEcm::ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index)
 {
-  const u32 file_start = static_cast<u32>(index.file_offset) + (lba_in_index * index.file_sector_size);
-  const u32 file_end = file_start + RAW_SECTOR_SIZE;
+  const uint32_t file_start = static_cast<uint32_t>(index.file_offset) + (lba_in_index * index.file_sector_size);
+  const uint32_t file_end = file_start + RAW_SECTOR_SIZE;
 
   if (file_start < m_chunk_start || file_end > (m_chunk_start + m_chunk_buffer.size()))
   {

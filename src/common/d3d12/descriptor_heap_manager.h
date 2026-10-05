@@ -16,11 +16,11 @@ namespace D3D12 {
 // This class provides an abstraction for D3D12 descriptor heaps.
 struct DescriptorHandle final
 {
-  static constexpr u32 INVALID_INDEX = 0xFFFFFFFF;
+  static constexpr uint32_t INVALID_INDEX = 0xFFFFFFFF;
 
   D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{};
   D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle{};
-  u32 index = INVALID_INDEX;
+  uint32_t index = INVALID_INDEX;
 
   ALWAYS_INLINE operator bool() const { return index != INVALID_INDEX; }
 
@@ -42,24 +42,24 @@ public:
   ~DescriptorHeapManager();
 
   ID3D12DescriptorHeap* GetDescriptorHeap() const { return m_descriptor_heap.Get(); }
-  u32 GetDescriptorIncrementSize() const { return m_descriptor_increment_size; }
+  uint32_t GetDescriptorIncrementSize() const { return m_descriptor_increment_size; }
 
-  bool Create(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 num_descriptors, bool shader_visible);
+  bool Create(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t num_descriptors, bool shader_visible);
   void Destroy();
 
   bool Allocate(DescriptorHandle* handle);
   void Free(DescriptorHandle* handle);
-  void Free(u32 index);
+  void Free(uint32_t index);
 
 private:
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_descriptor_heap;
-  u32 m_num_descriptors = 0;
-  u32 m_descriptor_increment_size = 0;
+  uint32_t m_num_descriptors = 0;
+  uint32_t m_descriptor_increment_size = 0;
 
   D3D12_CPU_DESCRIPTOR_HANDLE m_heap_base_cpu = {};
   D3D12_GPU_DESCRIPTOR_HANDLE m_heap_base_gpu = {};
 
-  static constexpr u32 BITSET_SIZE = 1024;
+  static constexpr uint32_t BITSET_SIZE = 1024;
   using BitSetType = std::bitset<BITSET_SIZE>;
   std::vector<BitSetType> m_free_slots = {};
 };

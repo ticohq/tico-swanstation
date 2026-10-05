@@ -1,28 +1,25 @@
 #pragma once
 #include "types.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <type_traits>
+#include <utility>
 
 #ifdef _WIN32
 #include <malloc.h> // _aligned_malloc
-#else
-#include <stdlib.h> // posix_memalign
 #endif
 
-template<typename T, u32 CAPACITY>
+template<typename T, uint32_t CAPACITY>
 class FIFOQueue
 {
 public:
-  const T* GetDataPointer() const { return m_ptr; }
-  T* GetDataPointer() { return m_ptr; }
   const T* GetReadPointer() const { return &m_ptr[m_head]; }
   T* GetReadPointer() { return &m_ptr[m_head]; }
-  constexpr u32 GetCapacity() const { return CAPACITY; }
   T* GetWritePointer() { return &m_ptr[m_tail]; }
-  u32 GetSize() const { return m_size; }
-  u32 GetSpace() const { return CAPACITY - m_size; }
-  u32 GetContiguousSpace() const
+  uint32_t GetSize() const { return m_size; }
+  uint32_t GetSpace() const { return CAPACITY - m_size; }
+  uint32_t GetContiguousSpace() const
   {
     if (m_tail == m_head && m_size > 0)
       return 0;
@@ -30,7 +27,7 @@ public:
       return (CAPACITY - m_tail);
     return (m_head - m_tail);
   }
-  u32 GetContiguousSize() const { return std::min<u32>(CAPACITY - m_head, m_size); }
+  uint32_t GetContiguousSize() const { return std::min<uint32_t>(CAPACITY - m_head, m_size); }
   bool IsEmpty() const { return m_size == 0; }
   bool IsFull() const { return m_size == CAPACITY; }
 
@@ -59,11 +56,11 @@ public:
 
   // faster version of push_back_range for POD types which can be memcpy()ed
   template<class Y = T, std::enable_if_t<std::is_pod_v<Y>, int> = 0>
-  void PushRange(const T* data, u32 size)
+  void PushRange(const T* data, uint32_t size)
   {
-    const u32 space_before_end = CAPACITY - m_tail;
-    const u32 size_before_end = (size > space_before_end) ? space_before_end : size;
-    const u32 size_after_end = size - size_before_end;
+    const uint32_t space_before_end = CAPACITY - m_tail;
+    const uint32_t size_before_end = (size > space_before_end) ? space_before_end : size;
+    const uint32_t size_after_end = size - size_before_end;
 
     std::memcpy(&m_ptr[m_tail], data, sizeof(T) * size_before_end);
     m_tail = (m_tail + size_before_end) % CAPACITY;
@@ -78,7 +75,7 @@ public:
   }
 
   template<class Y = T, std::enable_if_t<!std::is_pod_v<Y>, int> = 0>
-  void PushRange(const T* data, u32 size)
+  void PushRange(const T* data, uint32_t size)
   {
     while (size > 0)
     {
@@ -90,11 +87,11 @@ public:
   }
 
   const T& Peek() const { return m_ptr[m_head]; }
-  const T& Peek(u32 offset) { return m_ptr[(m_head + offset) % CAPACITY]; }
+  const T& Peek(uint32_t offset) { return m_ptr[(m_head + offset) % CAPACITY]; }
 
-  void Remove(u32 count)
+  void Remove(uint32_t count)
   {
-    for (u32 i = 0; i < count; i++)
+    for (uint32_t i = 0; i < count; i++)
     {
       m_ptr[m_head].~T();
       m_head = (m_head + 1) % CAPACITY;
@@ -119,10 +116,10 @@ public:
     return val;
   }
 
-  void PopRange(T* out_data, u32 count)
+  void PopRange(T* out_data, uint32_t count)
   {
 
-    for (u32 i = 0; i < count; i++)
+    for (uint32_t i = 0; i < count; i++)
     {
       out_data[i] = std::move(m_ptr[m_head]);
       m_ptr[m_head].~T();
@@ -131,7 +128,7 @@ public:
     }
   }
 
-  template<u32 QUEUE_CAPACITY>
+  template<uint32_t QUEUE_CAPACITY>
   void PushFromQueue(FIFOQueue<T, QUEUE_CAPACITY>* other_queue)
   {
     while (!other_queue->IsEmpty() && !IsFull())
@@ -141,7 +138,7 @@ public:
     }
   }
 
-  void AdvanceTail(u32 count)
+  void AdvanceTail(uint32_t count)
   {
     m_tail = (m_tail + count) % CAPACITY;
     m_size += count;
@@ -159,12 +156,12 @@ protected:
   }
 
   T* m_ptr = nullptr;
-  u32 m_head = 0;
-  u32 m_tail = 0;
-  u32 m_size = 0;
+  uint32_t m_head = 0;
+  uint32_t m_tail = 0;
+  uint32_t m_size = 0;
 };
 
-template<typename T, u32 CAPACITY>
+template<typename T, uint32_t CAPACITY>
 class InlineFIFOQueue : public FIFOQueue<T, CAPACITY>
 {
 public:
@@ -174,7 +171,7 @@ private:
   T m_inline_data[CAPACITY] = {};
 };
 
-template<typename T, u32 CAPACITY, u32 ALIGNMENT = 0>
+template<typename T, uint32_t CAPACITY, uint32_t ALIGNMENT = 0>
 class HeapFIFOQueue : public FIFOQueue<T, CAPACITY>
 {
 public:
@@ -191,6 +188,9 @@ public:
     }
     else
       this->m_ptr = static_cast<T*>(std::malloc(sizeof(T) * CAPACITY));
+
+    if (this->m_ptr == nullptr)
+      std::abort();
 
     std::memset(this->m_ptr, 0, sizeof(T) * CAPACITY);
   }

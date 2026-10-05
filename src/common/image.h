@@ -5,15 +5,13 @@
 #include <optional>
 #include <vector>
 
-class ByteStream;
-
 namespace Common {
 template<typename PixelType>
 class Image
 {
 public:
   Image() = default;
-  Image(u32 width, u32 height, const PixelType* pixels) { SetPixels(width, height, pixels); }
+  Image(uint32_t width, uint32_t height, const PixelType* pixels) { SetPixels(width, height, pixels); }
   Image(const Image& copy)
   {
     m_width = copy.m_width;
@@ -47,27 +45,18 @@ public:
   }
 
   ALWAYS_INLINE bool IsValid() const { return (m_width > 0 && m_height > 0); }
-  ALWAYS_INLINE u32 GetWidth() const { return m_width; }
-  ALWAYS_INLINE u32 GetHeight() const { return m_height; }
-  ALWAYS_INLINE u32 GetByteStride() const { return (sizeof(PixelType) * m_width); }
+  ALWAYS_INLINE uint32_t GetWidth() const { return m_width; }
+  ALWAYS_INLINE uint32_t GetHeight() const { return m_height; }
+  ALWAYS_INLINE uint32_t GetByteStride() const { return (sizeof(PixelType) * m_width); }
   ALWAYS_INLINE const PixelType* GetPixels() const { return m_pixels.data(); }
   ALWAYS_INLINE PixelType* GetPixels() { return m_pixels.data(); }
-  ALWAYS_INLINE void SetPixel(u32 x, u32 y, PixelType pixel) { m_pixels[y * m_width + x] = pixel; }
-  ALWAYS_INLINE PixelType GetPixel(u32 x, u32 y) const { return m_pixels[y * m_width + x]; }
 
   void Clear(PixelType fill_value = static_cast<PixelType>(0))
   {
     std::fill(m_pixels.begin(), m_pixels.end(), fill_value);
   }
 
-  void Invalidate()
-  {
-    m_width = 0;
-    m_height = 0;
-    m_pixels.clear();
-  }
-
-  void SetSize(u32 new_width, u32 new_height, PixelType fill_value = static_cast<PixelType>(0))
+  void SetSize(uint32_t new_width, uint32_t new_height, PixelType fill_value = static_cast<PixelType>(0))
   {
     m_width = new_width;
     m_height = new_height;
@@ -75,7 +64,7 @@ public:
     Clear(fill_value);
   }
 
-  void SetPixels(u32 width, u32 height, const PixelType* pixels)
+  void SetPixels(uint32_t width, uint32_t height, const PixelType* pixels)
   {
     m_width = width;
     m_height = height;
@@ -84,14 +73,13 @@ public:
   }
 
 private:
-  u32 m_width = 0;
-  u32 m_height = 0;
+  uint32_t m_width = 0;
+  uint32_t m_height = 0;
   std::vector<PixelType> m_pixels;
 };
 
-using RGBA8Image = Image<u32>;
+using RGBA8Image = Image<uint32_t>;
 
 bool LoadImageFromFile(Common::RGBA8Image* image, const char* filename);
-bool WriteImageToFile(const Common::RGBA8Image& image, const char* filename);
 
 } // namespace Common

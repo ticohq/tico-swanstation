@@ -32,7 +32,7 @@ namespace Recompiler {
 class CodeGenerator;
 class RegisterCache;
 
-enum RegSize : u8
+enum RegSize : uint8_t
 {
   RegSize_8,
   RegSize_16,
@@ -40,7 +40,7 @@ enum RegSize : u8
   RegSize_64,
 };
 
-enum class Condition : u8
+enum class Condition : uint8_t
 {
   Always,
   NotEqual,
@@ -66,16 +66,16 @@ enum class Condition : u8
 using HostReg = unsigned;
 using CodeEmitter = Xbyak::CodeGenerator;
 using LabelType = Xbyak::Label;
-constexpr u32 HostReg_Count = 16;
+constexpr uint32_t HostReg_Count = 16;
 constexpr HostReg HostReg_Invalid = static_cast<HostReg>(HostReg_Count);
 constexpr RegSize HostPointerSize = RegSize_64;
 
 // A reasonable "maximum" number of bytes per instruction.
-constexpr u32 MAX_NEAR_HOST_BYTES_PER_INSTRUCTION = 64;
-constexpr u32 MAX_FAR_HOST_BYTES_PER_INSTRUCTION = 128;
+constexpr uint32_t MAX_NEAR_HOST_BYTES_PER_INSTRUCTION = 64;
+constexpr uint32_t MAX_FAR_HOST_BYTES_PER_INSTRUCTION = 128;
 
 // Alignment of code stoarge.
-constexpr u32 CODE_STORAGE_ALIGNMENT = 4096;
+constexpr uint32_t CODE_STORAGE_ALIGNMENT = 4096;
 
 // ABI selection
 #if defined(_WIN32)
@@ -89,34 +89,34 @@ constexpr u32 CODE_STORAGE_ALIGNMENT = 4096;
 #elif defined(CPU_AARCH32)
 
 using HostReg = unsigned;
-using CodeEmitter = swanstation_vixl::aarch32::MacroAssembler;
-using LabelType = swanstation_vixl::aarch32::Label;
-constexpr u32 HostReg_Count = swanstation_vixl::aarch32::kNumberOfRegisters;
+using CodeEmitter = vixl::aarch32::MacroAssembler;
+using LabelType = vixl::aarch32::Label;
+constexpr uint32_t HostReg_Count = vixl::aarch32::kNumberOfRegisters;
 constexpr HostReg HostReg_Invalid = static_cast<HostReg>(HostReg_Count);
 constexpr RegSize HostPointerSize = RegSize_32;
 
 // A reasonable "maximum" number of bytes per instruction.
-constexpr u32 MAX_NEAR_HOST_BYTES_PER_INSTRUCTION = 64;
-constexpr u32 MAX_FAR_HOST_BYTES_PER_INSTRUCTION = 128;
+constexpr uint32_t MAX_NEAR_HOST_BYTES_PER_INSTRUCTION = 64;
+constexpr uint32_t MAX_FAR_HOST_BYTES_PER_INSTRUCTION = 128;
 
 // Alignment of code stoarge.
-constexpr u32 CODE_STORAGE_ALIGNMENT = 4096;
+constexpr uint32_t CODE_STORAGE_ALIGNMENT = 4096;
 
 #elif defined(CPU_AARCH64)
 
 using HostReg = unsigned;
-using CodeEmitter = swanstation_vixl::aarch64::MacroAssembler;
-using LabelType = swanstation_vixl::aarch64::Label;
-constexpr u32 HostReg_Count = swanstation_vixl::aarch64::kNumberOfRegisters;
+using CodeEmitter = vixl::aarch64::MacroAssembler;
+using LabelType = vixl::aarch64::Label;
+constexpr uint32_t HostReg_Count = vixl::aarch64::kNumberOfRegisters;
 constexpr HostReg HostReg_Invalid = static_cast<HostReg>(HostReg_Count);
 constexpr RegSize HostPointerSize = RegSize_64;
 
 // A reasonable "maximum" number of bytes per instruction.
-constexpr u32 MAX_NEAR_HOST_BYTES_PER_INSTRUCTION = 64;
-constexpr u32 MAX_FAR_HOST_BYTES_PER_INSTRUCTION = 128;
+constexpr uint32_t MAX_NEAR_HOST_BYTES_PER_INSTRUCTION = 64;
+constexpr uint32_t MAX_FAR_HOST_BYTES_PER_INSTRUCTION = 128;
 
 // Alignment of code stoarge.
-constexpr u32 CODE_STORAGE_ALIGNMENT = 4096;
+constexpr uint32_t CODE_STORAGE_ALIGNMENT = 4096;
 
 #else
 
@@ -126,7 +126,7 @@ class CodeEmitter
 {
 };
 
-constexpr u32 HostReg_Count = 1;
+constexpr uint32_t HostReg_Count = 1;
 
 constexpr HostReg HostReg_Invalid = static_cast<HostReg>(HostReg_Count);
 constexpr RegSize HostPointerSize = RegSize_64;
@@ -138,11 +138,11 @@ struct LoadStoreBackpatchInfo
 {
   void* host_pc;            // pointer to instruction which will fault
   void* host_slowmem_pc;    // pointer to slowmem callback code
-  u32 host_code_size;       // size of the fastmem load as well as the add for cycles
+  uint32_t host_code_size;       // size of the fastmem load as well as the add for cycles
   HostReg address_host_reg; // register containing the guest address to load/store
   HostReg value_host_reg;   // register containing the source/destination
   PhysicalMemoryAddress guest_pc;
-  u32 fault_count;
+  uint32_t fault_count;
 };
 
 } // namespace Recompiler

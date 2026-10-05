@@ -59,7 +59,7 @@ Context::~Context()
 
 Context::GPUList Context::EnumerateGPUs(VkInstance instance)
 {
-  u32 gpu_count = 0;
+  uint32_t gpu_count = 0;
   VkResult res = vkEnumeratePhysicalDevices(instance, &gpu_count, nullptr);
   if (res != VK_SUCCESS || gpu_count == 0)
   {
@@ -83,9 +83,9 @@ Context::GPUList Context::EnumerateGPUs(VkInstance instance)
 bool Context::CreateFromExistingInstance(VkInstance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface,
                                          bool take_ownership, bool enable_validation_layer, bool enable_debug_utils,
                                          const char** required_device_extensions /* = nullptr */,
-                                         u32 num_required_device_extensions /* = 0 */,
+                                         uint32_t num_required_device_extensions /* = 0 */,
                                          const char** required_device_layers /* = nullptr */,
-                                         u32 num_required_device_layers /* = 0 */,
+                                         uint32_t num_required_device_layers /* = 0 */,
                                          const VkPhysicalDeviceFeatures* required_features /* = nullptr */)
 {
   g_vulkan_context.reset(new Context(instance, gpu, take_ownership));
@@ -114,7 +114,7 @@ void Context::Destroy()
 
 bool Context::SelectDeviceExtensions(ExtensionList* extension_list, bool enable_surface)
 {
-  u32 extension_count = 0;
+  uint32_t extension_count = 0;
   VkResult res = vkEnumerateDeviceExtensionProperties(m_physical_device, nullptr, &extension_count, nullptr);
   if (res != VK_SUCCESS)
   {
@@ -178,10 +178,10 @@ bool Context::SelectDeviceFeatures(const VkPhysicalDeviceFeatures* required_feat
 }
 
 bool Context::CreateDevice(VkSurfaceKHR surface, bool enable_validation_layer, const char** required_device_extensions,
-                           u32 num_required_device_extensions, const char** required_device_layers,
-                           u32 num_required_device_layers, const VkPhysicalDeviceFeatures* required_features)
+                           uint32_t num_required_device_extensions, const char** required_device_layers,
+                           uint32_t num_required_device_layers, const VkPhysicalDeviceFeatures* required_features)
 {
-  u32 queue_family_count;
+  uint32_t queue_family_count;
   vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_count, nullptr);
   if (queue_family_count == 0)
   {
@@ -277,7 +277,7 @@ bool Context::CreateDevice(VkSurfaceKHR surface, bool enable_validation_layer, c
   device_info.pQueueCreateInfos = queue_infos.data();
 
   ExtensionList enabled_extensions;
-  for (u32 i = 0; i < num_required_device_extensions; i++)
+  for (uint32_t i = 0; i < num_required_device_extensions; i++)
     enabled_extensions.emplace_back(required_device_extensions[i]);
   if (!SelectDeviceExtensions(&enabled_extensions, surface != VK_NULL_HANDLE))
     return false;
@@ -367,7 +367,7 @@ bool Context::CreateCommandBuffers()
                                                    nullptr,
                                                    0,
                                                    1024, // TODO: tweak this
-                                                   static_cast<u32>(countof(pool_sizes)),
+                                                   static_cast<uint32_t>(countof(pool_sizes)),
                                                    pool_sizes};
 
     res = vkCreateDescriptorPool(m_device, &pool_create_info, nullptr, &resources.descriptor_pool);
@@ -426,7 +426,7 @@ bool Context::CreateGlobalDescriptorPool()
                                                  nullptr,
                                                  VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
                                                  1024, // TODO: tweak this
-                                                 static_cast<u32>(countof(pool_sizes)),
+                                                 static_cast<uint32_t>(countof(pool_sizes)),
                                                  pool_sizes};
 
   VkResult res = vkCreateDescriptorPool(m_device, &pool_create_info, nullptr, &m_global_descriptor_pool);
@@ -490,13 +490,13 @@ void Context::FreeGlobalDescriptorSet(VkDescriptorSet set)
   vkFreeDescriptorSets(m_device, m_global_descriptor_pool, 1, &set);
 }
 
-void Context::WaitForFenceCounter(u64 fence_counter)
+void Context::WaitForFenceCounter(uint64_t fence_counter)
 {
   if (m_completed_fence_counter >= fence_counter)
     return;
 
   // Find the first command buffer which covers this counter value.
-  u32 index = (m_current_frame + 1) % NUM_COMMAND_BUFFERS;
+  uint32_t index = (m_current_frame + 1) % NUM_COMMAND_BUFFERS;
   while (index != m_current_frame)
   {
     if (m_frame_resources[index].fence_counter >= fence_counter)
@@ -513,7 +513,7 @@ void Context::WaitForGPUIdle()
   vkDeviceWaitIdle(m_device);
 }
 
-void Context::WaitForCommandBufferCompletion(u32 index)
+void Context::WaitForCommandBufferCompletion(uint32_t index)
 {
   // Wait for this command buffer to be completed.
   VkResult res = vkWaitForFences(m_device, 1, &m_frame_resources[index].fence, VK_TRUE, UINT64_MAX);
@@ -522,8 +522,8 @@ void Context::WaitForCommandBufferCompletion(u32 index)
 
   // Clean up any resources for command buffers between the last known completed buffer and this
   // now-completed command buffer. If we use >2 buffers, this may be more than one buffer.
-  const u64 now_completed_counter = m_frame_resources[index].fence_counter;
-  u32 cleanup_index = (m_current_frame + 1) % NUM_COMMAND_BUFFERS;
+  const uint64_t now_completed_counter = m_frame_resources[index].fence_counter;
+  uint32_t cleanup_index = (m_current_frame + 1) % NUM_COMMAND_BUFFERS;
   while (cleanup_index != m_current_frame)
   {
     FrameResources& resources = m_frame_resources[cleanup_index];
@@ -563,7 +563,7 @@ void Context::SubmitCommandBuffer(VkSemaphore wait_semaphore /* = VK_NULL_HANDLE
   DoSubmitCommandBuffer(m_current_frame, wait_semaphore, signal_semaphore);
 }
 
-void Context::DoSubmitCommandBuffer(u32 index, VkSemaphore wait_semaphore, VkSemaphore signal_semaphore)
+void Context::DoSubmitCommandBuffer(uint32_t index, VkSemaphore wait_semaphore, VkSemaphore signal_semaphore)
 {
   FrameResources& resources = m_frame_resources[index];
 
@@ -595,7 +595,7 @@ void Context::MoveToNextCommandBuffer()
   ActivateCommandBuffer((m_current_frame + 1) % NUM_COMMAND_BUFFERS);
 }
 
-void Context::ActivateCommandBuffer(u32 index)
+void Context::ActivateCommandBuffer(uint32_t index)
 {
   FrameResources& resources = m_frame_resources[index];
 
@@ -633,7 +633,7 @@ void Context::ActivateCommandBuffer(u32 index)
 void Context::ExecuteCommandBuffer(bool wait_for_completion)
 {
   // If we're waiting for completion, don't bother waking the worker thread.
-  const u32 current_frame = m_current_frame;
+  const uint32_t current_frame = m_current_frame;
   SubmitCommandBuffer();
   MoveToNextCommandBuffer();
   if (wait_for_completion)
@@ -644,12 +644,6 @@ void Context::DeferBufferDestruction(VkBuffer object)
 {
   FrameResources& resources = m_frame_resources[m_current_frame];
   resources.cleanup_resources.push_back([this, object]() { vkDestroyBuffer(m_device, object, nullptr); });
-}
-
-void Context::DeferBufferViewDestruction(VkBufferView object)
-{
-  FrameResources& resources = m_frame_resources[m_current_frame];
-  resources.cleanup_resources.push_back([this, object]() { vkDestroyBufferView(m_device, object, nullptr); });
 }
 
 void Context::DeferDeviceMemoryDestruction(VkDeviceMemory object)
@@ -674,12 +668,6 @@ void Context::DeferImageViewDestruction(VkImageView object)
 {
   FrameResources& resources = m_frame_resources[m_current_frame];
   resources.cleanup_resources.push_back([this, object]() { vkDestroyImageView(m_device, object, nullptr); });
-}
-
-void Context::DeferPipelineDestruction(VkPipeline pipeline)
-{
-  FrameResources& resources = m_frame_resources[m_current_frame];
-  resources.cleanup_resources.push_back([this, pipeline]() { vkDestroyPipeline(m_device, pipeline, nullptr); });
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -744,13 +732,13 @@ void Context::DisableDebugUtils()
   }
 }
 
-bool Context::GetMemoryType(u32 bits, VkMemoryPropertyFlags properties, u32* out_type_index)
+bool Context::GetMemoryType(uint32_t bits, VkMemoryPropertyFlags properties, uint32_t* out_type_index)
 {
-  for (u32 i = 0; i < VK_MAX_MEMORY_TYPES; i++)
+  for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
   {
     if ((bits & (1 << i)) != 0)
     {
-      u32 supported = m_device_memory_properties.memoryTypes[i].propertyFlags & properties;
+      uint32_t supported = m_device_memory_properties.memoryTypes[i].propertyFlags & properties;
       if (supported == properties)
       {
         *out_type_index = i;
@@ -762,9 +750,9 @@ bool Context::GetMemoryType(u32 bits, VkMemoryPropertyFlags properties, u32* out
   return false;
 }
 
-u32 Context::GetMemoryType(u32 bits, VkMemoryPropertyFlags properties)
+uint32_t Context::GetMemoryType(uint32_t bits, VkMemoryPropertyFlags properties)
 {
-  u32 type_index = VK_MAX_MEMORY_TYPES;
+  uint32_t type_index = VK_MAX_MEMORY_TYPES;
   if (!GetMemoryType(bits, properties, &type_index))
   {
     Log_ErrorPrintf("Unable to find memory type for %x:%x", bits, properties);
@@ -773,12 +761,12 @@ u32 Context::GetMemoryType(u32 bits, VkMemoryPropertyFlags properties)
   return type_index;
 }
 
-u32 Context::GetUploadMemoryType(u32 bits, bool* is_coherent)
+uint32_t Context::GetUploadMemoryType(uint32_t bits, bool* is_coherent)
 {
   // Try for coherent memory first.
   VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-  u32 type_index;
+  uint32_t type_index;
   if (!GetMemoryType(bits, flags, &type_index))
   {
     Log_WarningPrintf("Vulkan: Failed to find a coherent memory type for uploads, this will affect performance.");
@@ -798,13 +786,13 @@ u32 Context::GetUploadMemoryType(u32 bits, bool* is_coherent)
   return type_index;
 }
 
-u32 Context::GetReadbackMemoryType(u32 bits, bool* is_coherent, bool* is_cached)
+uint32_t Context::GetReadbackMemoryType(uint32_t bits, bool* is_coherent, bool* is_cached)
 {
   // Try for cached and coherent memory first.
   VkMemoryPropertyFlags flags =
     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-  u32 type_index;
+  uint32_t type_index;
   if (!GetMemoryType(bits, flags, &type_index))
   {
     // For readbacks, caching is more important than coherency.
@@ -843,7 +831,7 @@ VkRenderPass Context::GetRenderPass(VkFormat color_format, VkFormat depth_format
   VkAttachmentReference depth_reference;
   VkAttachmentReference* depth_reference_ptr = nullptr;
   std::array<VkAttachmentDescription, 2> attachments;
-  u32 num_attachments = 0;
+  uint32_t num_attachments = 0;
   if (color_format != VK_FORMAT_UNDEFINED)
   {
     attachments[num_attachments] = {0,

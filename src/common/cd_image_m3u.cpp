@@ -3,7 +3,6 @@
 #include "error.h"
 #include "file_system.h"
 #include "log.h"
-#include <algorithm>
 #include <cerrno>
 #include <sstream>
 #include <map>
@@ -21,10 +20,10 @@ public:
   bool HasNonStandardSubchannel() const override;
 
   bool HasSubImages() const override;
-  u32 GetSubImageCount() const override;
-  u32 GetCurrentSubImage() const override;
-  std::string GetSubImageMetadata(u32 index, const std::string_view& type) const override;
-  bool SwitchSubImage(u32 index, Common::Error* error) override;
+  uint32_t GetSubImageCount() const override;
+  uint32_t GetCurrentSubImage() const override;
+  std::string GetSubImageMetadata(uint32_t index, const std::string_view& type) const override;
+  bool SwitchSubImage(uint32_t index, Common::Error* error) override;
 
 protected:
   bool ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index) override;
@@ -39,7 +38,7 @@ private:
 
   std::vector<Entry> m_entries;
   std::unique_ptr<CDImage> m_current_image;
-  u32 m_current_image_index = UINT32_C(0xFFFFFFFF);
+  uint32_t m_current_image_index = UINT32_C(0xFFFFFFFF);
 };
 
 CDImageM3u::CDImageM3u(OpenFlags open_flags) : CDImage(open_flags) {}
@@ -68,7 +67,7 @@ bool CDImageM3u::Open(const char* path, Common::Error* error)
   std::string line;
   while (std::getline(ifs, line))
   {
-    u32 start_offset = 0;
+    uint32_t start_offset = 0;
     while (start_offset < line.size() && std::isspace(line[start_offset]))
       start_offset++;
 
@@ -77,7 +76,7 @@ bool CDImageM3u::Open(const char* path, Common::Error* error)
       continue;
 
     // strip ending whitespace
-    u32 end_offset = static_cast<u32>(line.size()) - 1;
+    uint32_t end_offset = static_cast<uint32_t>(line.size()) - 1;
     while (std::isspace(line[end_offset]) && end_offset > start_offset)
       end_offset--;
 
@@ -110,17 +109,17 @@ bool CDImageM3u::HasSubImages() const
   return true;
 }
 
-u32 CDImageM3u::GetSubImageCount() const
+uint32_t CDImageM3u::GetSubImageCount() const
 {
-  return static_cast<u32>(m_entries.size());
+  return static_cast<uint32_t>(m_entries.size());
 }
 
-u32 CDImageM3u::GetCurrentSubImage() const
+uint32_t CDImageM3u::GetCurrentSubImage() const
 {
   return m_current_image_index;
 }
 
-bool CDImageM3u::SwitchSubImage(u32 index, Common::Error* error)
+bool CDImageM3u::SwitchSubImage(uint32_t index, Common::Error* error)
 {
   if (index >= m_entries.size())
     return false;
@@ -143,7 +142,7 @@ bool CDImageM3u::SwitchSubImage(u32 index, Common::Error* error)
   return true;
 }
 
-std::string CDImageM3u::GetSubImageMetadata(u32 index, const std::string_view& type) const
+std::string CDImageM3u::GetSubImageMetadata(uint32_t index, const std::string_view& type) const
 {
   if (index > m_entries.size())
     return {};

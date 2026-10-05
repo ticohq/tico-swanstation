@@ -1,10 +1,7 @@
 #include "progress_callback.h"
 #include "byte_stream.h"
 #include "log.h"
-#include <cmath>
 #include <cstdarg>
-#include <cstdio>
-#include <limits>
 Log_SetChannel(ProgressCallback);
 
 ProgressCallback::~ProgressCallback() {}
@@ -107,8 +104,8 @@ void ProgressCallback::DisplayFormattedModalInformation(const char* format, ...)
 
 void ProgressCallback::UpdateProgressFromStream(ByteStream* pStream)
 {
-  u32 streamSize = (u32)pStream->GetSize();
-  u32 streamPosition = (u32)pStream->GetPosition();
+  uint32_t streamSize = (uint32_t)pStream->GetSize();
+  uint32_t streamPosition = (uint32_t)pStream->GetPosition();
 
   SetProgressRange(streamSize);
   SetProgressValue(streamPosition);
@@ -126,8 +123,8 @@ public:
   void SetCancellable(bool cancellable) override {}
   void SetTitle(const char* title) override {}
   void SetStatusText(const char* statusText) override {}
-  void SetProgressRange(u32 range) override {}
-  void SetProgressValue(u32 value) override {}
+  void SetProgressRange(uint32_t range) override {}
+  void SetProgressValue(uint32_t value) override {}
   void IncrementProgressValue() override {}
 
   void DisplayError(const char* message) override { Log_ErrorPrint(message); }
@@ -182,9 +179,9 @@ void BaseProgressCallback::PopState()
   m_saved_state = nullptr;
 
   // impose the current position into the previous range
-  const u32 new_progress_value =
+  const uint32_t new_progress_value =
     (m_progress_range != 0) ?
-      static_cast<u32>(((float)m_progress_value / (float)m_progress_range) * (float)state->progress_range) :
+      static_cast<uint32_t>(((float)m_progress_value / (float)m_progress_range) * (float)state->progress_range) :
       state->progress_value;
 
   m_cancellable = state->cancellable;
@@ -217,7 +214,7 @@ void BaseProgressCallback::SetStatusText(const char* text)
   m_status_text = text;
 }
 
-void BaseProgressCallback::SetProgressRange(u32 range)
+void BaseProgressCallback::SetProgressRange(uint32_t range)
 {
   if (m_saved_state)
   {
@@ -233,7 +230,7 @@ void BaseProgressCallback::SetProgressRange(u32 range)
   }
 }
 
-void BaseProgressCallback::SetProgressValue(u32 value)
+void BaseProgressCallback::SetProgressValue(uint32_t value)
 {
   m_progress_value = m_base_progress_value + value;
 }
@@ -243,166 +240,3 @@ void BaseProgressCallback::IncrementProgressValue()
   SetProgressValue((m_progress_value - m_base_progress_value) + 1);
 }
 
-ConsoleProgressCallback::ConsoleProgressCallback()
-  : BaseProgressCallback(), m_last_percent_complete(std::numeric_limits<float>::infinity()),
-    m_last_bar_length(0xFFFFFFFF)
-{
-}
-
-ConsoleProgressCallback::~ConsoleProgressCallback()
-{
-  Clear();
-}
-
-void ConsoleProgressCallback::PushState()
-{
-  BaseProgressCallback::PushState();
-}
-
-void ConsoleProgressCallback::PopState()
-{
-  BaseProgressCallback::PopState();
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::SetCancellable(bool cancellable)
-{
-  BaseProgressCallback::SetCancellable(cancellable);
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::SetTitle(const char* title)
-{
-  Clear();
-  std::fprintf(stdout, "== %s ==\n", title);
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::SetStatusText(const char* text)
-{
-  BaseProgressCallback::SetStatusText(text);
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::SetProgressRange(u32 range)
-{
-  u32 last_range = m_progress_range;
-
-  BaseProgressCallback::SetProgressRange(range);
-
-  if (m_progress_range != last_range)
-    Redraw(false);
-}
-
-void ConsoleProgressCallback::SetProgressValue(u32 value)
-{
-  u32 lastValue = m_progress_value;
-
-  BaseProgressCallback::SetProgressValue(value);
-
-  if (m_progress_value != lastValue)
-    Redraw(true);
-}
-
-void ConsoleProgressCallback::Clear()
-{
-  SmallString message;
-  for (u32 i = 0; i < COLUMNS; i++)
-    message.AppendCharacter(' ');
-  message.AppendCharacter('\r');
-
-  std::fwrite(message.GetCharArray(), message.GetLength(), 1, stderr);
-  std::fflush(stderr);
-}
-
-void ConsoleProgressCallback::Redraw(bool update_value_only)
-{
-  float percent_complete = (m_progress_range > 0) ? ((float)m_progress_value / (float)m_progress_range) * 100.0f : 0.0f;
-  if (percent_complete > 100.0f)
-    percent_complete = 100.0f;
-
-  const u32 current_length = m_status_text.GetLength() + 14;
-  const u32 max_bar_length = (current_length < COLUMNS) ? COLUMNS - current_length : 0;
-  const u32 current_bar_length =
-    (max_bar_length > 0) ? (static_cast<u32>(percent_complete / 100.0f * (float)max_bar_length)) : 0;
-
-  if (update_value_only && (current_bar_length == m_last_bar_length) &&
-      std::abs(percent_complete - m_last_percent_complete) < 0.01f)
-  {
-    return;
-  }
-
-  m_last_bar_length = current_bar_length;
-  m_last_percent_complete = percent_complete;
-
-  SmallString message;
-  message.AppendString(m_status_text);
-  message.AppendFormattedString(" [%.2f%%]", percent_complete);
-
-  if (max_bar_length > 0)
-  {
-    message.AppendString(" |");
-
-    u32 i;
-    for (i = 0; i < current_bar_length; i++)
-      message.AppendCharacter('=');
-    for (; i < max_bar_length; i++)
-      message.AppendCharacter(' ');
-
-    message.AppendString("|");
-  }
-
-  message.AppendCharacter('\r');
-
-  std::fwrite(message.GetCharArray(), message.GetLength(), 1, stderr);
-  std::fflush(stderr);
-}
-
-void ConsoleProgressCallback::DisplayError(const char* message)
-{
-  Clear();
-  Log_ErrorPrint(message);
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::DisplayWarning(const char* message)
-{
-  Clear();
-  Log_WarningPrint(message);
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::DisplayInformation(const char* message)
-{
-  Clear();
-  Log_InfoPrint(message);
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::DisplayDebugMessage(const char* message)
-{
-  Clear();
-  Redraw(false);
-}
-
-void ConsoleProgressCallback::ModalError(const char* message)
-{
-  Clear();
-  Log_ErrorPrint(message);
-  Redraw(false);
-}
-
-bool ConsoleProgressCallback::ModalConfirmation(const char* message)
-{
-  Clear();
-  Log_InfoPrint(message);
-  Redraw(false);
-  return false;
-}
-
-void ConsoleProgressCallback::ModalInformation(const char* message)
-{
-  Clear();
-  Log_InfoPrint(message);
-  Redraw(false);
-}

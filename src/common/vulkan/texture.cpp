@@ -55,7 +55,7 @@ Vulkan::Texture& Texture::operator=(Texture&& move)
   return *this;
 }
 
-bool Texture::Create(u32 width, u32 height, u32 levels, u32 layers, VkFormat format, VkSampleCountFlagBits samples,
+bool Texture::Create(uint32_t width, uint32_t height, uint32_t levels, uint32_t layers, VkFormat format, VkSampleCountFlagBits samples,
                      VkImageViewType view_type, VkImageTiling tiling, VkImageUsageFlags usage)
 {
   VkImageCreateInfo image_info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -202,8 +202,8 @@ void Texture::TransitionToLayout(VkCommandBuffer command_buffer, VkImageLayout n
   m_layout = new_layout;
 }
 
-void Texture::TransitionSubresourcesToLayout(VkCommandBuffer command_buffer, u32 start_level, u32 num_levels,
-                                             u32 start_layer, u32 num_layers, VkImageLayout old_layout,
+void Texture::TransitionSubresourcesToLayout(VkCommandBuffer command_buffer, uint32_t start_level, uint32_t num_levels,
+                                             uint32_t start_layer, uint32_t num_layers, VkImageLayout old_layout,
                                              VkImageLayout new_layout)
 {
   VkImageMemoryBarrier barrier = {
@@ -334,8 +334,8 @@ VkFramebuffer Texture::CreateFramebuffer(VkRenderPass render_pass)
   return fb;
 }
 
-void Texture::UpdateFromBuffer(VkCommandBuffer cmdbuf, u32 level, u32 layer, u32 x, u32 y, u32 width, u32 height,
-                               VkBuffer buffer, u32 buffer_offset, u32 row_length)
+void Texture::UpdateFromBuffer(VkCommandBuffer cmdbuf, uint32_t level, uint32_t layer, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+                               VkBuffer buffer, uint32_t buffer_offset, uint32_t row_length)
 {
   const VkImageLayout old_layout = m_layout;
   TransitionToLayout(cmdbuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

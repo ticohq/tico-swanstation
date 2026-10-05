@@ -5,7 +5,7 @@
 #include <cstring>
 Log_SetChannel(StateWrapper);
 
-StateWrapper::StateWrapper(ByteStream* stream, Mode mode, u32 version)
+StateWrapper::StateWrapper(ByteStream* stream, Mode mode, uint32_t version)
   : m_stream(stream), m_mode(mode), m_version(version)
 {
 }
@@ -16,13 +16,13 @@ void StateWrapper::DoBytes(void* data, size_t length)
 {
   if (m_mode == Mode::Read)
   {
-    if (m_error || (m_error |= !m_stream->Read2(data, static_cast<u32>(length))) == true)
+    if (m_error || (m_error |= !m_stream->Read2(data, static_cast<uint32_t>(length))) == true)
       std::memset(data, 0, length);
   }
   else
   {
     if (!m_error)
-      m_error |= !m_stream->Write2(data, static_cast<u32>(length));
+      m_error |= !m_stream->Write2(data, static_cast<uint32_t>(length));
   }
 }
 
@@ -30,14 +30,14 @@ void StateWrapper::Do(bool* value_ptr)
 {
   if (m_mode == Mode::Read)
   {
-    u8 value = 0;
+    uint8_t value = 0;
     if (!m_error)
       m_error |= !m_stream->ReadByte(&value);
     *value_ptr = (value != 0);
   }
   else
   {
-    u8 value = static_cast<u8>(*value_ptr);
+    uint8_t value = static_cast<uint8_t>(*value_ptr);
     if (!m_error)
       m_error |= !m_stream->WriteByte(value);
   }
@@ -45,7 +45,7 @@ void StateWrapper::Do(bool* value_ptr)
 
 void StateWrapper::Do(std::string* value_ptr)
 {
-  u32 length = static_cast<u32>(value_ptr->length());
+  uint32_t length = static_cast<uint32_t>(value_ptr->length());
   Do(&length);
   if (m_mode == Mode::Read)
     value_ptr->resize(length);
@@ -55,7 +55,7 @@ void StateWrapper::Do(std::string* value_ptr)
 
 void StateWrapper::Do(String* value_ptr)
 {
-  u32 length = static_cast<u32>(value_ptr->GetLength());
+  uint32_t length = static_cast<uint32_t>(value_ptr->GetLength());
   Do(&length);
   if (m_mode == Mode::Read)
     value_ptr->Resize(length);

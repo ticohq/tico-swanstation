@@ -31,12 +31,12 @@ bool InterruptController::DoState(StateWrapper& sw)
 
 void InterruptController::InterruptRequest(IRQ irq)
 {
-  const u32 bit = (u32(1) << static_cast<u32>(irq));
+  const uint32_t bit = (uint32_t(1) << static_cast<uint32_t>(irq));
   m_interrupt_status_register |= bit;
   UpdateCPUInterruptRequest();
 }
 
-u32 InterruptController::ReadRegister(u32 offset)
+uint32_t InterruptController::ReadRegister(uint32_t offset)
 {
   switch (offset)
   {
@@ -52,7 +52,7 @@ u32 InterruptController::ReadRegister(u32 offset)
   return UINT32_C(0xFFFFFFFF);
 }
 
-void InterruptController::WriteRegister(u32 offset, u32 value)
+void InterruptController::WriteRegister(uint32_t offset, uint32_t value)
 {
   switch (offset)
   {

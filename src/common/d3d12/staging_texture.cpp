@@ -3,6 +3,7 @@
 #include "context.h"
 #include "util.h"
 
+#include <cstring>
 namespace D3D12 {
 
 StagingTexture::StagingTexture() : m_width(0), m_height(0) {}
@@ -12,11 +13,11 @@ StagingTexture::~StagingTexture()
   Destroy();
 }
 
-bool StagingTexture::Create(u32 width, u32 height, DXGI_FORMAT format, bool for_uploading)
+bool StagingTexture::Create(uint32_t width, uint32_t height, DXGI_FORMAT format, bool for_uploading)
 {
-  const u32 texel_size  = GetTexelSize(format);
-  const u32 row_pitch   = Common::AlignUpPow2(width * texel_size, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-  const u32 buffer_size = height * row_pitch;
+  const uint32_t texel_size  = GetTexelSize(format);
+  const uint32_t row_pitch   = Common::AlignUpPow2(width * texel_size, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+  const uint32_t buffer_size = height * row_pitch;
 
   const D3D12_HEAP_PROPERTIES heap_properties = {for_uploading ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_READBACK};
 
@@ -103,8 +104,8 @@ void StagingTexture::Flush()
     g_d3d12_context->WaitForFence(m_completed_fence);
 }
 
-void StagingTexture::CopyToTexture(u32 src_x, u32 src_y, ID3D12Resource* dst_texture, u32 dst_subresource, u32 dst_x,
-                                   u32 dst_y, u32 width, u32 height)
+void StagingTexture::CopyToTexture(uint32_t src_x, uint32_t src_y, ID3D12Resource* dst_texture, uint32_t dst_subresource, uint32_t dst_x,
+                                   uint32_t dst_y, uint32_t width, uint32_t height)
 {
   D3D12_TEXTURE_COPY_LOCATION dst;
   dst.pResource = dst_texture;
@@ -126,8 +127,8 @@ void StagingTexture::CopyToTexture(u32 src_x, u32 src_y, ID3D12Resource* dst_tex
   g_d3d12_context->GetCommandList()->CopyTextureRegion(&dst, dst_x, dst_y, 0, &src, &src_box);
 }
 
-void StagingTexture::CopyFromTexture(ID3D12Resource* src_texture, u32 src_subresource, u32 src_x, u32 src_y, u32 dst_x,
-                                     u32 dst_y, u32 width, u32 height)
+void StagingTexture::CopyFromTexture(ID3D12Resource* src_texture, uint32_t src_subresource, uint32_t src_x, uint32_t src_y, uint32_t dst_x,
+                                     uint32_t dst_y, uint32_t width, uint32_t height)
 {
   D3D12_TEXTURE_COPY_LOCATION src;
   src.pResource = src_texture;
@@ -151,7 +152,7 @@ void StagingTexture::CopyFromTexture(ID3D12Resource* src_texture, u32 src_subres
   m_needs_flush = true;
 }
 
-bool StagingTexture::ReadPixels(u32 x, u32 y, u32 width, u32 height, void* data, u32 row_pitch)
+bool StagingTexture::ReadPixels(uint32_t x, uint32_t y, uint32_t width, uint32_t height, void* data, uint32_t row_pitch)
 {
   if (m_needs_flush)
     Flush();
@@ -160,12 +161,12 @@ bool StagingTexture::ReadPixels(u32 x, u32 y, u32 width, u32 height, void* data,
   if (!was_mapped && !Map(false))
     return false;
 
-  const u8* src_ptr = static_cast<u8*>(m_mapped_pointer) + (y * m_row_pitch) + (x * m_texel_size);
-  u8* dst_ptr = reinterpret_cast<u8*>(data);
+  const uint8_t* src_ptr = static_cast<uint8_t*>(m_mapped_pointer) + (y * m_row_pitch) + (x * m_texel_size);
+  uint8_t* dst_ptr = reinterpret_cast<uint8_t*>(data);
   if (m_row_pitch != row_pitch || width != m_width || x != 0)
   {
-    const u32 copy_size = m_texel_size * width;
-    for (u32 row = 0; row < height; row++)
+    const uint32_t copy_size = m_texel_size * width;
+    for (uint32_t row = 0; row < height; row++)
     {
       std::memcpy(dst_ptr, src_ptr, copy_size);
       src_ptr += m_row_pitch;
@@ -180,18 +181,18 @@ bool StagingTexture::ReadPixels(u32 x, u32 y, u32 width, u32 height, void* data,
   return true;
 }
 
-bool StagingTexture::WritePixels(u32 x, u32 y, u32 width, u32 height, const void* data, u32 row_pitch)
+bool StagingTexture::WritePixels(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, uint32_t row_pitch)
 {
   const bool was_mapped = IsMapped();
   if (!was_mapped && !Map(true))
     return false;
 
-  const u8* src_ptr = reinterpret_cast<const u8*>(data);
-  u8* dst_ptr = static_cast<u8*>(m_mapped_pointer) + (y * m_row_pitch) + (x * m_texel_size);
+  const uint8_t* src_ptr = reinterpret_cast<const uint8_t*>(data);
+  uint8_t* dst_ptr = static_cast<uint8_t*>(m_mapped_pointer) + (y * m_row_pitch) + (x * m_texel_size);
   if (m_row_pitch != row_pitch || width != m_width || x != 0)
   {
-    const u32 copy_size = m_texel_size * width;
-    for (u32 row = 0; row < height; row++)
+    const uint32_t copy_size = m_texel_size * width;
+    for (uint32_t row = 0; row < height; row++)
     {
       std::memcpy(dst_ptr, src_ptr, copy_size);
       src_ptr += row_pitch;
@@ -209,7 +210,7 @@ bool StagingTexture::WritePixels(u32 x, u32 y, u32 width, u32 height, const void
   return true;
 }
 
-bool StagingTexture::EnsureSize(u32 width, u32 height, DXGI_FORMAT format, bool for_uploading)
+bool StagingTexture::EnsureSize(uint32_t width, uint32_t height, DXGI_FORMAT format, bool for_uploading)
 {
   if (m_resource && m_width >= width && m_height >= height && m_format == format)
     return true;

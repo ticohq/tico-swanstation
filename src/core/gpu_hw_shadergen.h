@@ -5,7 +5,7 @@
 class GPU_HW_ShaderGen : public ShaderGen
 {
 public:
-  GPU_HW_ShaderGen(HostDisplay::RenderAPI render_api, u32 resolution_scale, u32 multisamples, bool per_sample_shading,
+  GPU_HW_ShaderGen(HostDisplay::RenderAPI render_api, uint32_t resolution_scale, uint32_t multisamples, bool per_sample_shading,
                    bool true_color, bool scaled_dithering, GPUTextureFilter texture_filtering, bool uv_limits,
                    bool pgxp_depth, bool disable_color_perspective, bool supports_dual_source_blend);
   ~GPU_HW_ShaderGen();
@@ -30,12 +30,21 @@ private:
   ALWAYS_INLINE bool UsingMSAA() const { return m_multisamples > 1; }
   ALWAYS_INLINE bool UsingPerSampleShading() const { return m_multisamples > 1 && m_per_sample_shading; }
 
-  void WriteCommonFunctions(std::stringstream& ss);
+  void WriteCommonFunctions(std::stringstream& ss, bool batch_uniform_buffer = false);
   void WriteBatchUniformBuffer(std::stringstream& ss);
+
+  // Emit the #define aliases that route RESOLUTION_SCALE / VRAM_SIZE /
+  // RCP_VRAM_SIZE through u_resolution_scale in the shader's currently-
+  // in-scope cbuffer. Used by both WriteBatchUniformBuffer (where the
+  // cbuffer is the batch UBO) and by non-batch shaders that have added
+  // u_resolution_scale to their own per-shader UBO. Must be called
+  // AFTER the cbuffer declaration so u_resolution_scale is in scope.
+  void WriteCBufferResolutionScaleAliases(std::stringstream& ss);
+
   void WriteBatchTextureFilter(std::stringstream& ss, GPUTextureFilter texture_filter);
 
-  u32 m_resolution_scale;
-  u32 m_multisamples;
+  uint32_t m_resolution_scale;
+  uint32_t m_multisamples;
   bool m_per_sample_shading;
   bool m_true_color;
   bool m_scaled_dithering;

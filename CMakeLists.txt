@@ -149,6 +149,19 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND (${CPU_ARCH} STREQUAL "x86" OR ${CP
   add_definitions("-D_FILE_OFFSET_BITS=64")
 endif()
 
+# Host endianness opt-in.
+#
+# All currently-supported targets (x86, x64, AArch32 LE, AArch64 LE)
+# are little-endian. swanstation does not autodetect byte order and
+# does not define a positive marker for the LE case - little-endian
+# is the unmarked default. If you are porting to a big-endian host,
+# configure with -DMSB_FIRST=ON and the code's `#ifdef MSB_FIRST`
+# branches will activate.
+option(MSB_FIRST "Build for a big-endian host (opt-in; no targets currently use this)." OFF)
+if(MSB_FIRST)
+  add_definitions("-DMSB_FIRST=1")
+endif()
+
 # Recursively include the source tree.
 enable_testing()
 add_subdirectory(dep)

@@ -10,7 +10,7 @@ StagingTexture::~StagingTexture()
   Destroy();
 }
 
-bool StagingTexture::Create(ID3D11Device* device, u32 width, u32 height, DXGI_FORMAT format, bool for_uploading)
+bool StagingTexture::Create(ID3D11Device* device, uint32_t width, uint32_t height, DXGI_FORMAT format, bool for_uploading)
 {
   CD3D11_TEXTURE2D_DESC desc(format, width, height, 1, 1, 0, for_uploading ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_STAGING,
                              for_uploading ? D3D11_CPU_ACCESS_WRITE : D3D11_CPU_ACCESS_READ, 1, 0, 0);
@@ -47,8 +47,8 @@ void StagingTexture::Unmap(ID3D11DeviceContext* context)
   m_map = {};
 }
 
-void StagingTexture::CopyFromTexture(ID3D11DeviceContext* context, ID3D11Resource* src_texture, u32 src_subresource,
-                                     u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height)
+void StagingTexture::CopyFromTexture(ID3D11DeviceContext* context, ID3D11Resource* src_texture, uint32_t src_subresource,
+                                     uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   D3D11_BOX box;
   box.left = static_cast<LONG>(src_x);
@@ -60,7 +60,7 @@ void StagingTexture::CopyFromTexture(ID3D11DeviceContext* context, ID3D11Resourc
   context->CopySubresourceRegion(m_texture.Get(), 0, dst_x, dst_y, 0, src_texture, src_subresource, &box);
 }
 
-bool AutoStagingTexture::EnsureSize(ID3D11DeviceContext* context, u32 width, u32 height, DXGI_FORMAT format,
+bool AutoStagingTexture::EnsureSize(ID3D11DeviceContext* context, uint32_t width, uint32_t height, DXGI_FORMAT format,
                                     bool for_uploading)
 {
   if (m_texture && m_width >= width && m_height >= height && m_format == format)
@@ -84,8 +84,8 @@ bool AutoStagingTexture::EnsureSize(ID3D11DeviceContext* context, u32 width, u32
   return true;
 }
 
-void AutoStagingTexture::CopyFromTexture(ID3D11DeviceContext* context, ID3D11Resource* src_texture, u32 src_subresource,
-                                         u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height)
+void AutoStagingTexture::CopyFromTexture(ID3D11DeviceContext* context, ID3D11Resource* src_texture, uint32_t src_subresource,
+                                         uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   if (!EnsureSize(context, width, height, m_format, false))
     return;

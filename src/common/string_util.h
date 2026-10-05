@@ -5,17 +5,12 @@
 #include <cstring>
 #include <iomanip>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #if defined(__has_include) && __has_include(<charconv>)
 #include <charconv>
-#ifndef _WIN32
-#include <sstream>
-#endif
-#else
-#include <sstream>
 #endif
 
 namespace StringUtil {
@@ -108,14 +103,7 @@ inline std::optional<bool> FromChars(const std::string_view& str, int base)
   return std::nullopt;
 }
 
-/// Encode/decode hexadecimal byte buffers
-std::optional<std::vector<u8>> DecodeHex(const std::string_view& str);
-
-/// starts_with from C++20
-ALWAYS_INLINE static bool StartsWith(const std::string_view& str, const char* prefix)
-{
-  return (str.compare(0, std::strlen(prefix), prefix) == 0);
-}
+/// ends_with from C++20
 ALWAYS_INLINE static bool EndsWith(const std::string_view& str, const char* suffix)
 {
   const std::size_t suffix_length = std::strlen(suffix);

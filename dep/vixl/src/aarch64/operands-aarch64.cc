@@ -26,7 +26,7 @@
 
 #include "operands-aarch64.h"
 
-namespace swanstation_vixl {
+namespace vixl {
 namespace aarch64 {
 
 // CPURegList utilities.
@@ -35,20 +35,20 @@ CPURegister CPURegList::PopLowestIndex() {
     return NoCPUReg;
   }
   int index = CountTrailingZeros(list_);
-  SWANSTATION_VIXL_ASSERT((1 << index) & list_);
+  VIXL_ASSERT((1 << index) & list_);
   Remove(index);
   return CPURegister(index, size_, type_);
 }
 
 
 CPURegister CPURegList::PopHighestIndex() {
-  SWANSTATION_VIXL_ASSERT(IsValid());
+  VIXL_ASSERT(IsValid());
   if (IsEmpty()) {
     return NoCPUReg;
   }
   int index = CountLeadingZeros(list_);
   index = kRegListSizeInBits - 1 - index;
-  SWANSTATION_VIXL_ASSERT((1 << index) & list_);
+  VIXL_ASSERT((1 << index) & list_);
   Remove(index);
   return CPURegister(index, size_, type_);
 }
@@ -79,8 +79,8 @@ void CPURegList::RemoveCalleeSaved() {
   } else if (GetType() == CPURegister::kVRegister) {
     Remove(GetCalleeSavedV(GetRegisterSizeInBits()));
   } else {
-    SWANSTATION_VIXL_ASSERT(GetType() == CPURegister::kNoRegister);
-    SWANSTATION_VIXL_ASSERT(IsEmpty());
+    VIXL_ASSERT(GetType() == CPURegister::kNoRegister);
+    VIXL_ASSERT(IsEmpty());
     // The list must already be empty, so do nothing.
   }
 }
@@ -188,7 +188,7 @@ const Register& Register::GetWRegFromCode(unsigned code) {
   if (code == kSPRegInternalCode) {
     return wsp;
   } else {
-    SWANSTATION_VIXL_ASSERT(code < kNumberOfRegisters);
+    VIXL_ASSERT(code < kNumberOfRegisters);
     return wregisters[code];
   }
 }
@@ -198,92 +198,92 @@ const Register& Register::GetXRegFromCode(unsigned code) {
   if (code == kSPRegInternalCode) {
     return sp;
   } else {
-    SWANSTATION_VIXL_ASSERT(code < kNumberOfRegisters);
+    VIXL_ASSERT(code < kNumberOfRegisters);
     return xregisters[code];
   }
 }
 
 
 const VRegister& VRegister::GetBRegFromCode(unsigned code) {
-  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
+  VIXL_ASSERT(code < kNumberOfVRegisters);
   return bregisters[code];
 }
 
 
 const VRegister& VRegister::GetHRegFromCode(unsigned code) {
-  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
+  VIXL_ASSERT(code < kNumberOfVRegisters);
   return hregisters[code];
 }
 
 
 const VRegister& VRegister::GetSRegFromCode(unsigned code) {
-  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
+  VIXL_ASSERT(code < kNumberOfVRegisters);
   return sregisters[code];
 }
 
 
 const VRegister& VRegister::GetDRegFromCode(unsigned code) {
-  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
+  VIXL_ASSERT(code < kNumberOfVRegisters);
   return dregisters[code];
 }
 
 
 const VRegister& VRegister::GetQRegFromCode(unsigned code) {
-  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
+  VIXL_ASSERT(code < kNumberOfVRegisters);
   return qregisters[code];
 }
 
 
 const VRegister& VRegister::GetVRegFromCode(unsigned code) {
-  SWANSTATION_VIXL_ASSERT(code < kNumberOfVRegisters);
+  VIXL_ASSERT(code < kNumberOfVRegisters);
   return vregisters[code];
 }
 
 
 const Register& CPURegister::W() const {
-  SWANSTATION_VIXL_ASSERT(IsValidRegister());
+  VIXL_ASSERT(IsValidRegister());
   return Register::GetWRegFromCode(code_);
 }
 
 
 const Register& CPURegister::X() const {
-  SWANSTATION_VIXL_ASSERT(IsValidRegister());
+  VIXL_ASSERT(IsValidRegister());
   return Register::GetXRegFromCode(code_);
 }
 
 
 const VRegister& CPURegister::B() const {
-  SWANSTATION_VIXL_ASSERT(IsValidVRegister());
+  VIXL_ASSERT(IsValidVRegister());
   return VRegister::GetBRegFromCode(code_);
 }
 
 
 const VRegister& CPURegister::H() const {
-  SWANSTATION_VIXL_ASSERT(IsValidVRegister());
+  VIXL_ASSERT(IsValidVRegister());
   return VRegister::GetHRegFromCode(code_);
 }
 
 
 const VRegister& CPURegister::S() const {
-  SWANSTATION_VIXL_ASSERT(IsValidVRegister());
+  VIXL_ASSERT(IsValidVRegister());
   return VRegister::GetSRegFromCode(code_);
 }
 
 
 const VRegister& CPURegister::D() const {
-  SWANSTATION_VIXL_ASSERT(IsValidVRegister());
+  VIXL_ASSERT(IsValidVRegister());
   return VRegister::GetDRegFromCode(code_);
 }
 
 
 const VRegister& CPURegister::Q() const {
-  SWANSTATION_VIXL_ASSERT(IsValidVRegister());
+  VIXL_ASSERT(IsValidVRegister());
   return VRegister::GetQRegFromCode(code_);
 }
 
 
 const VRegister& CPURegister::V() const {
-  SWANSTATION_VIXL_ASSERT(IsValidVRegister());
+  VIXL_ASSERT(IsValidVRegister());
   return VRegister::GetVRegFromCode(code_);
 }
 
@@ -302,10 +302,10 @@ Operand::Operand(Register reg, Shift shift, unsigned shift_amount)
       shift_(shift),
       extend_(NO_EXTEND),
       shift_amount_(shift_amount) {
-  SWANSTATION_VIXL_ASSERT(shift != MSL);
-  SWANSTATION_VIXL_ASSERT(reg.Is64Bits() || (shift_amount < kWRegSize));
-  SWANSTATION_VIXL_ASSERT(reg.Is32Bits() || (shift_amount < kXRegSize));
-  SWANSTATION_VIXL_ASSERT(!reg.IsSP());
+  VIXL_ASSERT(shift != MSL);
+  VIXL_ASSERT(reg.Is64Bits() || (shift_amount < kWRegSize));
+  VIXL_ASSERT(reg.Is32Bits() || (shift_amount < kXRegSize));
+  VIXL_ASSERT(!reg.IsSP());
 }
 
 
@@ -314,12 +314,12 @@ Operand::Operand(Register reg, Extend extend, unsigned shift_amount)
       shift_(NO_SHIFT),
       extend_(extend),
       shift_amount_(shift_amount) {
-  SWANSTATION_VIXL_ASSERT(reg.IsValid());
-  SWANSTATION_VIXL_ASSERT(shift_amount <= 4);
-  SWANSTATION_VIXL_ASSERT(!reg.IsSP());
+  VIXL_ASSERT(reg.IsValid());
+  VIXL_ASSERT(shift_amount <= 4);
+  VIXL_ASSERT(!reg.IsSP());
 
   // Extend modes SXTX and UXTX require a 64-bit register.
-  SWANSTATION_VIXL_ASSERT(reg.Is64Bits() || ((extend != SXTX) && (extend != UXTX)));
+  VIXL_ASSERT(reg.Is64Bits() || ((extend != SXTX) && (extend != UXTX)));
 }
 
 
@@ -363,8 +363,8 @@ bool Operand::IsZero() const {
 
 
 Operand Operand::ToExtendedRegister() const {
-  SWANSTATION_VIXL_ASSERT(IsShiftedRegister());
-  SWANSTATION_VIXL_ASSERT((shift_ == LSL) && (shift_amount_ <= 4));
+  VIXL_ASSERT(IsShiftedRegister());
+  VIXL_ASSERT((shift_ == LSL) && (shift_amount_ <= 4));
   return Operand(reg_, reg_.Is64Bits() ? UXTX : UXTW, shift_amount_);
 }
 
@@ -387,7 +387,7 @@ MemOperand::MemOperand(Register base, int64_t offset, AddrMode addrmode)
       shift_(NO_SHIFT),
       extend_(NO_EXTEND),
       shift_amount_(0) {
-  SWANSTATION_VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
+  VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
 }
 
 
@@ -402,12 +402,12 @@ MemOperand::MemOperand(Register base,
       shift_(NO_SHIFT),
       extend_(extend),
       shift_amount_(shift_amount) {
-  SWANSTATION_VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
-  SWANSTATION_VIXL_ASSERT(!regoffset.IsSP());
-  SWANSTATION_VIXL_ASSERT((extend == UXTW) || (extend == SXTW) || (extend == SXTX));
+  VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
+  VIXL_ASSERT(!regoffset.IsSP());
+  VIXL_ASSERT((extend == UXTW) || (extend == SXTW) || (extend == SXTX));
 
   // SXTX extend mode requires a 64-bit offset register.
-  SWANSTATION_VIXL_ASSERT(regoffset.Is64Bits() || (extend != SXTX));
+  VIXL_ASSERT(regoffset.Is64Bits() || (extend != SXTX));
 }
 
 
@@ -422,9 +422,9 @@ MemOperand::MemOperand(Register base,
       shift_(shift),
       extend_(NO_EXTEND),
       shift_amount_(shift_amount) {
-  SWANSTATION_VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
-  SWANSTATION_VIXL_ASSERT(regoffset.Is64Bits() && !regoffset.IsSP());
-  SWANSTATION_VIXL_ASSERT(shift == LSL);
+  VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
+  VIXL_ASSERT(regoffset.Is64Bits() && !regoffset.IsSP());
+  VIXL_ASSERT(shift == LSL);
 }
 
 
@@ -435,12 +435,12 @@ MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
       shift_(NO_SHIFT),
       extend_(NO_EXTEND),
       shift_amount_(0) {
-  SWANSTATION_VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
+  VIXL_ASSERT(base.Is64Bits() && !base.IsZero());
 
   if (offset.IsImmediate()) {
     offset_ = offset.GetImmediate();
   } else if (offset.IsShiftedRegister()) {
-    SWANSTATION_VIXL_ASSERT((addrmode == Offset) || (addrmode == PostIndex));
+    VIXL_ASSERT((addrmode == Offset) || (addrmode == PostIndex));
 
     regoffset_ = offset.GetRegister();
     shift_ = offset.GetShift();
@@ -450,11 +450,11 @@ MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
     offset_ = 0;
 
     // These assertions match those in the shifted-register constructor.
-    SWANSTATION_VIXL_ASSERT(regoffset_.Is64Bits() && !regoffset_.IsSP());
-    SWANSTATION_VIXL_ASSERT(shift_ == LSL);
+    VIXL_ASSERT(regoffset_.Is64Bits() && !regoffset_.IsSP());
+    VIXL_ASSERT(shift_ == LSL);
   } else {
-    SWANSTATION_VIXL_ASSERT(offset.IsExtendedRegister());
-    SWANSTATION_VIXL_ASSERT(addrmode == Offset);
+    VIXL_ASSERT(offset.IsExtendedRegister());
+    VIXL_ASSERT(addrmode == Offset);
 
     regoffset_ = offset.GetRegister();
     extend_ = offset.GetExtend();
@@ -464,9 +464,9 @@ MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
     offset_ = 0;
 
     // These assertions match those in the extended-register constructor.
-    SWANSTATION_VIXL_ASSERT(!regoffset_.IsSP());
-    SWANSTATION_VIXL_ASSERT((extend_ == UXTW) || (extend_ == SXTW) || (extend_ == SXTX));
-    SWANSTATION_VIXL_ASSERT((regoffset_.Is64Bits() || (extend_ != SXTX)));
+    VIXL_ASSERT(!regoffset_.IsSP());
+    VIXL_ASSERT((extend_ == UXTW) || (extend_ == SXTW) || (extend_ == SXTX));
+    VIXL_ASSERT((regoffset_.Is64Bits() || (extend_ != SXTX)));
   }
 }
 
@@ -488,7 +488,7 @@ bool MemOperand::IsPostIndex() const { return addrmode_ == PostIndex; }
 
 
 void MemOperand::AddOffset(int64_t offset) {
-  SWANSTATION_VIXL_ASSERT(IsImmediateOffset());
+  VIXL_ASSERT(IsImmediateOffset());
   offset_ += offset;
 }
 
@@ -496,9 +496,9 @@ void MemOperand::AddOffset(int64_t offset) {
 GenericOperand::GenericOperand(const CPURegister& reg)
     : cpu_register_(reg), mem_op_size_(0) {
   if (reg.IsQ()) {
-    SWANSTATION_VIXL_ASSERT(reg.GetSizeInBits() > static_cast<int>(kXRegSize));
+    VIXL_ASSERT(reg.GetSizeInBits() > static_cast<int>(kXRegSize));
     // Support for Q registers is not implemented yet.
-    SWANSTATION_VIXL_UNIMPLEMENTED();
+    VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -507,7 +507,7 @@ GenericOperand::GenericOperand(const MemOperand& mem_op, size_t mem_op_size)
     : cpu_register_(NoReg), mem_op_(mem_op), mem_op_size_(mem_op_size) {
   if (mem_op_size_ > kXRegSizeInBytes) {
     // We only support generic operands up to the size of X registers.
-    SWANSTATION_VIXL_UNIMPLEMENTED();
+    VIXL_UNIMPLEMENTED();
   }
 }
 
@@ -525,4 +525,4 @@ bool GenericOperand::Equals(const GenericOperand& other) const {
   return false;
 }
 }
-}  // namespace swanstation_swanstation_vixl::aarch64
+}  // namespace vixl::aarch64

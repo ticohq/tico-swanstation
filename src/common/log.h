@@ -1,10 +1,9 @@
 #pragma once
 #include "types.h"
-#include <cinttypes>
 #include <cstdarg>
 #include <mutex>
 
-enum class LogLevel : u8
+enum class LogLevel : uint8_t
 {
   None = 0,    // Silences all log traffic
   Error = 1,   // "ErrorPrint"
@@ -29,9 +28,6 @@ void RegisterCallback(CallbackFunctionType callbackFunction, void* pUserParam);
 
 // unregisters a log callback
 void UnregisterCallback(CallbackFunctionType callbackFunction, void* pUserParam);
-
-// adds a standard console output
-void SetConsoleOutputParams(bool enabled, const char* channelFilter = nullptr, LogLevel levelFilter = LogLevel::Trace);
 
 // Sets global filtering level, messages below this level won't be sent to any of the logging sinks.
 void SetFilterLevel(LogLevel level);

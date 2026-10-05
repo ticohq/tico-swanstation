@@ -13,16 +13,16 @@
 
 namespace CPU {
 
-static void SetPC(u32 new_pc);
+static void SetPC(uint32_t new_pc);
 static void UpdateLoadDelay();
-static void Branch(u32 target);
+static void Branch(uint32_t target);
 static void FlushPipeline();
 
 State g_state;
 bool g_using_interpreter = false;
 
-static constexpr u32 INVALID_BREAKPOINT_PC = UINT32_C(0xFFFFFFFF);
-static u32 s_last_breakpoint_check_pc = INVALID_BREAKPOINT_PC;
+static constexpr uint32_t INVALID_BREAKPOINT_PC = UINT32_C(0xFFFFFFFF);
+static uint32_t s_last_breakpoint_check_pc = INVALID_BREAKPOINT_PC;
 
 void Initialize(void)
 {
@@ -127,13 +127,13 @@ void UpdateFastmemBase()
     g_state.fastmem_base = Bus::GetFastmemBase();
 }
 
-ALWAYS_INLINE_RELEASE void SetPC(u32 new_pc)
+ALWAYS_INLINE_RELEASE void SetPC(uint32_t new_pc)
 {
   g_state.regs.npc = new_pc;
   FlushPipeline();
 }
 
-ALWAYS_INLINE_RELEASE void Branch(u32 target)
+ALWAYS_INLINE_RELEASE void Branch(uint32_t target)
 {
   if (!Common::IsAlignedPow2(target, 4))
   {
@@ -147,13 +147,13 @@ ALWAYS_INLINE_RELEASE void Branch(u32 target)
   g_state.branch_was_taken = true;
 }
 
-ALWAYS_INLINE static u32 GetExceptionVector(bool debug_exception = false)
+ALWAYS_INLINE static uint32_t GetExceptionVector(bool debug_exception = false)
 {
-  const u32 base = g_state.cop0_regs.sr.BEV ? UINT32_C(0xbfc00100) : UINT32_C(0x80000000);
+  const uint32_t base = g_state.cop0_regs.sr.BEV ? UINT32_C(0xbfc00100) : UINT32_C(0x80000000);
   return base | (debug_exception ? UINT32_C(0x00000040) : UINT32_C(0x00000080));
 }
 
-ALWAYS_INLINE_RELEASE static void RaiseException(u32 CAUSE_bits, u32 EPC, u32 vector)
+ALWAYS_INLINE_RELEASE static void RaiseException(uint32_t CAUSE_bits, uint32_t EPC, uint32_t vector)
 {
   g_state.cop0_regs.EPC = EPC;
   g_state.cop0_regs.cause.bits = (g_state.cop0_regs.cause.bits & ~Cop0Registers::CAUSE::EXCEPTION_WRITE_MASK) |
@@ -188,7 +188,7 @@ ALWAYS_INLINE_RELEASE static void DispatchCop0Breakpoint()
                  g_state.current_instruction_pc, GetExceptionVector(true));
 }
 
-void RaiseException(u32 CAUSE_bits, u32 EPC)
+void RaiseException(uint32_t CAUSE_bits, uint32_t EPC)
 {
   RaiseException(CAUSE_bits, EPC, GetExceptionVector());
 }
@@ -201,9 +201,9 @@ void RaiseException(Exception excode)
                  g_state.current_instruction_pc, GetExceptionVector());
 }
 
-void SetExternalInterrupt(u8 bit)
+void SetExternalInterrupt(uint8_t bit)
 {
-  g_state.cop0_regs.cause.Ip |= static_cast<u8>(1u << bit);
+  g_state.cop0_regs.cause.Ip |= static_cast<uint8_t>(1u << bit);
 
   if (g_settings.cpu_execution_mode == CPUExecutionMode::Interpreter)
   {
@@ -216,16 +216,16 @@ void SetExternalInterrupt(u8 bit)
   }
 }
 
-void ClearExternalInterrupt(u8 bit)
+void ClearExternalInterrupt(uint8_t bit)
 {
-  g_state.cop0_regs.cause.Ip &= static_cast<u8>(~(1u << bit));
+  g_state.cop0_regs.cause.Ip &= static_cast<uint8_t>(~(1u << bit));
 }
 
 ALWAYS_INLINE_RELEASE static void UpdateLoadDelay()
 {
   // the old value is needed in case the delay slot instruction overwrites the same register
   if (g_state.load_delay_reg != Reg::count)
-    g_state.regs.r[static_cast<u8>(g_state.load_delay_reg)] = g_state.load_delay_value;
+    g_state.regs.r[static_cast<uint8_t>(g_state.load_delay_reg)] = g_state.load_delay_value;
 
   g_state.load_delay_reg = g_state.next_load_delay_reg;
   g_state.load_delay_value = g_state.next_load_delay_value;
@@ -238,7 +238,7 @@ ALWAYS_INLINE_RELEASE static void FlushPipeline()
   g_state.next_load_delay_reg = Reg::count;
   if (g_state.load_delay_reg != Reg::count)
   {
-    g_state.regs.r[static_cast<u8>(g_state.load_delay_reg)] = g_state.load_delay_value;
+    g_state.regs.r[static_cast<uint8_t>(g_state.load_delay_reg)] = g_state.load_delay_value;
     g_state.load_delay_reg = Reg::count;
   }
 
@@ -256,21 +256,21 @@ ALWAYS_INLINE_RELEASE static void FlushPipeline()
   g_state.current_instruction_was_branch_taken = false;
 }
 
-ALWAYS_INLINE static u32 ReadReg(Reg rs)
+ALWAYS_INLINE static uint32_t ReadReg(Reg rs)
 {
-  return g_state.regs.r[static_cast<u8>(rs)];
+  return g_state.regs.r[static_cast<uint8_t>(rs)];
 }
 
-ALWAYS_INLINE static void WriteReg(Reg rd, u32 value)
+ALWAYS_INLINE static void WriteReg(Reg rd, uint32_t value)
 {
-  g_state.regs.r[static_cast<u8>(rd)] = value;
+  g_state.regs.r[static_cast<uint8_t>(rd)] = value;
   g_state.load_delay_reg = (rd == g_state.load_delay_reg) ? Reg::count : g_state.load_delay_reg;
 
   // prevent writes to $zero from going through - better than branching/cmov
   g_state.regs.zero = 0;
 }
 
-ALWAYS_INLINE_RELEASE static void WriteRegDelayed(Reg rd, u32 value)
+ALWAYS_INLINE_RELEASE static void WriteRegDelayed(Reg rd, uint32_t value)
 {
   if (rd == Reg::zero)
     return;
@@ -284,7 +284,7 @@ ALWAYS_INLINE_RELEASE static void WriteRegDelayed(Reg rd, u32 value)
   g_state.next_load_delay_value = value;
 }
 
-ALWAYS_INLINE_RELEASE static u32 ReadCop0Reg(Cop0Reg reg)
+ALWAYS_INLINE_RELEASE static uint32_t ReadCop0Reg(Cop0Reg reg)
 {
   switch (reg)
   {
@@ -326,7 +326,7 @@ ALWAYS_INLINE_RELEASE static u32 ReadCop0Reg(Cop0Reg reg)
   }
 }
 
-ALWAYS_INLINE_RELEASE static void WriteCop0Reg(Cop0Reg reg, u32 value)
+ALWAYS_INLINE_RELEASE static void WriteCop0Reg(Cop0Reg reg, uint32_t value)
 {
   switch (reg)
   {
@@ -393,9 +393,9 @@ ALWAYS_INLINE_RELEASE void Cop0ExecutionBreakpointCheck()
   if (!g_state.cop0_regs.dcic.ExecutionBreakpointsEnabled())
     return;
 
-  const u32 pc = g_state.current_instruction_pc;
-  const u32 bpc = g_state.cop0_regs.BPC;
-  const u32 bpcm = g_state.cop0_regs.BPCM;
+  const uint32_t pc = g_state.current_instruction_pc;
+  const uint32_t bpc = g_state.cop0_regs.BPC;
+  const uint32_t bpcm = g_state.cop0_regs.BPCM;
 
   // Break condition is "((PC XOR BPC) AND BPCM)=0".
   if (bpcm == 0 || ((pc ^ bpc) & bpcm) != 0u)
@@ -421,8 +421,8 @@ ALWAYS_INLINE_RELEASE void Cop0DataBreakpointCheck(VirtualMemoryAddress address)
   }
 
   // Break condition is "((addr XOR BDA) AND BDAM)=0".
-  const u32 bda = g_state.cop0_regs.BDA;
-  const u32 bdam = g_state.cop0_regs.BDAM;
+  const uint32_t bda = g_state.cop0_regs.BDA;
+  const uint32_t bdam = g_state.cop0_regs.BDAM;
   if (bdam == 0 || ((address ^ bda) & bdam) != 0u)
     return;
 
@@ -436,12 +436,12 @@ ALWAYS_INLINE_RELEASE void Cop0DataBreakpointCheck(VirtualMemoryAddress address)
   DispatchCop0Breakpoint();
 }
 
-ALWAYS_INLINE static constexpr bool AddOverflow(u32 old_value, u32 add_value, u32 new_value)
+ALWAYS_INLINE static constexpr bool AddOverflow(uint32_t old_value, uint32_t add_value, uint32_t new_value)
 {
   return (((new_value ^ old_value) & (new_value ^ add_value)) & UINT32_C(0x80000000)) != 0;
 }
 
-ALWAYS_INLINE static constexpr bool SubOverflow(u32 old_value, u32 sub_value, u32 new_value)
+ALWAYS_INLINE static constexpr bool SubOverflow(uint32_t old_value, uint32_t sub_value, uint32_t new_value)
 {
   return (((new_value ^ old_value) & (old_value ^ sub_value)) & UINT32_C(0x80000000)) != 0;
 }
@@ -464,7 +464,7 @@ restart_instruction:
       {
         case InstructionFunct::sll:
         {
-          const u32 new_value = ReadReg(inst.r.rt) << inst.r.shamt;
+          const uint32_t new_value = ReadReg(inst.r.rt) << inst.r.shamt;
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SLL(inst.bits, ReadReg(inst.r.rt));
 
@@ -474,7 +474,7 @@ restart_instruction:
 
         case InstructionFunct::srl:
         {
-          const u32 new_value = ReadReg(inst.r.rt) >> inst.r.shamt;
+          const uint32_t new_value = ReadReg(inst.r.rt) >> inst.r.shamt;
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SRL(inst.bits, ReadReg(inst.r.rt));
 
@@ -484,7 +484,7 @@ restart_instruction:
 
         case InstructionFunct::sra:
         {
-          const u32 new_value = static_cast<u32>(static_cast<s32>(ReadReg(inst.r.rt)) >> inst.r.shamt);
+          const uint32_t new_value = static_cast<uint32_t>(static_cast<int32_t>(ReadReg(inst.r.rt)) >> inst.r.shamt);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SRA(inst.bits, ReadReg(inst.r.rt));
 
@@ -494,8 +494,8 @@ restart_instruction:
 
         case InstructionFunct::sllv:
         {
-          const u32 shift_amount = ReadReg(inst.r.rs) & UINT32_C(0x1F);
-          const u32 new_value = ReadReg(inst.r.rt) << shift_amount;
+          const uint32_t shift_amount = ReadReg(inst.r.rs) & UINT32_C(0x1F);
+          const uint32_t new_value = ReadReg(inst.r.rt) << shift_amount;
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SLLV(inst.bits, ReadReg(inst.r.rt), shift_amount);
 
@@ -505,8 +505,8 @@ restart_instruction:
 
         case InstructionFunct::srlv:
         {
-          const u32 shift_amount = ReadReg(inst.r.rs) & UINT32_C(0x1F);
-          const u32 new_value = ReadReg(inst.r.rt) >> shift_amount;
+          const uint32_t shift_amount = ReadReg(inst.r.rs) & UINT32_C(0x1F);
+          const uint32_t new_value = ReadReg(inst.r.rt) >> shift_amount;
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SRLV(inst.bits, ReadReg(inst.r.rt), shift_amount);
 
@@ -516,8 +516,8 @@ restart_instruction:
 
         case InstructionFunct::srav:
         {
-          const u32 shift_amount = ReadReg(inst.r.rs) & UINT32_C(0x1F);
-          const u32 new_value = static_cast<u32>(static_cast<s32>(ReadReg(inst.r.rt)) >> shift_amount);
+          const uint32_t shift_amount = ReadReg(inst.r.rs) & UINT32_C(0x1F);
+          const uint32_t new_value = static_cast<uint32_t>(static_cast<int32_t>(ReadReg(inst.r.rt)) >> shift_amount);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SRAV(inst.bits, ReadReg(inst.r.rt), shift_amount);
 
@@ -527,7 +527,7 @@ restart_instruction:
 
         case InstructionFunct::and_:
         {
-          const u32 new_value = ReadReg(inst.r.rs) & ReadReg(inst.r.rt);
+          const uint32_t new_value = ReadReg(inst.r.rs) & ReadReg(inst.r.rt);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_AND_(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -537,7 +537,7 @@ restart_instruction:
 
         case InstructionFunct::or_:
         {
-          const u32 new_value = ReadReg(inst.r.rs) | ReadReg(inst.r.rt);
+          const uint32_t new_value = ReadReg(inst.r.rs) | ReadReg(inst.r.rt);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_OR_(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -547,7 +547,7 @@ restart_instruction:
 
         case InstructionFunct::xor_:
         {
-          const u32 new_value = ReadReg(inst.r.rs) ^ ReadReg(inst.r.rt);
+          const uint32_t new_value = ReadReg(inst.r.rs) ^ ReadReg(inst.r.rt);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_XOR_(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -557,7 +557,7 @@ restart_instruction:
 
         case InstructionFunct::nor:
         {
-          const u32 new_value = ~(ReadReg(inst.r.rs) | ReadReg(inst.r.rt));
+          const uint32_t new_value = ~(ReadReg(inst.r.rs) | ReadReg(inst.r.rt));
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_NOR(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -567,9 +567,9 @@ restart_instruction:
 
         case InstructionFunct::add:
         {
-          const u32 old_value = ReadReg(inst.r.rs);
-          const u32 add_value = ReadReg(inst.r.rt);
-          const u32 new_value = old_value + add_value;
+          const uint32_t old_value = ReadReg(inst.r.rs);
+          const uint32_t add_value = ReadReg(inst.r.rt);
+          const uint32_t new_value = old_value + add_value;
           if (AddOverflow(old_value, add_value, new_value))
           {
             RaiseException(Exception::Ov);
@@ -582,7 +582,7 @@ restart_instruction:
           {
             if (add_value == 0)
             {
-              PGXP::CPU_MOVE((static_cast<u32>(inst.r.rd.GetValue()) << 8) | static_cast<u32>(inst.r.rs.GetValue()),
+              PGXP::CPU_MOVE((static_cast<uint32_t>(inst.r.rd.GetValue()) << 8) | static_cast<uint32_t>(inst.r.rs.GetValue()),
                              old_value);
             }
           }
@@ -593,16 +593,16 @@ restart_instruction:
 
         case InstructionFunct::addu:
         {
-          const u32 old_value = ReadReg(inst.r.rs);
-          const u32 add_value = ReadReg(inst.r.rt);
-          const u32 new_value = old_value + add_value;
+          const uint32_t old_value = ReadReg(inst.r.rs);
+          const uint32_t add_value = ReadReg(inst.r.rt);
+          const uint32_t new_value = old_value + add_value;
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_ADD(inst.bits, old_value, add_value);
           else if constexpr (pgxp_mode >= PGXPMode::Memory)
           {
             if (add_value == 0)
             {
-              PGXP::CPU_MOVE((static_cast<u32>(inst.r.rd.GetValue()) << 8) | static_cast<u32>(inst.r.rs.GetValue()),
+              PGXP::CPU_MOVE((static_cast<uint32_t>(inst.r.rd.GetValue()) << 8) | static_cast<uint32_t>(inst.r.rs.GetValue()),
                              old_value);
             }
           }
@@ -613,9 +613,9 @@ restart_instruction:
 
         case InstructionFunct::sub:
         {
-          const u32 old_value = ReadReg(inst.r.rs);
-          const u32 sub_value = ReadReg(inst.r.rt);
-          const u32 new_value = old_value - sub_value;
+          const uint32_t old_value = ReadReg(inst.r.rs);
+          const uint32_t sub_value = ReadReg(inst.r.rt);
+          const uint32_t new_value = old_value - sub_value;
           if (SubOverflow(old_value, sub_value, new_value))
           {
             RaiseException(Exception::Ov);
@@ -631,7 +631,7 @@ restart_instruction:
 
         case InstructionFunct::subu:
         {
-          const u32 new_value = ReadReg(inst.r.rs) - ReadReg(inst.r.rt);
+          const uint32_t new_value = ReadReg(inst.r.rs) - ReadReg(inst.r.rt);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SUB(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -641,7 +641,7 @@ restart_instruction:
 
         case InstructionFunct::slt:
         {
-          const u32 result = BoolToUInt32(static_cast<s32>(ReadReg(inst.r.rs)) < static_cast<s32>(ReadReg(inst.r.rt)));
+          const uint32_t result = static_cast<uint32_t>(static_cast<int32_t>(ReadReg(inst.r.rs)) < static_cast<int32_t>(ReadReg(inst.r.rt)));
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SLT(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -651,7 +651,7 @@ restart_instruction:
 
         case InstructionFunct::sltu:
         {
-          const u32 result = BoolToUInt32(ReadReg(inst.r.rs) < ReadReg(inst.r.rt));
+          const uint32_t result = static_cast<uint32_t>(ReadReg(inst.r.rs) < ReadReg(inst.r.rt));
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_SLTU(inst.bits, ReadReg(inst.r.rs), ReadReg(inst.r.rt));
 
@@ -670,7 +670,7 @@ restart_instruction:
 
         case InstructionFunct::mthi:
         {
-          const u32 value = ReadReg(inst.r.rs);
+          const uint32_t value = ReadReg(inst.r.rs);
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_MTHI(inst.bits, value);
 
@@ -689,7 +689,7 @@ restart_instruction:
 
         case InstructionFunct::mtlo:
         {
-          const u32 value = ReadReg(inst.r.rs);
+          const uint32_t value = ReadReg(inst.r.rs);
           if constexpr (pgxp_mode == PGXPMode::CPU)
             PGXP::CPU_MTLO(inst.bits, value);
 
@@ -699,13 +699,13 @@ restart_instruction:
 
         case InstructionFunct::mult:
         {
-          const u32 lhs = ReadReg(inst.r.rs);
-          const u32 rhs = ReadReg(inst.r.rt);
-          const u64 result =
-            static_cast<u64>(static_cast<s64>(SignExtend64(lhs)) * static_cast<s64>(SignExtend64(rhs)));
+          const uint32_t lhs = ReadReg(inst.r.rs);
+          const uint32_t rhs = ReadReg(inst.r.rt);
+          const uint64_t result =
+            static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(lhs)) * static_cast<int64_t>(static_cast<int32_t>(rhs)));
 
-          g_state.regs.hi = Truncate32(result >> 32);
-          g_state.regs.lo = Truncate32(result);
+          g_state.regs.hi = static_cast<uint32_t>(result >> 32);
+          g_state.regs.lo = static_cast<uint32_t>(result);
 
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_MULT(inst.bits, lhs, rhs);
@@ -714,30 +714,30 @@ restart_instruction:
 
         case InstructionFunct::multu:
         {
-          const u32 lhs = ReadReg(inst.r.rs);
-          const u32 rhs = ReadReg(inst.r.rt);
-          const u64 result = ZeroExtend64(lhs) * ZeroExtend64(rhs);
+          const uint32_t lhs = ReadReg(inst.r.rs);
+          const uint32_t rhs = ReadReg(inst.r.rt);
+          const uint64_t result = static_cast<uint64_t>(lhs) * static_cast<uint64_t>(rhs);
 
           if constexpr (pgxp_mode >= PGXPMode::CPU)
             PGXP::CPU_MULTU(inst.bits, lhs, rhs);
 
-          g_state.regs.hi = Truncate32(result >> 32);
-          g_state.regs.lo = Truncate32(result);
+          g_state.regs.hi = static_cast<uint32_t>(result >> 32);
+          g_state.regs.lo = static_cast<uint32_t>(result);
         }
         break;
 
         case InstructionFunct::div:
         {
-          const s32 num = static_cast<s32>(ReadReg(inst.r.rs));
-          const s32 denom = static_cast<s32>(ReadReg(inst.r.rt));
+          const int32_t num = static_cast<int32_t>(ReadReg(inst.r.rs));
+          const int32_t denom = static_cast<int32_t>(ReadReg(inst.r.rt));
 
           if (denom == 0)
           {
             // divide by zero
             g_state.regs.lo = (num >= 0) ? UINT32_C(0xFFFFFFFF) : UINT32_C(1);
-            g_state.regs.hi = static_cast<u32>(num);
+            g_state.regs.hi = static_cast<uint32_t>(num);
           }
-          else if (static_cast<u32>(num) == UINT32_C(0x80000000) && denom == -1)
+          else if (static_cast<uint32_t>(num) == UINT32_C(0x80000000) && denom == -1)
           {
             // unrepresentable
             g_state.regs.lo = UINT32_C(0x80000000);
@@ -745,8 +745,8 @@ restart_instruction:
           }
           else
           {
-            g_state.regs.lo = static_cast<u32>(num / denom);
-            g_state.regs.hi = static_cast<u32>(num % denom);
+            g_state.regs.lo = static_cast<uint32_t>(num / denom);
+            g_state.regs.hi = static_cast<uint32_t>(num % denom);
           }
 
           if constexpr (pgxp_mode >= PGXPMode::CPU)
@@ -756,14 +756,14 @@ restart_instruction:
 
         case InstructionFunct::divu:
         {
-          const u32 num = ReadReg(inst.r.rs);
-          const u32 denom = ReadReg(inst.r.rt);
+          const uint32_t num = ReadReg(inst.r.rs);
+          const uint32_t denom = ReadReg(inst.r.rt);
 
           if (denom == 0)
           {
             // divide by zero
             g_state.regs.lo = UINT32_C(0xFFFFFFFF);
-            g_state.regs.hi = static_cast<u32>(num);
+            g_state.regs.hi = static_cast<uint32_t>(num);
           }
           else
           {
@@ -779,7 +779,7 @@ restart_instruction:
         case InstructionFunct::jr:
         {
           g_state.next_instruction_is_branch_delay_slot = true;
-          const u32 target = ReadReg(inst.r.rs);
+          const uint32_t target = ReadReg(inst.r.rs);
           Branch(target);
         }
         break;
@@ -787,7 +787,7 @@ restart_instruction:
         case InstructionFunct::jalr:
         {
           g_state.next_instruction_is_branch_delay_slot = true;
-          const u32 target = ReadReg(inst.r.rs);
+          const uint32_t target = ReadReg(inst.r.rs);
           WriteReg(inst.r.rd, g_state.regs.npc);
           Branch(target);
         }
@@ -816,7 +816,7 @@ restart_instruction:
 
     case InstructionOp::lui:
     {
-      const u32 value = inst.i.imm_zext32() << 16;
+      const uint32_t value = inst.i.imm_zext32() << 16;
       WriteReg(inst.i.rt, value);
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
@@ -826,7 +826,7 @@ restart_instruction:
 
     case InstructionOp::andi:
     {
-      const u32 new_value = ReadReg(inst.i.rs) & inst.i.imm_zext32();
+      const uint32_t new_value = ReadReg(inst.i.rs) & inst.i.imm_zext32();
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
         PGXP::CPU_ANDI(inst.bits, ReadReg(inst.i.rs));
@@ -837,7 +837,7 @@ restart_instruction:
 
     case InstructionOp::ori:
     {
-      const u32 new_value = ReadReg(inst.i.rs) | inst.i.imm_zext32();
+      const uint32_t new_value = ReadReg(inst.i.rs) | inst.i.imm_zext32();
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
         PGXP::CPU_ORI(inst.bits, ReadReg(inst.i.rs));
@@ -848,7 +848,7 @@ restart_instruction:
 
     case InstructionOp::xori:
     {
-      const u32 new_value = ReadReg(inst.i.rs) ^ inst.i.imm_zext32();
+      const uint32_t new_value = ReadReg(inst.i.rs) ^ inst.i.imm_zext32();
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
         PGXP::CPU_XORI(inst.bits, ReadReg(inst.i.rs));
@@ -859,9 +859,9 @@ restart_instruction:
 
     case InstructionOp::addi:
     {
-      const u32 old_value = ReadReg(inst.i.rs);
-      const u32 add_value = inst.i.imm_sext32();
-      const u32 new_value = old_value + add_value;
+      const uint32_t old_value = ReadReg(inst.i.rs);
+      const uint32_t add_value = inst.i.imm_sext32();
+      const uint32_t new_value = old_value + add_value;
       if (AddOverflow(old_value, add_value, new_value))
       {
         RaiseException(Exception::Ov);
@@ -874,7 +874,7 @@ restart_instruction:
       {
         if (add_value == 0)
         {
-          PGXP::CPU_MOVE((static_cast<u32>(inst.i.rt.GetValue()) << 8) | static_cast<u32>(inst.i.rs.GetValue()),
+          PGXP::CPU_MOVE((static_cast<uint32_t>(inst.i.rt.GetValue()) << 8) | static_cast<uint32_t>(inst.i.rs.GetValue()),
                          old_value);
         }
       }
@@ -885,9 +885,9 @@ restart_instruction:
 
     case InstructionOp::addiu:
     {
-      const u32 old_value = ReadReg(inst.i.rs);
-      const u32 add_value = inst.i.imm_sext32();
-      const u32 new_value = old_value + add_value;
+      const uint32_t old_value = ReadReg(inst.i.rs);
+      const uint32_t add_value = inst.i.imm_sext32();
+      const uint32_t new_value = old_value + add_value;
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
         PGXP::CPU_ADDI(inst.bits, ReadReg(inst.i.rs));
@@ -895,7 +895,7 @@ restart_instruction:
       {
         if (add_value == 0)
         {
-          PGXP::CPU_MOVE((static_cast<u32>(inst.i.rt.GetValue()) << 8) | static_cast<u32>(inst.i.rs.GetValue()),
+          PGXP::CPU_MOVE((static_cast<uint32_t>(inst.i.rt.GetValue()) << 8) | static_cast<uint32_t>(inst.i.rs.GetValue()),
                          old_value);
         }
       }
@@ -906,7 +906,7 @@ restart_instruction:
 
     case InstructionOp::slti:
     {
-      const u32 result = BoolToUInt32(static_cast<s32>(ReadReg(inst.i.rs)) < static_cast<s32>(inst.i.imm_sext32()));
+      const uint32_t result = static_cast<uint32_t>(static_cast<int32_t>(ReadReg(inst.i.rs)) < static_cast<int32_t>(inst.i.imm_sext32()));
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
         PGXP::CPU_SLTI(inst.bits, ReadReg(inst.i.rs));
@@ -917,7 +917,7 @@ restart_instruction:
 
     case InstructionOp::sltiu:
     {
-      const u32 result = BoolToUInt32(ReadReg(inst.i.rs) < inst.i.imm_sext32());
+      const uint32_t result = static_cast<uint32_t>(ReadReg(inst.i.rs) < inst.i.imm_sext32());
 
       if constexpr (pgxp_mode >= PGXPMode::CPU)
         PGXP::CPU_SLTIU(inst.bits, ReadReg(inst.i.rs));
@@ -932,11 +932,11 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Read>(addr);
 
-      u8 value;
+      uint8_t value;
       if (!ReadMemoryByte(addr, &value))
         return;
 
-      const u32 sxvalue = SignExtend32(value);
+      const uint32_t sxvalue = static_cast<uint32_t>(static_cast<int8_t>(value));
 
       WriteRegDelayed(inst.i.rt, sxvalue);
 
@@ -951,11 +951,11 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Read>(addr);
 
-      u16 value;
+      uint16_t value;
       if (!ReadMemoryHalfWord(addr, &value))
         return;
 
-      const u32 sxvalue = SignExtend32(value);
+      const uint32_t sxvalue = static_cast<uint32_t>(static_cast<int16_t>(value));
       WriteRegDelayed(inst.i.rt, sxvalue);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -969,7 +969,7 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Read>(addr);
 
-      u32 value;
+      uint32_t value;
       if (!ReadMemoryWord(addr, &value))
         return;
 
@@ -986,11 +986,11 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Read>(addr);
 
-      u8 value;
+      uint8_t value;
       if (!ReadMemoryByte(addr, &value))
         return;
 
-      const u32 zxvalue = ZeroExtend32(value);
+      const uint32_t zxvalue = static_cast<uint32_t>(value);
       WriteRegDelayed(inst.i.rt, zxvalue);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -1004,11 +1004,11 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Read>(addr);
 
-      u16 value;
+      uint16_t value;
       if (!ReadMemoryHalfWord(addr, &value))
         return;
 
-      const u32 zxvalue = ZeroExtend32(value);
+      const uint32_t zxvalue = static_cast<uint32_t>(value);
       WriteRegDelayed(inst.i.rt, zxvalue);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -1024,22 +1024,22 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Read>(addr);
 
-      u32 aligned_value;
+      uint32_t aligned_value;
       if (!ReadMemoryWord(aligned_addr, &aligned_value))
         return;
 
       // Bypasses load delay. No need to check the old value since this is the delay slot or it's not relevant.
-      const u32 existing_value = (inst.i.rt == g_state.load_delay_reg) ? g_state.load_delay_value : ReadReg(inst.i.rt);
-      const u8 shift = (Truncate8(addr) & u8(3)) * u8(8);
-      u32 new_value;
+      const uint32_t existing_value = (inst.i.rt == g_state.load_delay_reg) ? g_state.load_delay_value : ReadReg(inst.i.rt);
+      const uint8_t shift = (static_cast<uint8_t>(addr) & uint8_t(3)) * uint8_t(8);
+      uint32_t new_value;
       if (inst.op == InstructionOp::lwl)
       {
-        const u32 mask = UINT32_C(0x00FFFFFF) >> shift;
+        const uint32_t mask = UINT32_C(0x00FFFFFF) >> shift;
         new_value = (existing_value & mask) | (aligned_value << (24 - shift));
       }
       else
       {
-        const u32 mask = UINT32_C(0xFFFFFF00) << (24 - shift);
+        const uint32_t mask = UINT32_C(0xFFFFFF00) << (24 - shift);
         new_value = (existing_value & mask) | (aligned_value >> shift);
       }
 
@@ -1056,11 +1056,11 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Write>(addr);
 
-      const u32 value = ReadReg(inst.i.rt);
+      const uint32_t value = ReadReg(inst.i.rt);
       WriteMemoryByte(addr, value);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
-        PGXP::CPU_SB(inst.bits, Truncate8(value), addr);
+        PGXP::CPU_SB(inst.bits, static_cast<uint8_t>(value), addr);
     }
     break;
 
@@ -1070,11 +1070,11 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Write>(addr);
 
-      const u32 value = ReadReg(inst.i.rt);
+      const uint32_t value = ReadReg(inst.i.rt);
       WriteMemoryHalfWord(addr, value);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
-        PGXP::CPU_SH(inst.bits, Truncate16(value), addr);
+        PGXP::CPU_SH(inst.bits, static_cast<uint16_t>(value), addr);
     }
     break;
 
@@ -1084,7 +1084,7 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Write>(addr);
 
-      const u32 value = ReadReg(inst.i.rt);
+      const uint32_t value = ReadReg(inst.i.rt);
       WriteMemoryWord(addr, value);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -1100,21 +1100,21 @@ restart_instruction:
       if constexpr (debug)
         Cop0DataBreakpointCheck<MemoryAccessType::Write>(aligned_addr);
 
-      const u32 reg_value = ReadReg(inst.i.rt);
-      const u8 shift = (Truncate8(addr) & u8(3)) * u8(8);
-      u32 mem_value;
+      const uint32_t reg_value = ReadReg(inst.i.rt);
+      const uint8_t shift = (static_cast<uint8_t>(addr) & uint8_t(3)) * uint8_t(8);
+      uint32_t mem_value;
       if (!ReadMemoryWord(aligned_addr, &mem_value))
         return;
 
-      u32 new_value;
+      uint32_t new_value;
       if (inst.op == InstructionOp::swl)
       {
-        const u32 mem_mask = UINT32_C(0xFFFFFF00) << shift;
+        const uint32_t mem_mask = UINT32_C(0xFFFFFF00) << shift;
         new_value = (mem_value & mem_mask) | (reg_value >> (24 - shift));
       }
       else
       {
-        const u32 mem_mask = UINT32_C(0x00FFFFFF) >> (24 - shift);
+        const uint32_t mem_mask = UINT32_C(0x00FFFFFF) >> (24 - shift);
         new_value = (mem_value & mem_mask) | (reg_value << shift);
       }
 
@@ -1162,7 +1162,7 @@ restart_instruction:
     case InstructionOp::bgtz:
     {
       g_state.next_instruction_is_branch_delay_slot = true;
-      const bool branch = (static_cast<s32>(ReadReg(inst.i.rs)) > 0);
+      const bool branch = (static_cast<int32_t>(ReadReg(inst.i.rs)) > 0);
       if (branch)
         Branch(g_state.regs.pc + (inst.i.imm_sext32() << 2));
     }
@@ -1171,7 +1171,7 @@ restart_instruction:
     case InstructionOp::blez:
     {
       g_state.next_instruction_is_branch_delay_slot = true;
-      const bool branch = (static_cast<s32>(ReadReg(inst.i.rs)) <= 0);
+      const bool branch = (static_cast<int32_t>(ReadReg(inst.i.rs)) <= 0);
       if (branch)
         Branch(g_state.regs.pc + (inst.i.imm_sext32() << 2));
     }
@@ -1180,14 +1180,14 @@ restart_instruction:
     case InstructionOp::b:
     {
       g_state.next_instruction_is_branch_delay_slot = true;
-      const u8 rt = static_cast<u8>(inst.i.rt.GetValue());
+      const uint8_t rt = static_cast<uint8_t>(inst.i.rt.GetValue());
 
       // bgez is the inverse of bltz, so simply do ltz and xor the result
-      const bool bgez = ConvertToBoolUnchecked(rt & u8(1));
-      const bool branch = (static_cast<s32>(ReadReg(inst.i.rs)) < 0) ^ bgez;
+      const bool bgez = static_cast<bool>(rt & uint8_t(1));
+      const bool branch = (static_cast<int32_t>(ReadReg(inst.i.rs)) < 0) ^ bgez;
 
       // register is still linked even if the branch isn't taken
-      const bool link = (rt & u8(0x1E)) == u8(0x10);
+      const bool link = (rt & uint8_t(0x1E)) == uint8_t(0x10);
       if (link)
         WriteReg(Reg::ra, g_state.regs.npc);
 
@@ -1210,7 +1210,7 @@ restart_instruction:
         {
           case CopCommonInstruction::mfcn:
           {
-            const u32 value = ReadCop0Reg(static_cast<Cop0Reg>(inst.r.rd.GetValue()));
+            const uint32_t value = ReadCop0Reg(static_cast<Cop0Reg>(inst.r.rd.GetValue()));
 
             if constexpr (pgxp_mode == PGXPMode::CPU)
               PGXP::CPU_MFC0(inst.bits, value);
@@ -1276,7 +1276,7 @@ restart_instruction:
         {
           case CopCommonInstruction::cfcn:
           {
-            const u32 value = GTE::ReadRegister(static_cast<u32>(inst.r.rd.GetValue()) + 32);
+            const uint32_t value = GTE::ReadRegister(static_cast<uint32_t>(inst.r.rd.GetValue()) + 32);
             WriteRegDelayed(inst.r.rt, value);
 
             if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -1286,8 +1286,8 @@ restart_instruction:
 
           case CopCommonInstruction::ctcn:
           {
-            const u32 value = ReadReg(inst.r.rt);
-            GTE::WriteRegister(static_cast<u32>(inst.r.rd.GetValue()) + 32, value);
+            const uint32_t value = ReadReg(inst.r.rt);
+            GTE::WriteRegister(static_cast<uint32_t>(inst.r.rd.GetValue()) + 32, value);
 
             if constexpr (pgxp_mode >= PGXPMode::Memory)
               PGXP::CPU_CTC2(inst.bits, value, value);
@@ -1296,7 +1296,7 @@ restart_instruction:
 
           case CopCommonInstruction::mfcn:
           {
-            const u32 value = GTE::ReadRegister(static_cast<u32>(inst.r.rd.GetValue()));
+            const uint32_t value = GTE::ReadRegister(static_cast<uint32_t>(inst.r.rd.GetValue()));
             WriteRegDelayed(inst.r.rt, value);
 
             if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -1306,8 +1306,8 @@ restart_instruction:
 
           case CopCommonInstruction::mtcn:
           {
-            const u32 value = ReadReg(inst.r.rt);
-            GTE::WriteRegister(static_cast<u32>(inst.r.rd.GetValue()), value);
+            const uint32_t value = ReadReg(inst.r.rt);
+            GTE::WriteRegister(static_cast<uint32_t>(inst.r.rd.GetValue()), value);
 
             if constexpr (pgxp_mode >= PGXPMode::Memory)
               PGXP::CPU_MTC2(inst.bits, value, value);
@@ -1334,12 +1334,12 @@ restart_instruction:
       }
 
       const VirtualMemoryAddress addr = ReadReg(inst.i.rs) + inst.i.imm_sext32();
-      u32 value;
+      uint32_t value;
       if (!ReadMemoryWord(addr, &value))
         return;
 
       StallUntilGTEComplete();
-      GTE::WriteRegister(ZeroExtend32(static_cast<u8>(inst.i.rt.GetValue())), value);
+      GTE::WriteRegister(static_cast<uint32_t>(static_cast<uint8_t>(inst.i.rt.GetValue())), value);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
         PGXP::CPU_LWC2(inst.bits, value, addr);
@@ -1357,7 +1357,7 @@ restart_instruction:
       StallUntilGTEComplete();
 
       const VirtualMemoryAddress addr = ReadReg(inst.i.rs) + inst.i.imm_sext32();
-      const u32 value = GTE::ReadRegister(ZeroExtend32(static_cast<u8>(inst.i.rt.GetValue())));
+      const uint32_t value = GTE::ReadRegister(static_cast<uint32_t>(static_cast<uint8_t>(inst.i.rt.GetValue())));
       WriteMemoryWord(addr, value);
 
       if constexpr (pgxp_mode >= PGXPMode::Memory)
@@ -1381,7 +1381,7 @@ restart_instruction:
       // everything else is reserved/invalid
     default:
     {
-      u32 ram_value;
+      uint32_t ram_value;
       if (SafeReadInstruction(g_state.current_instruction_pc, &ram_value) &&
           ram_value != g_state.current_instruction.bits)
       {
@@ -1442,7 +1442,7 @@ void ClearBreakpoints()
 
 ALWAYS_INLINE_RELEASE static bool BreakpointCheck()
 {
-  const u32 pc = g_state.regs.pc;
+  const uint32_t pc = g_state.regs.pc;
   // we don't want to trigger the same breakpoint which just paused us repeatedly.
   if (pc == s_last_breakpoint_check_pc)
     return false;

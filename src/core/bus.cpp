@@ -16,9 +16,9 @@
 #include "spu.h"
 #include "timers.h"
 #include <cstdio>
+#include <cstring>
 #include <tuple>
 #include <utility>
-
 // Disable MSVC unreachable code warnings for code that actually get reached
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -29,40 +29,40 @@ namespace Bus {
 
 union MEMDELAY
 {
-  u32 bits;
+  uint32_t bits;
 
-  BitField<u32, u8, 4, 4> access_time; // cycles
-  BitField<u32, bool, 8, 1> use_com0_time;
-  BitField<u32, bool, 9, 1> use_com1_time;
-  BitField<u32, bool, 10, 1> use_com2_time;
-  BitField<u32, bool, 11, 1> use_com3_time;
-  BitField<u32, bool, 12, 1> data_bus_16bit;
-  BitField<u32, u8, 16, 5> memory_window_size;
+  BitField<uint32_t, uint8_t, 4, 4> access_time; // cycles
+  BitField<uint32_t, bool, 8, 1> use_com0_time;
+  BitField<uint32_t, bool, 9, 1> use_com1_time;
+  BitField<uint32_t, bool, 10, 1> use_com2_time;
+  BitField<uint32_t, bool, 11, 1> use_com3_time;
+  BitField<uint32_t, bool, 12, 1> data_bus_16bit;
+  BitField<uint32_t, uint8_t, 16, 5> memory_window_size;
 
-  static constexpr u32 WRITE_MASK = 0b10101111'00011111'11111111'11111111;
+  static constexpr uint32_t WRITE_MASK = 0b10101111'00011111'11111111'11111111;
 };
 
 union COMDELAY
 {
-  u32 bits;
+  uint32_t bits;
 
-  BitField<u32, u8, 0, 4> com0;
-  BitField<u32, u8, 4, 4> com1;
-  BitField<u32, u8, 8, 4> com2;
-  BitField<u32, u8, 12, 4> com3;
-  BitField<u32, u8, 16, 2> comunk;
+  BitField<uint32_t, uint8_t, 0, 4> com0;
+  BitField<uint32_t, uint8_t, 4, 4> com1;
+  BitField<uint32_t, uint8_t, 8, 4> com2;
+  BitField<uint32_t, uint8_t, 12, 4> com3;
+  BitField<uint32_t, uint8_t, 16, 2> comunk;
 
-  static constexpr u32 WRITE_MASK = 0b00000000'00000011'11111111'11111111;
+  static constexpr uint32_t WRITE_MASK = 0b00000000'00000011'11111111'11111111;
 };
 
 union MEMCTRL
 {
-  u32 regs[MEMCTRL_REG_COUNT];
+  uint32_t regs[MEMCTRL_REG_COUNT];
 
   struct
   {
-    u32 exp1_base;
-    u32 exp2_base;
+    uint32_t exp1_base;
+    uint32_t exp2_base;
     MEMDELAY exp1_delay_size;
     MEMDELAY exp3_delay_size;
     MEMDELAY bios_delay_size;
@@ -74,11 +74,11 @@ union MEMCTRL
 };
 
 std::bitset<RAM_8MB_CODE_PAGE_COUNT> m_ram_code_bits{};
-u32 m_ram_code_page_count = 0;
-u8* g_ram = nullptr; // 2MB RAM
-u32 g_ram_size = 0;
-u32 g_ram_mask = 0;
-u8 g_bios[BIOS_SIZE]{}; // 512K BIOS ROM
+static uint32_t m_ram_code_page_count = 0;
+uint8_t* g_ram = nullptr; // 2MB RAM
+uint32_t g_ram_size = 0;
+uint32_t g_ram_mask = 0;
+uint8_t g_bios[BIOS_SIZE]{}; // 512K BIOS ROM
 
 static std::array<TickCount, 3> m_exp1_access_time = {};
 static std::array<TickCount, 3> m_exp2_access_time = {};
@@ -86,10 +86,10 @@ static std::array<TickCount, 3> m_bios_access_time = {};
 static std::array<TickCount, 3> m_cdrom_access_time = {};
 static std::array<TickCount, 3> m_spu_access_time = {};
 
-static std::vector<u8> m_exp1_rom;
+static std::vector<uint8_t> m_exp1_rom;
 
 static MEMCTRL m_MEMCTRL = {};
-static u32 m_ram_size_reg = 0;
+static uint32_t m_ram_size_reg = 0;
 
 static std::string m_tty_line_buffer;
 
@@ -98,12 +98,12 @@ static Common::MemoryArena m_memory_arena;
 static CPUFastmemMode m_fastmem_mode = CPUFastmemMode::Disabled;
 
 #ifdef WITH_MMAP_FASTMEM
-static u8* m_fastmem_base = nullptr;
+static uint8_t* m_fastmem_base = nullptr;
 static std::vector<Common::MemoryArena::View> m_fastmem_ram_views;
 static std::vector<Common::MemoryArena::View> m_fastmem_reserved_views;
 #endif
 
-static u8** m_fastmem_lut = nullptr;
+static uint8_t** m_fastmem_lut = nullptr;
 static constexpr auto m_fastmem_ram_mirrors =
   make_array(0x00000000u, 0x00200000u, 0x00400000u, 0x00600000u, 0x80000000u, 0x80200000u, 0x80400000u, 0x80600000u,
              0xA0000000u, 0xA0200000u, 0xA0400000u, 0xA0600000u);
@@ -114,13 +114,13 @@ static void RecalculateMemoryTimings();
 static bool AllocateMemory(bool enable_8mb_ram);
 static void ReleaseMemory();
 
-static void SetCodePageFastmemProtection(u32 page_index, bool writable);
+static void SetCodePageFastmemProtection(uint32_t page_index, bool writable);
 
 #define FIXUP_HALFWORD_OFFSET(size, offset) ((size >= MemoryAccessSize::HalfWord) ? (offset) : ((offset) & ~1u))
 #define FIXUP_HALFWORD_READ_VALUE(size, offset, value)                                                                 \
-  ((size >= MemoryAccessSize::HalfWord) ? (value) : ((value) >> (((offset)&u32(1)) * 8u)))
+  ((size >= MemoryAccessSize::HalfWord) ? (value) : ((value) >> (((offset)&uint32_t(1)) * 8u)))
 #define FIXUP_HALFWORD_WRITE_VALUE(size, offset, value)                                                                \
-  ((size >= MemoryAccessSize::HalfWord) ? (value) : ((value) << (((offset)&u32(1)) * 8u)))
+  ((size >= MemoryAccessSize::HalfWord) ? (value) : ((value) << (((offset)&uint32_t(1)) * 8u)))
 
 #define FIXUP_WORD_OFFSET(size, offset) ((size == MemoryAccessSize::Word) ? (offset) : ((offset) & ~3u))
 #define FIXUP_WORD_READ_VALUE(size, offset, value)                                                                     \
@@ -175,8 +175,8 @@ void Reset()
 
 bool DoState(StateWrapper& sw)
 {
-  u32 ram_size = g_ram_size;
-  sw.DoEx(&ram_size, 52, static_cast<u32>(RAM_2MB_SIZE));
+  uint32_t ram_size = g_ram_size;
+  sw.DoEx(&ram_size, 52, static_cast<uint32_t>(RAM_2MB_SIZE));
   if (ram_size != g_ram_size)
   {
     const bool using_8mb_ram = (ram_size == RAM_8MB_SIZE);
@@ -201,40 +201,40 @@ bool DoState(StateWrapper& sw)
   return !sw.HasError();
 }
 
-void SetExpansionROM(std::vector<u8> data)
+void SetExpansionROM(std::vector<uint8_t> data)
 {
   m_exp1_rom = std::move(data);
 }
 
-void SetBIOS(const std::vector<u8>& image)
+void SetBIOS(const uint8_t *image, size_t image_size)
 {
-  if (image.size() == static_cast<u32>(BIOS_SIZE))
-    std::memcpy(g_bios, image.data(), BIOS_SIZE);
+  if (image_size == BIOS_SIZE)
+    std::memcpy(g_bios, image, BIOS_SIZE);
 }
 
 std::tuple<TickCount, TickCount, TickCount> CalculateMemoryTiming(MEMDELAY mem_delay, COMDELAY common_delay)
 {
   // from nocash spec
-  s32 first = 0, seq = 0, min = 0;
+  int32_t first = 0, seq = 0, min = 0;
   if (mem_delay.use_com0_time)
   {
-    first += s32(common_delay.com0) - 1;
-    seq += s32(common_delay.com0) - 1;
+    first += int32_t(common_delay.com0) - 1;
+    seq += int32_t(common_delay.com0) - 1;
   }
   if (mem_delay.use_com2_time)
   {
-    first += s32(common_delay.com2);
-    seq += s32(common_delay.com2);
+    first += int32_t(common_delay.com2);
+    seq += int32_t(common_delay.com2);
   }
   if (mem_delay.use_com3_time)
   {
-    min = s32(common_delay.com3);
+    min = int32_t(common_delay.com3);
   }
   if (first < 6)
     first++;
 
-  first = first + s32(mem_delay.access_time) + 2;
-  seq = seq + s32(mem_delay.access_time) + 2;
+  first = first + int32_t(mem_delay.access_time) + 2;
+  seq = seq + int32_t(mem_delay.access_time) + 2;
 
   if (first < (min + 6))
     first = min + 6;
@@ -264,9 +264,9 @@ bool AllocateMemory(bool enable_8mb_ram)
     return false;
 
   // Create the base views.
-  const u32 ram_size = enable_8mb_ram ? RAM_8MB_SIZE : RAM_2MB_SIZE;
-  const u32 ram_mask = enable_8mb_ram ? RAM_8MB_MASK : RAM_2MB_MASK;
-  g_ram = static_cast<u8*>(m_memory_arena.CreateViewPtr(MEMORY_ARENA_RAM_OFFSET, ram_size, true, false));
+  const uint32_t ram_size = enable_8mb_ram ? RAM_8MB_SIZE : RAM_2MB_SIZE;
+  const uint32_t ram_mask = enable_8mb_ram ? RAM_8MB_MASK : RAM_2MB_MASK;
+  g_ram = static_cast<uint8_t*>(m_memory_arena.CreateViewPtr(MEMORY_ARENA_RAM_OFFSET, ram_size, true, false));
   if (!g_ram)
     return false;
 
@@ -289,25 +289,25 @@ void ReleaseMemory()
   m_memory_arena.Destroy();
 }
 
-static ALWAYS_INLINE u32 FastmemAddressToLUTPageIndex(u32 address)
+static ALWAYS_INLINE uint32_t FastmemAddressToLUTPageIndex(uint32_t address)
 {
   return address >> 12;
 }
 
-static ALWAYS_INLINE_RELEASE void SetLUTFastmemPage(u32 address, u8* ptr, bool writable)
+static ALWAYS_INLINE_RELEASE void SetLUTFastmemPage(uint32_t address, uint8_t* ptr, bool writable)
 {
   m_fastmem_lut[FastmemAddressToLUTPageIndex(address)] = ptr;
   m_fastmem_lut[FASTMEM_LUT_NUM_PAGES + FastmemAddressToLUTPageIndex(address)] = writable ? ptr : nullptr;
 }
 
-u8* GetFastmemBase()
+uint8_t* GetFastmemBase()
 {
 #ifdef WITH_MMAP_FASTMEM
   if (m_fastmem_mode == CPUFastmemMode::MMap)
     return m_fastmem_base;
 #endif
   if (m_fastmem_mode == CPUFastmemMode::LUT)
-    return reinterpret_cast<u8*>(m_fastmem_lut);
+    return reinterpret_cast<uint8_t*>(m_fastmem_lut);
 
   return nullptr;
 }
@@ -338,23 +338,23 @@ void UpdateFastmemViews(CPUFastmemMode mode)
 
     if (!m_fastmem_base)
     {
-      m_fastmem_base = static_cast<u8*>(m_memory_arena.FindBaseAddressForMapping(FASTMEM_REGION_SIZE));
+      m_fastmem_base = static_cast<uint8_t*>(m_memory_arena.FindBaseAddressForMapping(FASTMEM_REGION_SIZE));
       if (!m_fastmem_base)
         return;
     }
 
-    auto MapRAM = [](u32 base_address) {
-      u8* map_address = m_fastmem_base + base_address;
+    auto MapRAM = [](uint32_t base_address) {
+      uint8_t* map_address = m_fastmem_base + base_address;
       auto view = m_memory_arena.CreateView(MEMORY_ARENA_RAM_OFFSET, g_ram_size, true, false, map_address);
       if (!view)
         return;
 
       // mark all pages with code as non-writable
-      for (u32 i = 0; i < m_ram_code_page_count; i++)
+      for (uint32_t i = 0; i < m_ram_code_page_count; i++)
       {
         if (m_ram_code_bits[i])
         {
-          u8* page_address = map_address + (i * HOST_PAGE_SIZE);
+          uint8_t* page_address = map_address + (i * HOST_PAGE_SIZE);
           if (!m_memory_arena.SetPageProtection(page_address, HOST_PAGE_SIZE, true, false, false))
             return;
         }
@@ -363,10 +363,10 @@ void UpdateFastmemViews(CPUFastmemMode mode)
       m_fastmem_ram_views.push_back(std::move(view.value()));
     };
 
-    auto ReserveRegion = [](u32 start_address, u32 end_address_inclusive) {
+    auto ReserveRegion = [](uint32_t start_address, uint32_t end_address_inclusive) {
     // We don't reserve memory regions on Android because the app could be subject to address space size limitations.
 #ifndef __ANDROID__
-      u8* map_address = m_fastmem_base + start_address;
+      uint8_t* map_address = m_fastmem_base + start_address;
       auto view = m_memory_arena.CreateReservedView(end_address_inclusive - start_address + 1, map_address);
       if (!view)
         return;
@@ -396,10 +396,18 @@ void UpdateFastmemViews(CPUFastmemMode mode)
 #endif
 
   if (!m_fastmem_lut)
-    m_fastmem_lut = static_cast<u8**>(std::calloc(FASTMEM_LUT_NUM_SLOTS, sizeof(u8*)));
+  {
+    m_fastmem_lut = static_cast<uint8_t**>(std::calloc(FASTMEM_LUT_NUM_SLOTS, sizeof(uint8_t*)));
+    if (!m_fastmem_lut)
+    {
+      // fastmem cannot function without its lookup table; fall back to disabled
+      m_fastmem_mode = CPUFastmemMode::Disabled;
+      return;
+    }
+  }
 
-  auto MapRAM = [](u32 base_address) {
-    for (u32 address = 0; address < g_ram_size; address += HOST_PAGE_SIZE)
+  auto MapRAM = [](uint32_t base_address) {
+    for (uint32_t address = 0; address < g_ram_size; address += HOST_PAGE_SIZE)
     {
       SetLUTFastmemPage(base_address + address, &g_ram[address],
                         !m_ram_code_bits[FastmemAddressToLUTPageIndex(address)]);
@@ -449,12 +457,12 @@ bool CanUseFastmemForAddress(VirtualMemoryAddress address)
   return false;
 }
 
-bool IsRAMCodePage(u32 index)
+bool IsRAMCodePage(uint32_t index)
 {
   return m_ram_code_bits[index];
 }
 
-void SetRAMCodePage(u32 index)
+void SetRAMCodePage(uint32_t index)
 {
   if (m_ram_code_bits[index])
     return;
@@ -464,7 +472,7 @@ void SetRAMCodePage(u32 index)
   SetCodePageFastmemProtection(index, false);
 }
 
-void ClearRAMCodePage(u32 index)
+void ClearRAMCodePage(uint32_t index)
 {
   if (!m_ram_code_bits[index])
     return;
@@ -474,7 +482,7 @@ void ClearRAMCodePage(u32 index)
   SetCodePageFastmemProtection(index, true);
 }
 
-void SetCodePageFastmemProtection(u32 page_index, bool writable)
+void SetCodePageFastmemProtection(uint32_t page_index, bool writable)
 {
 #ifdef WITH_MMAP_FASTMEM
   if (m_fastmem_mode == CPUFastmemMode::MMap)
@@ -482,7 +490,7 @@ void SetCodePageFastmemProtection(u32 page_index, bool writable)
     // unprotect fastmem pages
     for (const auto& view : m_fastmem_ram_views)
     {
-      u8* page_address = static_cast<u8*>(view.GetBasePointer()) + (page_index * HOST_PAGE_SIZE);
+      uint8_t* page_address = static_cast<uint8_t*>(view.GetBasePointer()) + (page_index * HOST_PAGE_SIZE);
       m_memory_arena.SetPageProtection(page_address, HOST_PAGE_SIZE, true, writable, false);
     }
 
@@ -493,8 +501,8 @@ void SetCodePageFastmemProtection(u32 page_index, bool writable)
   if (m_fastmem_mode == CPUFastmemMode::LUT)
   {
     // mirrors...
-    const u32 ram_address = page_index * HOST_PAGE_SIZE;
-    for (u32 mirror_start : m_fastmem_ram_mirrors)
+    const uint32_t ram_address = page_index * HOST_PAGE_SIZE;
+    for (uint32_t mirror_start : m_fastmem_ram_mirrors)
       SetLUTFastmemPage(mirror_start + ram_address, &g_ram[ram_address], writable);
   }
 }
@@ -514,142 +522,17 @@ void ClearRAMCodePageFlags()
 
   if (m_fastmem_mode == CPUFastmemMode::LUT)
   {
-    for (u32 i = 0; i < m_ram_code_page_count; i++)
+    for (uint32_t i = 0; i < m_ram_code_page_count; i++)
     {
-      const u32 addr = (i * HOST_PAGE_SIZE);
-      for (u32 mirror_start : m_fastmem_ram_mirrors)
+      const uint32_t addr = (i * HOST_PAGE_SIZE);
+      for (uint32_t mirror_start : m_fastmem_ram_mirrors)
         SetLUTFastmemPage(mirror_start + addr, &g_ram[addr], true);
     }
   }
 }
 
-std::optional<MemoryRegion> GetMemoryRegionForAddress(PhysicalMemoryAddress address)
-{
-  if (address < RAM_2MB_SIZE)
-    return MemoryRegion::RAM;
-  else if (address < RAM_MIRROR_END)
-    return static_cast<MemoryRegion>(static_cast<u32>(MemoryRegion::RAM) + (address / RAM_2MB_SIZE));
-  else if (address >= EXP1_BASE && address < (EXP1_BASE + EXP1_SIZE))
-    return MemoryRegion::EXP1;
-  else if (address >= CPU::DCACHE_LOCATION && address < (CPU::DCACHE_LOCATION + CPU::DCACHE_SIZE))
-    return MemoryRegion::Scratchpad;
-  else if (address >= BIOS_BASE && address < (BIOS_BASE + BIOS_SIZE))
-    return MemoryRegion::BIOS;
-
-  return std::nullopt;
-}
-
-static constexpr std::array<std::pair<PhysicalMemoryAddress, PhysicalMemoryAddress>,
-                            static_cast<u32>(MemoryRegion::Count)>
-  s_code_region_ranges = {{
-    {0, RAM_2MB_SIZE},
-    {RAM_2MB_SIZE, RAM_2MB_SIZE * 2},
-    {RAM_2MB_SIZE * 2, RAM_2MB_SIZE * 3},
-    {RAM_2MB_SIZE * 3, RAM_MIRROR_END},
-    {EXP1_BASE, EXP1_BASE + EXP1_SIZE},
-    {CPU::DCACHE_LOCATION, CPU::DCACHE_LOCATION + CPU::DCACHE_SIZE},
-    {BIOS_BASE, BIOS_BASE + BIOS_SIZE},
-  }};
-
-PhysicalMemoryAddress GetMemoryRegionStart(MemoryRegion region)
-{
-  return s_code_region_ranges[static_cast<u32>(region)].first;
-}
-
-PhysicalMemoryAddress GetMemoryRegionEnd(MemoryRegion region)
-{
-  return s_code_region_ranges[static_cast<u32>(region)].second;
-}
-
-u8* GetMemoryRegionPointer(MemoryRegion region)
-{
-  switch (region)
-  {
-    case MemoryRegion::RAM:
-      return g_ram;
-
-    case MemoryRegion::RAMMirror1:
-      return (g_ram + (RAM_2MB_SIZE & g_ram_mask));
-
-    case MemoryRegion::RAMMirror2:
-      return (g_ram + ((RAM_2MB_SIZE * 2) & g_ram_mask));
-
-    case MemoryRegion::RAMMirror3:
-      return (g_ram + ((RAM_8MB_SIZE * 3) & g_ram_mask));
-
-    case MemoryRegion::Scratchpad:
-      return CPU::g_state.dcache.data();
-
-    case MemoryRegion::BIOS:
-      return g_bios;
-
-    default:
-    case MemoryRegion::EXP1:
-      break;
-  }
-
-  return nullptr;
-}
-
-static ALWAYS_INLINE_RELEASE bool MaskedMemoryCompare(const u8* pattern, const u8* mask, u32 pattern_length,
-                                                      const u8* mem)
-{
-  if (!mask)
-    return std::memcmp(mem, pattern, pattern_length) == 0;
-
-  for (u32 i = 0; i < pattern_length; i++)
-  {
-    if ((mem[i] & mask[i]) != (pattern[i] & mask[i]))
-      return false;
-  }
-
-  return true;
-}
-
-std::optional<PhysicalMemoryAddress> SearchMemory(PhysicalMemoryAddress start_address, const u8* pattern,
-                                                  const u8* mask, u32 pattern_length)
-{
-  std::optional<MemoryRegion> region = GetMemoryRegionForAddress(start_address);
-  if (!region.has_value())
-    return std::nullopt;
-
-  PhysicalMemoryAddress current_address = start_address;
-  MemoryRegion current_region = region.value();
-  while (current_region != MemoryRegion::Count)
-  {
-    const u8* mem = GetMemoryRegionPointer(current_region);
-    const PhysicalMemoryAddress region_start = GetMemoryRegionStart(current_region);
-    const PhysicalMemoryAddress region_end = GetMemoryRegionEnd(current_region);
-
-    if (mem)
-    {
-      PhysicalMemoryAddress region_offset = current_address - region_start;
-      PhysicalMemoryAddress bytes_remaining = region_end - current_address;
-      while (bytes_remaining >= pattern_length)
-      {
-        if (MaskedMemoryCompare(pattern, mask, pattern_length, mem + region_offset))
-          return region_start + region_offset;
-
-        region_offset++;
-        bytes_remaining--;
-      }
-    }
-
-    // skip RAM mirrors
-    if (current_region == MemoryRegion::RAM)
-      current_region = MemoryRegion::EXP1;
-    else
-      current_region = static_cast<MemoryRegion>(static_cast<int>(current_region) + 1);
-
-    if (current_region != MemoryRegion::Count)
-      current_address = GetMemoryRegionStart(current_region);
-  }
-
-  return std::nullopt;
-}
-
 static TickCount DoInvalidAccess(MemoryAccessType type, MemoryAccessSize size, PhysicalMemoryAddress address,
-                                 u32& value)
+                                 uint32_t& value)
 {
   if (type == MemoryAccessType::Read)
     value = UINT32_C(0xFFFFFFFF);
@@ -657,59 +540,59 @@ static TickCount DoInvalidAccess(MemoryAccessType type, MemoryAccessSize size, P
 }
 
 template<MemoryAccessType type, MemoryAccessSize size, bool skip_redundant_writes>
-ALWAYS_INLINE static TickCount DoRAMAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoRAMAccess(uint32_t offset, uint32_t& value)
 {
   offset &= g_ram_mask;
   if constexpr (type == MemoryAccessType::Read)
   {
     if constexpr (size == MemoryAccessSize::Byte)
     {
-      value = ZeroExtend32(g_ram[offset]);
+      value = static_cast<uint32_t>(g_ram[offset]);
     }
     else if constexpr (size == MemoryAccessSize::HalfWord)
     {
-      u16 temp;
-      std::memcpy(&temp, &g_ram[offset], sizeof(u16));
-      value = ZeroExtend32(temp);
+      uint16_t temp;
+      std::memcpy(&temp, &g_ram[offset], sizeof(uint16_t));
+      value = static_cast<uint32_t>(temp);
     }
     else if constexpr (size == MemoryAccessSize::Word)
     {
-      std::memcpy(&value, &g_ram[offset], sizeof(u32));
+      std::memcpy(&value, &g_ram[offset], sizeof(uint32_t));
     }
   }
   else
   {
-    const u32 page_index = offset / HOST_PAGE_SIZE;
+    const uint32_t page_index = offset / HOST_PAGE_SIZE;
     if constexpr (skip_redundant_writes)
     {
       if constexpr (size == MemoryAccessSize::Byte)
       {
-        if (g_ram[offset] != Truncate8(value))
+        if (g_ram[offset] != static_cast<uint8_t>(value))
         {
-          g_ram[offset] = Truncate8(value);
+          g_ram[offset] = static_cast<uint8_t>(value);
           if (m_ram_code_bits[page_index])
             CPU::CodeCache::InvalidateBlocksWithPageIndex(page_index);
         }
       }
       else if constexpr (size == MemoryAccessSize::HalfWord)
       {
-        const u16 new_value = Truncate16(value);
-        u16 old_value;
+        const uint16_t new_value = static_cast<uint16_t>(value);
+        uint16_t old_value;
         std::memcpy(&old_value, &g_ram[offset], sizeof(old_value));
         if (old_value != new_value)
         {
-          std::memcpy(&g_ram[offset], &new_value, sizeof(u16));
+          std::memcpy(&g_ram[offset], &new_value, sizeof(uint16_t));
           if (m_ram_code_bits[page_index])
             CPU::CodeCache::InvalidateBlocksWithPageIndex(page_index);
         }
       }
       else if constexpr (size == MemoryAccessSize::Word)
       {
-        u32 old_value;
-        std::memcpy(&old_value, &g_ram[offset], sizeof(u32));
+        uint32_t old_value;
+        std::memcpy(&old_value, &g_ram[offset], sizeof(uint32_t));
         if (old_value != value)
         {
-          std::memcpy(&g_ram[offset], &value, sizeof(u32));
+          std::memcpy(&g_ram[offset], &value, sizeof(uint32_t));
           if (m_ram_code_bits[page_index])
             CPU::CodeCache::InvalidateBlocksWithPageIndex(page_index);
         }
@@ -722,16 +605,16 @@ ALWAYS_INLINE static TickCount DoRAMAccess(u32 offset, u32& value)
 
       if constexpr (size == MemoryAccessSize::Byte)
       {
-        g_ram[offset] = Truncate8(value);
+        g_ram[offset] = static_cast<uint8_t>(value);
       }
       else if constexpr (size == MemoryAccessSize::HalfWord)
       {
-        const u16 temp = Truncate16(value);
-        std::memcpy(&g_ram[offset], &temp, sizeof(u16));
+        const uint16_t temp = static_cast<uint16_t>(value);
+        std::memcpy(&g_ram[offset], &temp, sizeof(uint16_t));
       }
       else if constexpr (size == MemoryAccessSize::Word)
       {
-        std::memcpy(&g_ram[offset], &value, sizeof(u32));
+        std::memcpy(&g_ram[offset], &value, sizeof(uint32_t));
       }
     }
   }
@@ -740,29 +623,29 @@ ALWAYS_INLINE static TickCount DoRAMAccess(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoBIOSAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoBIOSAccess(uint32_t offset, uint32_t& value)
 {
   // TODO: Configurable mirroring.
   if constexpr (type == MemoryAccessType::Read)
   {
     offset &= UINT32_C(0x7FFFF);
     if constexpr (size == MemoryAccessSize::Byte)
-      value = ZeroExtend32(g_bios[offset]);
+      value = static_cast<uint32_t>(g_bios[offset]);
     else if constexpr (size == MemoryAccessSize::HalfWord)
     {
-      u16 temp;
-      std::memcpy(&temp, &g_bios[offset], sizeof(u16));
-      value = ZeroExtend32(temp);
+      uint16_t temp;
+      std::memcpy(&temp, &g_bios[offset], sizeof(uint16_t));
+      value = static_cast<uint32_t>(temp);
     }
     else
-      std::memcpy(&value, &g_bios[offset], sizeof(u32));
+      std::memcpy(&value, &g_bios[offset], sizeof(uint32_t));
   }
 
-  return m_bios_access_time[static_cast<u32>(size)];
+  return m_bios_access_time[static_cast<uint32_t>(size)];
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-static TickCount DoEXP1Access(u32 offset, u32& value)
+static TickCount DoEXP1Access(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -774,31 +657,31 @@ static TickCount DoEXP1Access(u32 offset, u32& value)
       value = UINT32_C(1);
     else
     {
-      const u32 transfer_size = u32(1) << static_cast<u32>(size);
+      const uint32_t transfer_size = uint32_t(1) << static_cast<uint32_t>(size);
       if ((offset + transfer_size) > m_exp1_rom.size())
         value = UINT32_C(0);
       else
       {
         if constexpr (size == MemoryAccessSize::Byte)
-          value = ZeroExtend32(m_exp1_rom[offset]);
+          value = static_cast<uint32_t>(m_exp1_rom[offset]);
         else if constexpr (size == MemoryAccessSize::HalfWord)
         {
-          u16 halfword;
+          uint16_t halfword;
           std::memcpy(&halfword, &m_exp1_rom[offset], sizeof(halfword));
-          value = ZeroExtend32(halfword);
+          value = static_cast<uint32_t>(halfword);
         }
         else
           std::memcpy(&value, &m_exp1_rom[offset], sizeof(value));
       }
     }
 
-    return m_exp1_access_time[static_cast<u32>(size)];
+    return m_exp1_access_time[static_cast<uint32_t>(size)];
   }
   return 0;
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-static TickCount DoEXP2Access(u32 offset, u32& value)
+static TickCount DoEXP2Access(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -811,7 +694,7 @@ static TickCount DoEXP2Access(u32 offset, u32& value)
     else
       value = UINT32_C(0xFFFFFFFF);
 
-    return m_exp2_access_time[static_cast<u32>(size)];
+    return m_exp2_access_time[static_cast<uint32_t>(size)];
   }
   if (offset == 0x23 || offset == 0x80)
   {
@@ -819,13 +702,13 @@ static TickCount DoEXP2Access(u32 offset, u32& value)
     else if (value == '\n')
       m_tty_line_buffer.clear();
     else
-      m_tty_line_buffer += static_cast<char>(Truncate8(value));
+      m_tty_line_buffer += static_cast<char>(static_cast<uint8_t>(value));
   }
   return 0;
 }
 
 template<MemoryAccessType type>
-ALWAYS_INLINE static TickCount DoEXP3Access(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoEXP3Access(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
     value = UINT32_C(0xFFFFFFFF);
@@ -833,7 +716,7 @@ ALWAYS_INLINE static TickCount DoEXP3Access(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type>
-ALWAYS_INLINE static TickCount DoUnknownEXPAccess(u32 address, u32& value)
+ALWAYS_INLINE static TickCount DoUnknownEXPAccess(uint32_t address, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
     return -1;
@@ -841,7 +724,7 @@ ALWAYS_INLINE static TickCount DoUnknownEXPAccess(u32 address, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoMemoryControlAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoMemoryControlAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -851,11 +734,11 @@ ALWAYS_INLINE static TickCount DoMemoryControlAccess(u32 offset, u32& value)
   }
   else
   {
-    const u32 index = FIXUP_WORD_OFFSET(size, offset) / 4;
+    const uint32_t index = FIXUP_WORD_OFFSET(size, offset) / 4;
     value = FIXUP_WORD_WRITE_VALUE(size, offset, value);
 
-    const u32 write_mask = (index == 8) ? COMDELAY::WRITE_MASK : MEMDELAY::WRITE_MASK;
-    const u32 new_value = (m_MEMCTRL.regs[index] & ~write_mask) | (value & write_mask);
+    const uint32_t write_mask = (index == 8) ? COMDELAY::WRITE_MASK : MEMDELAY::WRITE_MASK;
+    const uint32_t new_value = (m_MEMCTRL.regs[index] & ~write_mask) | (value & write_mask);
     if (m_MEMCTRL.regs[index] != new_value)
     {
       m_MEMCTRL.regs[index] = new_value;
@@ -866,7 +749,7 @@ ALWAYS_INLINE static TickCount DoMemoryControlAccess(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoMemoryControl2Access(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoMemoryControl2Access(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -882,7 +765,7 @@ ALWAYS_INLINE static TickCount DoMemoryControl2Access(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoPadAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoPadAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -895,7 +778,7 @@ ALWAYS_INLINE static TickCount DoPadAccess(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoSIOAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoSIOAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -908,7 +791,7 @@ ALWAYS_INLINE static TickCount DoSIOAccess(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoCDROMAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoCDROMAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -916,55 +799,55 @@ ALWAYS_INLINE static TickCount DoCDROMAccess(u32 offset, u32& value)
     {
       case MemoryAccessSize::Word:
       {
-        const u32 b0 = ZeroExtend32(g_cdrom.ReadRegister(offset));
-        const u32 b1 = ZeroExtend32(g_cdrom.ReadRegister(offset + 1u));
-        const u32 b2 = ZeroExtend32(g_cdrom.ReadRegister(offset + 2u));
-        const u32 b3 = ZeroExtend32(g_cdrom.ReadRegister(offset + 3u));
+        const uint32_t b0 = static_cast<uint32_t>(g_cdrom.ReadRegister(offset));
+        const uint32_t b1 = static_cast<uint32_t>(g_cdrom.ReadRegister(offset + 1u));
+        const uint32_t b2 = static_cast<uint32_t>(g_cdrom.ReadRegister(offset + 2u));
+        const uint32_t b3 = static_cast<uint32_t>(g_cdrom.ReadRegister(offset + 3u));
         value = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
         break;
       }
 
       case MemoryAccessSize::HalfWord:
       {
-        const u32 lsb = ZeroExtend32(g_cdrom.ReadRegister(offset));
-        const u32 msb = ZeroExtend32(g_cdrom.ReadRegister(offset + 1u));
+        const uint32_t lsb = static_cast<uint32_t>(g_cdrom.ReadRegister(offset));
+        const uint32_t msb = static_cast<uint32_t>(g_cdrom.ReadRegister(offset + 1u));
         value = lsb | (msb << 8);
         break;
       }
 
       case MemoryAccessSize::Byte:
       default:
-        value = ZeroExtend32(g_cdrom.ReadRegister(offset));
+        value = static_cast<uint32_t>(g_cdrom.ReadRegister(offset));
     }
 
-    return m_cdrom_access_time[static_cast<u32>(size)];
+    return m_cdrom_access_time[static_cast<uint32_t>(size)];
   }
   else
   {
     switch (size)
     {
       case MemoryAccessSize::Word:
-        g_cdrom.WriteRegister(offset, Truncate8(value & 0xFFu));
-        g_cdrom.WriteRegister(offset + 1u, Truncate8((value >> 8) & 0xFFu));
-        g_cdrom.WriteRegister(offset + 2u, Truncate8((value >> 16) & 0xFFu));
-        g_cdrom.WriteRegister(offset + 3u, Truncate8((value >> 24) & 0xFFu));
+        g_cdrom.WriteRegister(offset, static_cast<uint8_t>(value));
+        g_cdrom.WriteRegister(offset + 1u, static_cast<uint8_t>((value >> 8)));
+        g_cdrom.WriteRegister(offset + 2u, static_cast<uint8_t>((value >> 16)));
+        g_cdrom.WriteRegister(offset + 3u, static_cast<uint8_t>((value >> 24)));
       break;
 
       case MemoryAccessSize::HalfWord:
-        g_cdrom.WriteRegister(offset, Truncate8(value & 0xFFu));
-        g_cdrom.WriteRegister(offset + 1u, Truncate8((value >> 8) & 0xFFu));
+        g_cdrom.WriteRegister(offset, static_cast<uint8_t>(value));
+        g_cdrom.WriteRegister(offset + 1u, static_cast<uint8_t>((value >> 8)));
       break;
 
       case MemoryAccessSize::Byte:
       default:
-      g_cdrom.WriteRegister(offset, Truncate8(value));
+      g_cdrom.WriteRegister(offset, static_cast<uint8_t>(value));
     }
   }
   return 0;
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoGPUAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoGPUAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -977,7 +860,7 @@ ALWAYS_INLINE static TickCount DoGPUAccess(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoMDECAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoMDECAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -990,7 +873,7 @@ ALWAYS_INLINE static TickCount DoMDECAccess(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoAccessInterruptController(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoAccessInterruptController(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -1003,7 +886,7 @@ ALWAYS_INLINE static TickCount DoAccessInterruptController(u32 offset, u32& valu
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoAccessTimers(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoAccessTimers(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -1016,7 +899,7 @@ ALWAYS_INLINE static TickCount DoAccessTimers(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoAccessSPU(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoAccessSPU(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -1025,26 +908,26 @@ ALWAYS_INLINE static TickCount DoAccessSPU(u32 offset, u32& value)
       case MemoryAccessSize::Word:
       {
         // 32-bit reads are read as two 16-bit accesses.
-        const u16 lsb = g_spu.ReadRegister(offset);
-        const u16 msb = g_spu.ReadRegister(offset + 2);
-        value = ZeroExtend32(lsb) | (ZeroExtend32(msb) << 16);
+        const uint16_t lsb = g_spu.ReadRegister(offset);
+        const uint16_t msb = g_spu.ReadRegister(offset + 2);
+        value = static_cast<uint32_t>(lsb) | (static_cast<uint32_t>(msb) << 16);
       }
       break;
 
       case MemoryAccessSize::HalfWord:
-        value = ZeroExtend32(g_spu.ReadRegister(offset));
+        value = static_cast<uint32_t>(g_spu.ReadRegister(offset));
       break;
 
       case MemoryAccessSize::Byte:
       default:
       {
-        const u16 value16 = g_spu.ReadRegister(FIXUP_HALFWORD_OFFSET(size, offset));
+        const uint16_t value16 = g_spu.ReadRegister(FIXUP_HALFWORD_OFFSET(size, offset));
         value = FIXUP_HALFWORD_READ_VALUE(size, offset, value16);
       }
       break;
     }
 
-    return m_spu_access_time[static_cast<u32>(size)];
+    return m_spu_access_time[static_cast<uint32_t>(size)];
   }
   {
     // 32-bit writes are written as two 16-bit writes.
@@ -1053,21 +936,21 @@ ALWAYS_INLINE static TickCount DoAccessSPU(u32 offset, u32& value)
     {
       case MemoryAccessSize::Word:
       {
-        g_spu.WriteRegister(offset, Truncate16(value));
-        g_spu.WriteRegister(offset + 2, Truncate16(value >> 16));
+        g_spu.WriteRegister(offset, static_cast<uint16_t>(value));
+        g_spu.WriteRegister(offset + 2, static_cast<uint16_t>(value >> 16));
         break;
       }
 
       case MemoryAccessSize::HalfWord:
       {
-        g_spu.WriteRegister(offset, Truncate16(value));
+        g_spu.WriteRegister(offset, static_cast<uint16_t>(value));
         break;
       }
 
       case MemoryAccessSize::Byte:
       {
         g_spu.WriteRegister(FIXUP_HALFWORD_OFFSET(size, offset),
-                            Truncate16(FIXUP_HALFWORD_READ_VALUE(size, offset, value)));
+                            static_cast<uint16_t>(FIXUP_HALFWORD_READ_VALUE(size, offset, value)));
         break;
       }
     }
@@ -1076,7 +959,7 @@ ALWAYS_INLINE static TickCount DoAccessSPU(u32 offset, u32& value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoDMAAccess(u32 offset, u32& value)
+ALWAYS_INLINE static TickCount DoDMAAccess(uint32_t offset, uint32_t& value)
 {
   if constexpr (type == MemoryAccessType::Read)
   {
@@ -1092,7 +975,7 @@ ALWAYS_INLINE static TickCount DoDMAAccess(u32 offset, u32& value)
 
 namespace CPU {
 
-template<bool add_ticks, bool icache_read = false, u32 word_count = 1, bool raise_exceptions>
+template<bool add_ticks, bool icache_read = false, uint32_t word_count = 1, bool raise_exceptions>
 ALWAYS_INLINE_RELEASE bool DoInstructionRead(PhysicalMemoryAddress address, void* data)
 {
   using namespace Bus;
@@ -1101,7 +984,7 @@ ALWAYS_INLINE_RELEASE bool DoInstructionRead(PhysicalMemoryAddress address, void
 
   if (address < RAM_MIRROR_END)
   {
-    std::memcpy(data, &g_ram[address & g_ram_mask], sizeof(u32) * word_count);
+    std::memcpy(data, &g_ram[address & g_ram_mask], sizeof(uint32_t) * word_count);
     if constexpr (add_ticks)
       g_state.pending_ticks += (icache_read ? 1 : RAM_READ_TICKS) * word_count;
 
@@ -1109,16 +992,16 @@ ALWAYS_INLINE_RELEASE bool DoInstructionRead(PhysicalMemoryAddress address, void
   }
   else if (address >= BIOS_BASE && address < (BIOS_BASE + BIOS_SIZE))
   {
-    std::memcpy(data, &g_bios[(address - BIOS_BASE) & BIOS_MASK], sizeof(u32) * word_count);
+    std::memcpy(data, &g_bios[(address - BIOS_BASE) & BIOS_MASK], sizeof(uint32_t) * word_count);
     if constexpr (add_ticks)
-      g_state.pending_ticks += m_bios_access_time[static_cast<u32>(MemoryAccessSize::Word)] * word_count;
+      g_state.pending_ticks += m_bios_access_time[static_cast<uint32_t>(MemoryAccessSize::Word)] * word_count;
 
     return true;
   }
   if (raise_exceptions)
     CPU::RaiseException(address, Cop0Registers::CAUSE::MakeValueForException(Exception::IBE, false, false, 0));
 
-  std::memset(data, 0, sizeof(u32) * word_count);
+  std::memset(data, 0, sizeof(uint32_t) * word_count);
   return false;
 }
 
@@ -1131,7 +1014,7 @@ TickCount GetInstructionReadTicks(VirtualMemoryAddress address)
   if (address < RAM_MIRROR_END)
     return RAM_READ_TICKS;
   else if (address >= BIOS_BASE && address < (BIOS_BASE + BIOS_SIZE))
-    return m_bios_access_time[static_cast<u32>(MemoryAccessSize::Word)];
+    return m_bios_access_time[static_cast<uint32_t>(MemoryAccessSize::Word)];
   return 0;
 }
 
@@ -1142,23 +1025,23 @@ TickCount GetICacheFillTicks(VirtualMemoryAddress address)
   address &= PHYSICAL_MEMORY_ADDRESS_MASK;
 
   if (address < RAM_MIRROR_END)
-    return 1 * ((ICACHE_LINE_SIZE - (address & (ICACHE_LINE_SIZE - 1))) / sizeof(u32));
+    return 1 * ((ICACHE_LINE_SIZE - (address & (ICACHE_LINE_SIZE - 1))) / sizeof(uint32_t));
   else if (address >= BIOS_BASE && address < (BIOS_BASE + BIOS_SIZE))
-    return m_bios_access_time[static_cast<u32>(MemoryAccessSize::Word)] *
-           ((ICACHE_LINE_SIZE - (address & (ICACHE_LINE_SIZE - 1))) / sizeof(u32));
+    return m_bios_access_time[static_cast<uint32_t>(MemoryAccessSize::Word)] *
+           ((ICACHE_LINE_SIZE - (address & (ICACHE_LINE_SIZE - 1))) / sizeof(uint32_t));
   return 0;
 }
 
-void CheckAndUpdateICacheTags(u32 line_count, TickCount uncached_ticks)
+void CheckAndUpdateICacheTags(uint32_t line_count, TickCount uncached_ticks)
 {
   VirtualMemoryAddress current_pc = g_state.regs.pc & ICACHE_TAG_ADDRESS_MASK;
   if (IsCachedAddress(current_pc))
   {
     TickCount ticks = 0;
     TickCount cached_ticks_per_line = GetICacheFillTicks(current_pc);
-    for (u32 i = 0; i < line_count; i++, current_pc += ICACHE_LINE_SIZE)
+    for (uint32_t i = 0; i < line_count; i++, current_pc += ICACHE_LINE_SIZE)
     {
-      const u32 line = GetICacheLine(current_pc);
+      const uint32_t line = GetICacheLine(current_pc);
       if (g_state.icache_tags[line] != current_pc)
       {
         g_state.icache_tags[line] = current_pc;
@@ -1172,11 +1055,11 @@ void CheckAndUpdateICacheTags(u32 line_count, TickCount uncached_ticks)
     g_state.pending_ticks += uncached_ticks;
 }
 
-u32 FillICache(VirtualMemoryAddress address)
+uint32_t FillICache(VirtualMemoryAddress address)
 {
-  const u32 line = GetICacheLine(address);
-  u8* line_data = &g_state.icache_data[line * ICACHE_LINE_SIZE];
-  u32 line_tag;
+  const uint32_t line = GetICacheLine(address);
+  uint8_t* line_data = &g_state.icache_data[line * ICACHE_LINE_SIZE];
+  uint32_t line_tag;
   switch ((address >> 2) & 0x03u)
   {
     case 0:
@@ -1199,8 +1082,8 @@ u32 FillICache(VirtualMemoryAddress address)
   }
   g_state.icache_tags[line] = line_tag;
 
-  const u32 offset = GetICacheLineOffset(address);
-  u32 result;
+  const uint32_t offset = GetICacheLineOffset(address);
+  uint32_t result;
   std::memcpy(&result, &line_data[offset], sizeof(result));
   return result;
 }
@@ -1211,51 +1094,51 @@ void ClearICache()
   g_state.icache_tags.fill(ICACHE_INVALID_BITS);
 }
 
-ALWAYS_INLINE_RELEASE static u32 ReadICache(VirtualMemoryAddress address)
+ALWAYS_INLINE_RELEASE static uint32_t ReadICache(VirtualMemoryAddress address)
 {
-  const u32 line = GetICacheLine(address);
-  const u8* line_data = &g_state.icache_data[line * ICACHE_LINE_SIZE];
-  const u32 offset = GetICacheLineOffset(address);
-  u32 result;
+  const uint32_t line = GetICacheLine(address);
+  const uint8_t* line_data = &g_state.icache_data[line * ICACHE_LINE_SIZE];
+  const uint32_t offset = GetICacheLineOffset(address);
+  uint32_t result;
   std::memcpy(&result, &line_data[offset], sizeof(result));
   return result;
 }
 
-ALWAYS_INLINE_RELEASE static void WriteICache(VirtualMemoryAddress address, u32 value)
+ALWAYS_INLINE_RELEASE static void WriteICache(VirtualMemoryAddress address, uint32_t value)
 {
-  const u32 line = GetICacheLine(address);
-  const u32 offset = GetICacheLineOffset(address);
+  const uint32_t line = GetICacheLine(address);
+  const uint32_t offset = GetICacheLineOffset(address);
   g_state.icache_tags[line] = GetICacheTagForAddress(address) | ICACHE_INVALID_BITS;
   std::memcpy(&g_state.icache_data[line * ICACHE_LINE_SIZE + offset], &value, sizeof(value));
 }
 
-static void WriteCacheControl(u32 value)
+static void WriteCacheControl(uint32_t value)
 {
   g_state.cache_control.bits = value;
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-ALWAYS_INLINE static TickCount DoScratchpadAccess(PhysicalMemoryAddress address, u32& value)
+ALWAYS_INLINE static TickCount DoScratchpadAccess(PhysicalMemoryAddress address, uint32_t& value)
 {
   const PhysicalMemoryAddress cache_offset = address & DCACHE_OFFSET_MASK;
   if constexpr (size == MemoryAccessSize::Byte)
   {
     if constexpr (type == MemoryAccessType::Read)
-      value = ZeroExtend32(g_state.dcache[cache_offset]);
+      value = static_cast<uint32_t>(g_state.dcache[cache_offset]);
     else
-      g_state.dcache[cache_offset] = Truncate8(value);
+      g_state.dcache[cache_offset] = static_cast<uint8_t>(value);
   }
   else if constexpr (size == MemoryAccessSize::HalfWord)
   {
     if constexpr (type == MemoryAccessType::Read)
     {
-      u16 temp;
+      uint16_t temp;
       std::memcpy(&temp, &g_state.dcache[cache_offset], sizeof(temp));
-      value = ZeroExtend32(temp);
+      value = static_cast<uint32_t>(temp);
     }
     else
     {
-      u16 temp = Truncate16(value);
+      uint16_t temp = static_cast<uint16_t>(value);
       std::memcpy(&g_state.dcache[cache_offset], &temp, sizeof(temp));
     }
   }
@@ -1271,7 +1154,7 @@ ALWAYS_INLINE static TickCount DoScratchpadAccess(PhysicalMemoryAddress address,
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-static ALWAYS_INLINE TickCount DoMemoryAccess(VirtualMemoryAddress address, u32& value)
+static ALWAYS_INLINE TickCount DoMemoryAccess(VirtualMemoryAddress address, uint32_t& value)
 {
   using namespace Bus;
 
@@ -1331,7 +1214,7 @@ static ALWAYS_INLINE TickCount DoMemoryAccess(VirtualMemoryAddress address, u32&
   if (address < RAM_MIRROR_END)
     return DoRAMAccess<type, size, false>(address, value);
   else if (address >= BIOS_BASE && address < (BIOS_BASE + BIOS_SIZE))
-    return DoBIOSAccess<type, size>(static_cast<u32>(address - BIOS_BASE), value);
+    return DoBIOSAccess<type, size>(static_cast<uint32_t>(address - BIOS_BASE), value);
   else if (address < EXP1_BASE)
     return DoInvalidAccess(type, size, address, value);
   else if (address < (EXP1_BASE + EXP1_SIZE))
@@ -1471,7 +1354,7 @@ bool FetchInstructionForInterpreterFallback()
   return true;
 }
 
-bool SafeReadInstruction(VirtualMemoryAddress addr, u32* value)
+bool SafeReadInstruction(VirtualMemoryAddress addr, uint32_t* value)
 {
   switch (addr >> 29)
   {
@@ -1491,11 +1374,11 @@ bool SafeReadInstruction(VirtualMemoryAddress addr, u32* value)
   return false;
 }
 
-bool ReadMemoryByte(VirtualMemoryAddress addr, u8* value)
+bool ReadMemoryByte(VirtualMemoryAddress addr, uint8_t* value)
 {
-  u32 temp = 0;
+  uint32_t temp = 0;
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Byte>(addr, temp);
-  *value = Truncate8(temp);
+  *value = static_cast<uint8_t>(temp);
   if (cycles < 0)
   {
     RaiseException(Exception::DBE);
@@ -1506,14 +1389,14 @@ bool ReadMemoryByte(VirtualMemoryAddress addr, u8* value)
   return true;
 }
 
-bool ReadMemoryHalfWord(VirtualMemoryAddress addr, u16* value)
+bool ReadMemoryHalfWord(VirtualMemoryAddress addr, uint16_t* value)
 {
   if (!DoAlignmentCheck<MemoryAccessType::Read, MemoryAccessSize::HalfWord>(addr))
     return false;
 
-  u32 temp = 0;
+  uint32_t temp = 0;
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::HalfWord>(addr, temp);
-  *value = Truncate16(temp);
+  *value = static_cast<uint16_t>(temp);
   if (cycles < 0)
   {
     RaiseException(Exception::DBE);
@@ -1524,7 +1407,7 @@ bool ReadMemoryHalfWord(VirtualMemoryAddress addr, u16* value)
   return true;
 }
 
-bool ReadMemoryWord(VirtualMemoryAddress addr, u32* value)
+bool ReadMemoryWord(VirtualMemoryAddress addr, uint32_t* value)
 {
   if (!DoAlignmentCheck<MemoryAccessType::Read, MemoryAccessSize::Word>(addr))
     return false;
@@ -1540,7 +1423,7 @@ bool ReadMemoryWord(VirtualMemoryAddress addr, u32* value)
   return true;
 }
 
-bool WriteMemoryByte(VirtualMemoryAddress addr, u32 value)
+bool WriteMemoryByte(VirtualMemoryAddress addr, uint32_t value)
 {
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Byte>(addr, value);
   if (cycles < 0)
@@ -1552,7 +1435,7 @@ bool WriteMemoryByte(VirtualMemoryAddress addr, u32 value)
   return true;
 }
 
-bool WriteMemoryHalfWord(VirtualMemoryAddress addr, u32 value)
+bool WriteMemoryHalfWord(VirtualMemoryAddress addr, uint32_t value)
 {
   if (!DoAlignmentCheck<MemoryAccessType::Write, MemoryAccessSize::HalfWord>(addr))
     return false;
@@ -1567,7 +1450,7 @@ bool WriteMemoryHalfWord(VirtualMemoryAddress addr, u32 value)
   return true;
 }
 
-bool WriteMemoryWord(VirtualMemoryAddress addr, u32 value)
+bool WriteMemoryWord(VirtualMemoryAddress addr, uint32_t value)
 {
   if (!DoAlignmentCheck<MemoryAccessType::Write, MemoryAccessSize::Word>(addr))
     return false;
@@ -1583,7 +1466,7 @@ bool WriteMemoryWord(VirtualMemoryAddress addr, u32 value)
 }
 
 template<MemoryAccessType type, MemoryAccessSize size>
-static ALWAYS_INLINE bool DoSafeMemoryAccess(VirtualMemoryAddress address, u32& value)
+static ALWAYS_INLINE bool DoSafeMemoryAccess(VirtualMemoryAddress address, uint32_t& value)
 {
   using namespace Bus;
 
@@ -1627,87 +1510,87 @@ static ALWAYS_INLINE bool DoSafeMemoryAccess(VirtualMemoryAddress address, u32& 
   {
     if (address >= BIOS_BASE && address < (BIOS_BASE + BIOS_SIZE))
     {
-      DoBIOSAccess<type, size>(static_cast<u32>(address - BIOS_BASE), value);
+      DoBIOSAccess<type, size>(static_cast<uint32_t>(address - BIOS_BASE), value);
       return true;
     }
   }
   return false;
 }
 
-bool SafeReadMemoryByte(VirtualMemoryAddress addr, u8* value)
+bool SafeReadMemoryByte(VirtualMemoryAddress addr, uint8_t* value)
 {
-  u32 temp = 0;
+  uint32_t temp = 0;
   if (!DoSafeMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Byte>(addr, temp))
     return false;
 
-  *value = Truncate8(temp);
+  *value = static_cast<uint8_t>(temp);
   return true;
 }
 
-bool SafeReadMemoryHalfWord(VirtualMemoryAddress addr, u16* value)
+bool SafeReadMemoryHalfWord(VirtualMemoryAddress addr, uint16_t* value)
 {
   if ((addr & 1) == 0)
   {
-    u32 temp = 0;
+    uint32_t temp = 0;
     if (!DoSafeMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::HalfWord>(addr, temp))
       return false;
 
-    *value = Truncate16(temp);
+    *value = static_cast<uint16_t>(temp);
     return true;
   }
 
-  u8 low, high;
+  uint8_t low, high;
   if (!SafeReadMemoryByte(addr, &low) || !SafeReadMemoryByte(addr + 1, &high))
     return false;
 
-  *value = (ZeroExtend16(high) << 8) | ZeroExtend16(low);
+  *value = (static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
   return true;
 }
 
-bool SafeReadMemoryWord(VirtualMemoryAddress addr, u32* value)
+bool SafeReadMemoryWord(VirtualMemoryAddress addr, uint32_t* value)
 {
   if ((addr & 3) == 0)
     return DoSafeMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Word>(addr, *value);
 
-  u16 low, high;
+  uint16_t low, high;
   if (!SafeReadMemoryHalfWord(addr, &low) || !SafeReadMemoryHalfWord(addr + 2, &high))
     return false;
 
-  *value = (ZeroExtend32(high) << 16) | ZeroExtend32(low);
+  *value = (static_cast<uint32_t>(high) << 16) | static_cast<uint32_t>(low);
   return true;
 }
 
-bool SafeWriteMemoryByte(VirtualMemoryAddress addr, u8 value)
+bool SafeWriteMemoryByte(VirtualMemoryAddress addr, uint8_t value)
 {
-  u32 temp = ZeroExtend32(value);
+  uint32_t temp = static_cast<uint32_t>(value);
   return DoSafeMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Byte>(addr, temp);
 }
 
-bool SafeWriteMemoryHalfWord(VirtualMemoryAddress addr, u16 value)
+bool SafeWriteMemoryHalfWord(VirtualMemoryAddress addr, uint16_t value)
 {
   if ((addr & 1) == 0)
   {
-    u32 temp = ZeroExtend32(value);
+    uint32_t temp = static_cast<uint32_t>(value);
     return DoSafeMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::HalfWord>(addr, temp);
   }
 
-  return SafeWriteMemoryByte(addr, Truncate8(value)) && SafeWriteMemoryByte(addr + 1, Truncate8(value >> 8));
+  return SafeWriteMemoryByte(addr, static_cast<uint8_t>(value)) && SafeWriteMemoryByte(addr + 1, static_cast<uint8_t>(value >> 8));
 }
 
-bool SafeWriteMemoryWord(VirtualMemoryAddress addr, u32 value)
+bool SafeWriteMemoryWord(VirtualMemoryAddress addr, uint32_t value)
 {
   if ((addr & 3) == 0)
     return DoSafeMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Word>(addr, value);
 
-  return SafeWriteMemoryHalfWord(addr, Truncate16(value >> 16)) &&
-         SafeWriteMemoryHalfWord(addr + 2, Truncate16(value >> 16));
+  return SafeWriteMemoryHalfWord(addr, static_cast<uint16_t>(value >> 16)) &&
+         SafeWriteMemoryHalfWord(addr + 2, static_cast<uint16_t>(value >> 16));
 }
 
 void* GetDirectReadMemoryPointer(VirtualMemoryAddress address, MemoryAccessSize size, TickCount* read_ticks)
 {
   using namespace Bus;
 
-  const u32 seg = (address >> 29);
+  const uint32_t seg = (address >> 29);
   if (seg != 0 && seg != 4 && seg != 5)
     return nullptr;
 
@@ -1731,7 +1614,7 @@ void* GetDirectReadMemoryPointer(VirtualMemoryAddress address, MemoryAccessSize 
   if (paddr >= BIOS_BASE && paddr < (BIOS_BASE + BIOS_SIZE))
   {
     if (read_ticks)
-      *read_ticks = m_bios_access_time[static_cast<u32>(size)];
+      *read_ticks = m_bios_access_time[static_cast<uint32_t>(size)];
 
     return &g_bios[paddr & BIOS_MASK];
   }
@@ -1743,7 +1626,7 @@ void* GetDirectWriteMemoryPointer(VirtualMemoryAddress address, MemoryAccessSize
 {
   using namespace Bus;
 
-  const u32 seg = (address >> 29);
+  const uint32_t seg = (address >> 29);
   if (seg != 0 && seg != 4 && seg != 5)
     return nullptr;
 
@@ -1756,122 +1639,122 @@ void* GetDirectWriteMemoryPointer(VirtualMemoryAddress address, MemoryAccessSize
 
 namespace Recompiler::Thunks {
 
-u64 ReadMemoryByte(u32 address)
+uint64_t ReadMemoryByte(uint32_t address)
 {
-  u32 temp;
+  uint32_t temp;
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Byte>(address, temp);
   if (cycles < 0)
-    return static_cast<u64>(-static_cast<s64>(Exception::DBE));
+    return static_cast<uint64_t>(-static_cast<int64_t>(Exception::DBE));
 
   g_state.pending_ticks += cycles;
-  return ZeroExtend64(temp);
+  return static_cast<uint64_t>(temp);
 }
 
-u64 ReadMemoryHalfWord(u32 address)
+uint64_t ReadMemoryHalfWord(uint32_t address)
 {
   if (!Common::IsAlignedPow2(address, 2))
   {
     g_state.cop0_regs.BadVaddr = address;
-    return static_cast<u64>(-static_cast<s64>(Exception::AdEL));
+    return static_cast<uint64_t>(-static_cast<int64_t>(Exception::AdEL));
   }
 
-  u32 temp;
+  uint32_t temp;
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::HalfWord>(address, temp);
   if (cycles < 0)
-    return static_cast<u64>(-static_cast<s64>(Exception::DBE));
+    return static_cast<uint64_t>(-static_cast<int64_t>(Exception::DBE));
 
   g_state.pending_ticks += cycles;
-  return ZeroExtend64(temp);
+  return static_cast<uint64_t>(temp);
 }
 
-u64 ReadMemoryWord(u32 address)
+uint64_t ReadMemoryWord(uint32_t address)
 {
   if (!Common::IsAlignedPow2(address, 4))
   {
     g_state.cop0_regs.BadVaddr = address;
-    return static_cast<u64>(-static_cast<s64>(Exception::AdEL));
+    return static_cast<uint64_t>(-static_cast<int64_t>(Exception::AdEL));
   }
 
-  u32 temp;
+  uint32_t temp;
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Word>(address, temp);
   if (cycles < 0)
-    return static_cast<u64>(-static_cast<s64>(Exception::DBE));
+    return static_cast<uint64_t>(-static_cast<int64_t>(Exception::DBE));
 
   g_state.pending_ticks += cycles;
-  return ZeroExtend64(temp);
+  return static_cast<uint64_t>(temp);
 }
 
-u32 WriteMemoryByte(u32 address, u32 value)
+uint32_t WriteMemoryByte(uint32_t address, uint32_t value)
 {
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Byte>(address, value);
   if (cycles < 0)
-    return static_cast<u32>(Exception::DBE);
+    return static_cast<uint32_t>(Exception::DBE);
 
   return 0;
 }
 
-u32 WriteMemoryHalfWord(u32 address, u32 value)
+uint32_t WriteMemoryHalfWord(uint32_t address, uint32_t value)
 {
   if (!Common::IsAlignedPow2(address, 2))
   {
     g_state.cop0_regs.BadVaddr = address;
-    return static_cast<u32>(Exception::AdES);
+    return static_cast<uint32_t>(Exception::AdES);
   }
 
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::HalfWord>(address, value);
   if (cycles < 0)
-    return static_cast<u32>(Exception::DBE);
+    return static_cast<uint32_t>(Exception::DBE);
 
   return 0;
 }
 
-u32 WriteMemoryWord(u32 address, u32 value)
+uint32_t WriteMemoryWord(uint32_t address, uint32_t value)
 {
   if (!Common::IsAlignedPow2(address, 4))
   {
     g_state.cop0_regs.BadVaddr = address;
-    return static_cast<u32>(Exception::AdES);
+    return static_cast<uint32_t>(Exception::AdES);
   }
 
   const TickCount cycles = DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Word>(address, value);
   if (cycles < 0)
-    return static_cast<u32>(Exception::DBE);
+    return static_cast<uint32_t>(Exception::DBE);
 
   return 0;
 }
 
-u32 UncheckedReadMemoryByte(u32 address)
+uint32_t UncheckedReadMemoryByte(uint32_t address)
 {
-  u32 temp = 0;
+  uint32_t temp = 0;
   g_state.pending_ticks += DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Byte>(address, temp);
   return temp;
 }
 
-u32 UncheckedReadMemoryHalfWord(u32 address)
+uint32_t UncheckedReadMemoryHalfWord(uint32_t address)
 {
-  u32 temp = 0;
+  uint32_t temp = 0;
   g_state.pending_ticks += DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::HalfWord>(address, temp);
   return temp;
 }
 
-u32 UncheckedReadMemoryWord(u32 address)
+uint32_t UncheckedReadMemoryWord(uint32_t address)
 {
-  u32 temp = 0;
+  uint32_t temp = 0;
   g_state.pending_ticks += DoMemoryAccess<MemoryAccessType::Read, MemoryAccessSize::Word>(address, temp);
   return temp;
 }
 
-void UncheckedWriteMemoryByte(u32 address, u32 value)
+void UncheckedWriteMemoryByte(uint32_t address, uint32_t value)
 {
   g_state.pending_ticks += DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Byte>(address, value);
 }
 
-void UncheckedWriteMemoryHalfWord(u32 address, u32 value)
+void UncheckedWriteMemoryHalfWord(uint32_t address, uint32_t value)
 {
   g_state.pending_ticks += DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::HalfWord>(address, value);
 }
 
-void UncheckedWriteMemoryWord(u32 address, u32 value)
+void UncheckedWriteMemoryWord(uint32_t address, uint32_t value)
 {
   g_state.pending_ticks += DoMemoryAccess<MemoryAccessType::Write, MemoryAccessSize::Word>(address, value);
 }

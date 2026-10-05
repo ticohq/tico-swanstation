@@ -4,7 +4,7 @@
 #include "common/platform.h"
 #include "common/string_util.h"
 #include "common/timer.h"
-#include "libretro/libretro_host_interface.h"
+#include "core/host_interface.h"
 #include "host_interface.h"
 #include "settings.h"
 #include "xxhash.h"
@@ -17,12 +17,12 @@ Log_SetChannel(TextureReplacements);
 
 TextureReplacements g_texture_replacements;
 
-static constexpr u32 VRAMRGBA5551ToRGBA8888(u16 color)
+static constexpr uint32_t VRAMRGBA5551ToRGBA8888(uint16_t color)
 {
-  u8 r = Truncate8(color & 31);
-  u8 g = Truncate8((color >> 5) & 31);
-  u8 b = Truncate8((color >> 10) & 31);
-  u8 a = Truncate8((color >> 15) & 1);
+  uint8_t r = static_cast<uint8_t>(color & 31);
+  uint8_t g = static_cast<uint8_t>((color >> 5) & 31);
+  uint8_t b = static_cast<uint8_t>((color >> 10) & 31);
+  uint8_t a = static_cast<uint8_t>((color >> 15) & 1);
 
   // 00012345 -> 1234545
   b = (b << 3) | (b & 0b111);
@@ -30,7 +30,7 @@ static constexpr u32 VRAMRGBA5551ToRGBA8888(u16 color)
   r = (r << 3) | (r & 0b111);
   a = a ? 255 : 0;
 
-  return ZeroExtend32(r) | (ZeroExtend32(g) << 8) | (ZeroExtend32(b) << 16) | (ZeroExtend32(a) << 24);
+  return static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b) << 16) | (static_cast<uint32_t>(a) << 24);
 }
 
 std::string TextureReplacementHash::ToString() const
@@ -43,8 +43,8 @@ bool TextureReplacementHash::ParseString(const std::string_view& sv)
   if (sv.length() != 32)
     return false;
 
-  std::optional<u64> high_value = StringUtil::FromChars<u64>(sv.substr(0, 16), 16);
-  std::optional<u64> low_value = StringUtil::FromChars<u64>(sv.substr(16), 16);
+  std::optional<uint64_t> high_value = StringUtil::FromChars<uint64_t>(sv.substr(0, 16), 16);
+  std::optional<uint64_t> low_value = StringUtil::FromChars<uint64_t>(sv.substr(16), 16);
   if (!high_value.has_value() || !low_value.has_value())
     return false;
 
@@ -66,7 +66,7 @@ void TextureReplacements::SetGameID(std::string game_id)
   Reload();
 }
 
-const TextureReplacementTexture* TextureReplacements::GetVRAMWriteReplacement(u32 width, u32 height, const void* pixels)
+const TextureReplacementTexture* TextureReplacements::GetVRAMWriteReplacement(uint32_t width, uint32_t height, const void* pixels)
 {
   const TextureReplacementHash hash = GetVRAMWriteHash(width, height, pixels);
 
@@ -75,40 +75,6 @@ const TextureReplacementTexture* TextureReplacements::GetVRAMWriteReplacement(u3
     return nullptr;
 
   return LoadTexture(it->second);
-}
-
-void TextureReplacements::DumpVRAMWrite(u32 width, u32 height, const void* pixels)
-{
-  std::string filename = GetVRAMWriteDumpFilename(width, height, pixels);
-  if (filename.empty())
-    return;
-
-  Common::RGBA8Image image;
-  image.SetSize(width, height);
-
-  const u16* src_pixels = reinterpret_cast<const u16*>(pixels);
-
-  for (u32 y = 0; y < height; y++)
-  {
-    for (u32 x = 0; x < width; x++)
-    {
-      image.SetPixel(x, y, VRAMRGBA5551ToRGBA8888(*src_pixels));
-      src_pixels++;
-    }
-  }
-
-  if (g_settings.texture_replacements.dump_vram_write_force_alpha_channel)
-  {
-    for (u32 y = 0; y < height; y++)
-    {
-      for (u32 x = 0; x < width; x++)
-        image.SetPixel(x, y, image.GetPixel(x, y) | 0xFF000000u);
-    }
-  }
-
-  Log_InfoPrintf("Dumping %ux%u VRAM write to '%s'", width, height, filename.c_str());
-  if (!Common::WriteImageToFile(image, filename.c_str()))
-    Log_ErrorPrintf("Failed to dump %ux%u VRAM write to '%s'", width, height, filename.c_str());
 }
 
 void TextureReplacements::Shutdown()
@@ -121,38 +87,14 @@ void TextureReplacements::Shutdown()
 std::string TextureReplacements::GetSourceDirectory() const
 {
   // Use the shader cache path as base for the textures folder
-  std::string cache_folder = g_libretro_host_interface.GetShaderCacheBasePath();
+  std::string cache_folder = g_host_interface_storage.GetShaderCacheBasePath();
   return g_host_interface->GetUserDirectoryRelativePath("%s" "textures" FS_OSPATH_SEPARATOR_STR "%s", cache_folder.c_str(), m_game_id.c_str());
 }
 
-TextureReplacementHash TextureReplacements::GetVRAMWriteHash(u32 width, u32 height, const void* pixels) const
+TextureReplacementHash TextureReplacements::GetVRAMWriteHash(uint32_t width, uint32_t height, const void* pixels) const
 {
-  XXH128_hash_t hash = XXH3_128bits(pixels, width * height * sizeof(u16));
+  XXH128_hash_t hash = XXH3_128bits(pixels, width * height * sizeof(uint16_t));
   return {hash.low64, hash.high64};
-}
-
-std::string TextureReplacements::GetVRAMWriteDumpFilename(u32 width, u32 height, const void* pixels) const
-{
-  if (m_game_id.empty())
-    return {};
-
-  const TextureReplacementHash hash = GetVRAMWriteHash(width, height, pixels);
-  std::string cache_folder = g_libretro_host_interface.GetShaderCacheBasePath();
-  std::string filename = g_host_interface->GetUserDirectoryRelativePath("%s" "dump" FS_OSPATH_SEPARATOR_STR "textures" FS_OSPATH_SEPARATOR_STR "%s" 
-  FS_OSPATH_SEPARATOR_STR "vram-write-%s.png", cache_folder.c_str(), m_game_id.c_str(), hash.ToString().c_str());
-
-  if (!filename.empty() && path_is_valid(filename.c_str()))
-    return {};
-
-  const std::string dump_directory =
-    g_host_interface->GetUserDirectoryRelativePath("%s" FS_OSPATH_SEPARATOR_STR "textures" FS_OSPATH_SEPARATOR_STR "%s", cache_folder.c_str(), m_game_id.c_str());
-  if (   !path_is_directory(dump_directory.c_str())
-      && !path_mkdir(dump_directory.c_str()))
-  {
-    return {};
-  }
-
-  return filename;
 }
 
 void TextureReplacements::Reload()
@@ -236,9 +178,6 @@ void TextureReplacements::FindTextures(const std::string& dir)
 
   for (FILESYSTEM_FIND_DATA& fd : files)
   {
-    if (fd.Attributes & FILESYSTEM_FILE_ATTRIBUTE_DIRECTORY)
-      continue;
-
     TextureReplacementHash hash;
     ReplacmentType type;
     if (!ParseReplacementFilename(fd.FileName, &hash, &type))
@@ -284,18 +223,17 @@ const TextureReplacementTexture* TextureReplacements::LoadTexture(const std::str
 
 void TextureReplacements::PreloadTextures()
 {
-  static constexpr float UPDATE_INTERVAL = 1.0f;
-
-  Common::Timer last_update_time;
-  u32 num_textures_loaded = 0;
-  const u32 total_textures = static_cast<u32>(m_vram_write_replacements.size());
+  const Common::Timer::Value update_interval = Common::Timer::ConvertSecondsToValue(1.0);
+  Common::Timer::Value last_update_time = Common::Timer::GetValue();
+  uint32_t num_textures_loaded = 0;
+  const uint32_t total_textures = static_cast<uint32_t>(m_vram_write_replacements.size());
 
 #define UPDATE_PROGRESS()                                                                                              \
-  if (last_update_time.GetTimeSeconds() >= UPDATE_INTERVAL)                                                            \
+  if ((Common::Timer::GetValue() - last_update_time) >= update_interval)                                              \
   {                                                                                                                    \
     g_host_interface->DisplayLoadingScreen("Preloading replacement textures...", 0, static_cast<int>(total_textures),  \
                                            static_cast<int>(num_textures_loaded));                                     \
-    last_update_time.Reset();                                                                                          \
+    last_update_time = Common::Timer::GetValue();                                                                     \
   }
 
   for (const auto& it : m_vram_write_replacements)

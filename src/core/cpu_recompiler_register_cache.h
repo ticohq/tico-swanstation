@@ -9,7 +9,7 @@
 
 namespace CPU::Recompiler {
 
-enum class HostRegState : u8
+enum class HostRegState : uint8_t
 {
   None = 0,
   Usable = (1 << 1),               // Can be allocated
@@ -21,7 +21,7 @@ enum class HostRegState : u8
 };
 IMPLEMENT_ENUM_CLASS_BITWISE_OPERATORS(HostRegState);
 
-enum class ValueFlags : u8
+enum class ValueFlags : uint8_t
 {
   None = 0,
   Valid = (1 << 0),
@@ -35,14 +35,14 @@ IMPLEMENT_ENUM_CLASS_BITWISE_OPERATORS(ValueFlags);
 struct Value
 {
   RegisterCache* regcache = nullptr;
-  u64 constant_value = 0;
+  uint64_t constant_value = 0;
   HostReg host_reg = {};
 
   RegSize size = RegSize_8;
   ValueFlags flags = ValueFlags::None;
 
   Value();
-  Value(RegisterCache* regcache_, u64 constant_, RegSize size_, ValueFlags flags_);
+  Value(RegisterCache* regcache_, uint64_t constant_, RegSize size_, ValueFlags flags_);
   Value(RegisterCache* regcache_, HostReg reg_, RegSize size_, ValueFlags flags_);
   Value(const Value& other);
   Value(Value&& other);
@@ -63,7 +63,7 @@ struct Value
   }
 
   /// Returns true if this value is constant and has the specified value.
-  bool HasConstantValue(u64 cv) const
+  bool HasConstantValue(uint64_t cv) const
   {
     return (((flags & ValueFlags::Constant) != ValueFlags::None) && constant_value == cv);
   }
@@ -135,40 +135,40 @@ struct Value
   }
 
   /// Returns the constant value as a signed 32-bit integer, suitable as an immediate.
-  s32 GetS32ConstantValue() const
+  int32_t GetS32ConstantValue() const
   {
     switch (size)
     {
       case RegSize_8:
-        return static_cast<s32>(SignExtend32(Truncate8(constant_value)));
+        return static_cast<int32_t>(static_cast<int8_t>(constant_value));
 
       case RegSize_16:
-        return static_cast<s32>(SignExtend32(Truncate16(constant_value)));
+        return static_cast<int32_t>(static_cast<int16_t>(constant_value));
 
       case RegSize_32:
       case RegSize_64:
       default:
-        return static_cast<s32>(constant_value);
+        return static_cast<int32_t>(constant_value);
     }
   }
 
   /// Returns the constant value as a signed 64-bit integer, suitable as an immediate.
-  s64 GetS64ConstantValue() const
+  int64_t GetS64ConstantValue() const
   {
     switch (size)
     {
       case RegSize_8:
-        return static_cast<s64>(SignExtend64(Truncate8(constant_value)));
+        return static_cast<int64_t>(static_cast<int8_t>(constant_value));
 
       case RegSize_16:
-        return static_cast<s64>(SignExtend64(Truncate16(constant_value)));
+        return static_cast<int64_t>(static_cast<int16_t>(constant_value));
 
       case RegSize_32:
-        return static_cast<s64>(SignExtend64(Truncate32(constant_value)));
+        return static_cast<int64_t>(static_cast<int32_t>(constant_value));
 
       case RegSize_64:
       default:
-        return static_cast<s64>(constant_value);
+        return static_cast<int64_t>(constant_value);
     }
   }
 
@@ -180,21 +180,21 @@ struct Value
   {
     return Value(regcache, reg, size, ValueFlags::Valid | ValueFlags::InHostRegister | ValueFlags::Scratch);
   }
-  static Value FromConstant(u64 cv, RegSize size)
+  static Value FromConstant(uint64_t cv, RegSize size)
   {
     return Value(nullptr, cv, size, ValueFlags::Valid | ValueFlags::Constant);
   }
-  static Value FromConstantU8(u8 value) { return FromConstant(ZeroExtend64(value), RegSize_8); }
-  static Value FromConstantU16(u16 value) { return FromConstant(ZeroExtend64(value), RegSize_16); }
-  static Value FromConstantU32(u32 value) { return FromConstant(ZeroExtend64(value), RegSize_32); }
-  static Value FromConstantS32(s32 value) { return FromConstant(ZeroExtend64(static_cast<u32>(value)), RegSize_32); }
-  static Value FromConstantU64(u64 value) { return FromConstant(value, RegSize_64); }
+  static Value FromConstantU8(uint8_t value) { return FromConstant(static_cast<uint64_t>(value), RegSize_8); }
+  static Value FromConstantU16(uint16_t value) { return FromConstant(static_cast<uint64_t>(value), RegSize_16); }
+  static Value FromConstantU32(uint32_t value) { return FromConstant(static_cast<uint64_t>(value), RegSize_32); }
+  static Value FromConstantS32(int32_t value) { return FromConstant(static_cast<uint64_t>(static_cast<uint32_t>(value)), RegSize_32); }
+  static Value FromConstantU64(uint64_t value) { return FromConstant(value, RegSize_64); }
   static Value FromConstantPtr(const void* pointer)
   {
 #if defined(CPU_AARCH64) || defined(CPU_X64)
-    return FromConstant(static_cast<u64>(reinterpret_cast<uintptr_t>(pointer)), RegSize_64);
+    return FromConstant(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(pointer)), RegSize_64);
 #elif defined(CPU_AARCH32)
-    return FromConstant(static_cast<u32>(reinterpret_cast<uintptr_t>(pointer)), RegSize_32);
+    return FromConstant(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(pointer)), RegSize_32);
 #else
     return FromConstant(0, RegSize_32);
 #endif
@@ -210,7 +210,7 @@ public:
   RegisterCache(CodeGenerator& code_generator);
   ~RegisterCache();
 
-  u32 GetActiveCalleeSavedRegisterCount() const { return m_state.callee_saved_order_count; }
+  uint32_t GetActiveCalleeSavedRegisterCount() const { return m_state.callee_saved_order_count; }
 
   //////////////////////////////////////////////////////////////////////////
   // Register Allocation
@@ -220,12 +220,8 @@ public:
   void SetCalleeSavedHostRegs(std::initializer_list<HostReg> regs);
   void SetCPUPtrHostReg(HostReg reg);
 
-  /// Returns true if the register is permitted to be used in the register cache.
-  bool IsUsableHostReg(HostReg reg) const;
   bool IsHostRegInUse(HostReg reg) const;
   bool HasFreeHostRegister() const;
-  u32 GetUsedHostRegisters() const;
-  u32 GetFreeHostRegisters() const;
 
   /// Allocates a new host register. If there are no free registers, the guest register which was accessed the longest
   /// time ago will be evicted.
@@ -244,18 +240,12 @@ public:
   /// Frees a host register, making it usable in future allocations.
   void FreeHostReg(HostReg reg);
 
-  /// Ensures a host register is free, removing any value cached.
-  void EnsureHostRegFree(HostReg reg);
-
-  /// Preallocates caller saved registers, enabling later use without stack pushes.
-  void ReserveCallerSavedRegisters();
-
   /// Push/pop volatile host registers. Returns the number of registers pushed/popped.
-  u32 PushCallerSavedRegisters() const;
-  u32 PopCallerSavedRegisters() const;
+  uint32_t PushCallerSavedRegisters() const;
+  uint32_t PopCallerSavedRegisters() const;
 
   /// Restore callee-saved registers. Call at the end of the function.
-  u32 PopCalleeSavedRegisters(bool commit);
+  uint32_t PopCalleeSavedRegisters(bool commit);
 
   /// Preallocates caller saved registers, enabling later use without stack pushes.
   void ReserveCalleeSavedRegisters();
@@ -278,28 +268,6 @@ public:
   //////////////////////////////////////////////////////////////////////////
   // Guest Register Caching
   //////////////////////////////////////////////////////////////////////////
-
-  /// Returns true if the specified guest register is cached.
-  bool IsGuestRegisterCached(Reg guest_reg) const
-  {
-    const Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
-    return cache_value.IsConstant() || cache_value.IsInHostRegister();
-  }
-
-  /// Returns true if the specified guest register is cached and in a host register.
-  bool IsGuestRegisterInHostRegister(Reg guest_reg) const
-  {
-    const Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
-    return cache_value.IsInHostRegister();
-  }
-
-  /// Returns the host register if the guest register is cached.
-  std::optional<HostReg> GetHostRegisterForGuestRegister(Reg guest_reg) const
-  {
-    if (!m_state.guest_reg_state[static_cast<u8>(guest_reg)].IsInHostRegister())
-      return std::nullopt;
-    return m_state.guest_reg_state[static_cast<u8>(guest_reg)].GetHostRegister();
-  }
 
   /// Returns true if there is a load delay which will be stored at the end of the instruction.
   bool HasLoadDelay() const { return m_state.load_delay_register != Reg::count; }
@@ -357,13 +325,13 @@ private:
   {
     std::array<HostRegState, HostReg_Count> host_reg_state{};
     std::array<HostReg, HostReg_Count> callee_saved_order{};
-    std::array<Value, static_cast<u8>(Reg::count)> guest_reg_state{};
+    std::array<Value, static_cast<uint8_t>(Reg::count)> guest_reg_state{};
     std::array<Reg, HostReg_Count> guest_reg_order{};
 
-    u32 available_count = 0;
-    u32 callee_saved_order_count = 0;
-    u32 guest_reg_order_count = 0;
-    u32 allocator_inhibit_count = 0;
+    uint32_t available_count = 0;
+    uint32_t callee_saved_order_count = 0;
+    uint32_t guest_reg_order_count = 0;
+    uint32_t allocator_inhibit_count = 0;
 
     Reg load_delay_register = Reg::count;
     Value load_delay_value{};

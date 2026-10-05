@@ -2,73 +2,70 @@
 #define __CORETYPES_H__
 
 #include <stdint.h>
-#include <stdio.h>
+#include <streams/file_stream.h>
 
-#define ARRAY_LENGTH(x) (sizeof(x)/sizeof(x[0]))
+#include "macros.h"
 
-#if defined(__PS3__) || defined(__PSL1GHT__)
-#undef UINT32
-#undef UINT16
-#undef UINT8
-#undef INT32
-#undef INT16
-#undef INT8
-#endif
-
-typedef uint64_t UINT64;
-typedef uint32_t UINT32;
-typedef uint16_t UINT16;
-typedef uint8_t UINT8;
-
-typedef int64_t INT64;
-typedef int32_t INT32;
-typedef int16_t INT16;
-typedef int8_t INT8;
-
-typedef struct chd_core_file {
-	/*
-	 * arbitrary pointer to data the implementation uses to implement the below functions
-	 */
-	void *argp;
-
+typedef struct chd_core_file_callbacks {
 	/*
 	 * return the size of a given file as a 64-bit unsigned integer.
 	 * the position of the file pointer after calling this function is
 	 * undefined because many implementations will seek to the end of the
 	 * file and call ftell.
 	 *
-	 * on error, (UINT64)-1 is returned.
+	 * on error, (uint64_t)-1 is returned.
 	 */
-	UINT64(*fsize)(struct chd_core_file*);
+	uint64_t(*fsize)(void*);
 
 	/*
 	 * should match the behavior of fread, except the FILE* argument at the end
-	 * will be replaced with a struct chd_core_file*.
+	 * will be replaced with a void*.
 	 */
-	size_t(*fread)(void*,size_t,size_t,struct chd_core_file*);
+	size_t(*fread)(void*,size_t,size_t,void*);
 
 	// closes the given file.
-	int (*fclose)(struct chd_core_file*);
+	int (*fclose)(void*);
 
 	// fseek clone
-	int (*fseek)(struct chd_core_file*, INT64, int);
+	int (*fseek)(void*, int64_t, int);
+} core_file_callbacks;
+
+typedef struct chd_core_file_callbacks_and_argp {
+	const core_file_callbacks *callbacks;
+
+	/*
+	 * arbitrary pointer to data the implementation uses to implement the above functions
+	 */
+	void *argp;
+} core_file_callbacks_and_argp;
+
+/* Legacy API */
+
+typedef struct chd_core_file {
+	void *argp;
+	uint64_t(*fsize)(struct chd_core_file*);
+	size_t(*fread)(void*,size_t,size_t,struct chd_core_file*);
+	int (*fclose)(struct chd_core_file*);
+	int (*fseek)(struct chd_core_file*, int64_t, int);
 } core_file;
 
-static inline int core_fclose(core_file *fp) {
-	return fp->fclose(fp);
+/* File IO shortcuts */
+
+static CHDR_INLINE int core_fclose(const core_file_callbacks_and_argp *fp) {
+	return fp->callbacks->fclose(fp->argp);
 }
 
-static inline size_t core_fread(core_file *fp, void *ptr, size_t len) {
-	return fp->fread(ptr, 1, len, fp);
+static CHDR_INLINE size_t core_fread(const core_file_callbacks_and_argp *fp, void *ptr, size_t len) {
+	return fp->callbacks->fread(ptr, 1, len, fp->argp);
 }
 
-static inline int core_fseek(core_file* fp, INT64 offset, int whence) {
-	return fp->fseek(fp, offset, whence);
+static CHDR_INLINE int core_fseek(const core_file_callbacks_and_argp* fp, int64_t offset, int whence) {
+	return fp->callbacks->fseek(fp->argp, offset, whence);
 }
 
-static inline UINT64 core_fsize(core_file *fp)
+static CHDR_INLINE uint64_t core_fsize(const core_file_callbacks_and_argp *fp)
 {
-	return fp->fsize(fp);
+	return fp->callbacks->fsize(fp->argp);
 }
 
 #endif

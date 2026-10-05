@@ -24,12 +24,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SWANSTATION_VIXL_AARCH64_OPERANDS_AARCH64_H_
-#define SWANSTATION_VIXL_AARCH64_OPERANDS_AARCH64_H_
+#ifndef VIXL_AARCH64_OPERANDS_AARCH64_H_
+#define VIXL_AARCH64_OPERANDS_AARCH64_H_
 
 #include "instructions-aarch64.h"
 
-namespace swanstation_vixl {
+namespace vixl {
 namespace aarch64 {
 
 typedef uint64_t RegList;
@@ -56,87 +56,87 @@ class CPURegister {
   };
 
   CPURegister() : code_(0), size_(0), type_(kNoRegister) {
-    SWANSTATION_VIXL_ASSERT(!IsValid());
-    SWANSTATION_VIXL_ASSERT(IsNone());
+    VIXL_ASSERT(!IsValid());
+    VIXL_ASSERT(IsNone());
   }
 
   CPURegister(unsigned code, unsigned size, RegisterType type)
       : code_(code), size_(size), type_(type) {
-    SWANSTATION_VIXL_ASSERT(IsValidOrNone());
+    VIXL_ASSERT(IsValidOrNone());
   }
 
   unsigned GetCode() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return code_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetCode", unsigned code() const) { return GetCode(); }
+  VIXL_DEPRECATED("GetCode", unsigned code() const) { return GetCode(); }
 
   RegisterType GetType() const {
-    SWANSTATION_VIXL_ASSERT(IsValidOrNone());
+    VIXL_ASSERT(IsValidOrNone());
     return type_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetType", RegisterType type() const) { return GetType(); }
+  VIXL_DEPRECATED("GetType", RegisterType type() const) { return GetType(); }
 
   RegList GetBit() const {
-    SWANSTATION_VIXL_ASSERT(code_ < (sizeof(RegList) * 8));
+    VIXL_ASSERT(code_ < (sizeof(RegList) * 8));
     return IsValid() ? (static_cast<RegList>(1) << code_) : 0;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetBit", RegList Bit() const) { return GetBit(); }
+  VIXL_DEPRECATED("GetBit", RegList Bit() const) { return GetBit(); }
 
   int GetSizeInBytes() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
-    SWANSTATION_VIXL_ASSERT(size_ % 8 == 0);
+    VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(size_ % 8 == 0);
     return size_ / 8;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetSizeInBytes", int SizeInBytes() const) {
+  VIXL_DEPRECATED("GetSizeInBytes", int SizeInBytes() const) {
     return GetSizeInBytes();
   }
 
   int GetSizeInBits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetSizeInBits", unsigned size() const) {
+  VIXL_DEPRECATED("GetSizeInBits", unsigned size() const) {
     return GetSizeInBits();
   }
-  SWANSTATION_VIXL_DEPRECATED("GetSizeInBits", int SizeInBits() const) {
+  VIXL_DEPRECATED("GetSizeInBits", int SizeInBits() const) {
     return GetSizeInBits();
   }
 
   bool Is8Bits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_ == 8;
   }
 
   bool Is16Bits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_ == 16;
   }
 
   bool Is32Bits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_ == 32;
   }
 
   bool Is64Bits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_ == 64;
   }
 
   bool Is128Bits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_ == 128;
   }
 
   bool IsValid() const {
     if (IsValidRegister() || IsValidVRegister()) {
-      SWANSTATION_VIXL_ASSERT(!IsNone());
+      VIXL_ASSERT(!IsNone());
       return true;
     } else {
       // This assert is hit when the register has not been properly initialized.
       // One cause for this can be an initialisation order fiasco. See
       // https://isocpp.org/wiki/faq/ctors#static-init-order for some details.
-      SWANSTATION_VIXL_ASSERT(IsNone());
+      VIXL_ASSERT(IsNone());
       return false;
     }
   }
@@ -159,29 +159,29 @@ class CPURegister {
 
   bool IsNone() const {
     // kNoRegister types should always have size 0 and code 0.
-    SWANSTATION_VIXL_ASSERT((type_ != kNoRegister) || (code_ == 0));
-    SWANSTATION_VIXL_ASSERT((type_ != kNoRegister) || (size_ == 0));
+    VIXL_ASSERT((type_ != kNoRegister) || (code_ == 0));
+    VIXL_ASSERT((type_ != kNoRegister) || (size_ == 0));
 
     return type_ == kNoRegister;
   }
 
   bool Aliases(const CPURegister& other) const {
-    SWANSTATION_VIXL_ASSERT(IsValidOrNone() && other.IsValidOrNone());
+    VIXL_ASSERT(IsValidOrNone() && other.IsValidOrNone());
     return (code_ == other.code_) && (type_ == other.type_);
   }
 
   bool Is(const CPURegister& other) const {
-    SWANSTATION_VIXL_ASSERT(IsValidOrNone() && other.IsValidOrNone());
+    VIXL_ASSERT(IsValidOrNone() && other.IsValidOrNone());
     return Aliases(other) && (size_ == other.size_);
   }
 
   bool IsZero() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return IsRegister() && (code_ == kZeroRegCode);
   }
 
   bool IsSP() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return IsRegister() && (code_ == kSPRegInternalCode);
   }
 
@@ -243,23 +243,23 @@ class Register : public CPURegister {
   Register() : CPURegister() {}
   explicit Register(const CPURegister& other)
       : CPURegister(other.GetCode(), other.GetSizeInBits(), other.GetType()) {
-    SWANSTATION_VIXL_ASSERT(IsValidRegister());
+    VIXL_ASSERT(IsValidRegister());
   }
   Register(unsigned code, unsigned size) : CPURegister(code, size, kRegister) {}
 
   bool IsValid() const {
-    SWANSTATION_VIXL_ASSERT(IsRegister() || IsNone());
+    VIXL_ASSERT(IsRegister() || IsNone());
     return IsValidRegister();
   }
 
   static const Register& GetWRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetWRegFromCode",
+  VIXL_DEPRECATED("GetWRegFromCode",
                   static const Register& WRegFromCode(unsigned code)) {
     return GetWRegFromCode(code);
   }
 
   static const Register& GetXRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetXRegFromCode",
+  VIXL_DEPRECATED("GetXRegFromCode",
                   static const Register& XRegFromCode(unsigned code)) {
     return GetXRegFromCode(code);
   }
@@ -277,18 +277,18 @@ class FixedSizeRegister : public Register {
  public:
   FixedSizeRegister() : Register() {}
   explicit FixedSizeRegister(unsigned code) : Register(code, size_in_bits) {
-    SWANSTATION_VIXL_ASSERT(IsValidRegister());
+    VIXL_ASSERT(IsValidRegister());
   }
   explicit FixedSizeRegister(const Register& other)
       : Register(other.GetCode(), size_in_bits) {
-    SWANSTATION_VIXL_ASSERT(other.GetSizeInBits() == size_in_bits);
-    SWANSTATION_VIXL_ASSERT(IsValidRegister());
+    VIXL_ASSERT(other.GetSizeInBits() == size_in_bits);
+    VIXL_ASSERT(IsValidRegister());
   }
   explicit FixedSizeRegister(const CPURegister& other)
       : Register(other.GetCode(), other.GetSizeInBits()) {
-    SWANSTATION_VIXL_ASSERT(other.GetType() == kRegister);
-    SWANSTATION_VIXL_ASSERT(other.GetSizeInBits() == size_in_bits);
-    SWANSTATION_VIXL_ASSERT(IsValidRegister());
+    VIXL_ASSERT(other.GetType() == kRegister);
+    VIXL_ASSERT(other.GetSizeInBits() == size_in_bits);
+    VIXL_ASSERT(IsValidRegister());
   }
 
   bool IsValid() const {
@@ -308,56 +308,56 @@ class VRegister : public CPURegister {
   explicit VRegister(const CPURegister& other)
       : CPURegister(other.GetCode(), other.GetSizeInBits(), other.GetType()),
         lanes_(1) {
-    SWANSTATION_VIXL_ASSERT(IsValidVRegister());
-    SWANSTATION_VIXL_ASSERT(IsPowerOf2(lanes_) && (lanes_ <= 16));
+    VIXL_ASSERT(IsValidVRegister());
+    VIXL_ASSERT(IsPowerOf2(lanes_) && (lanes_ <= 16));
   }
   VRegister(unsigned code, unsigned size, unsigned lanes = 1)
       : CPURegister(code, size, kVRegister), lanes_(lanes) {
-    SWANSTATION_VIXL_ASSERT(IsPowerOf2(lanes_) && (lanes_ <= 16));
+    VIXL_ASSERT(IsPowerOf2(lanes_) && (lanes_ <= 16));
   }
   VRegister(unsigned code, VectorFormat format)
       : CPURegister(code, RegisterSizeInBitsFromFormat(format), kVRegister),
         lanes_(IsVectorFormat(format) ? LaneCountFromFormat(format) : 1) {
-    SWANSTATION_VIXL_ASSERT(IsPowerOf2(lanes_) && (lanes_ <= 16));
+    VIXL_ASSERT(IsPowerOf2(lanes_) && (lanes_ <= 16));
   }
 
   bool IsValid() const {
-    SWANSTATION_VIXL_ASSERT(IsVRegister() || IsNone());
+    VIXL_ASSERT(IsVRegister() || IsNone());
     return IsValidVRegister();
   }
 
   static const VRegister& GetBRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetBRegFromCode",
+  VIXL_DEPRECATED("GetBRegFromCode",
                   static const VRegister& BRegFromCode(unsigned code)) {
     return GetBRegFromCode(code);
   }
 
   static const VRegister& GetHRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetHRegFromCode",
+  VIXL_DEPRECATED("GetHRegFromCode",
                   static const VRegister& HRegFromCode(unsigned code)) {
     return GetHRegFromCode(code);
   }
 
   static const VRegister& GetSRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetSRegFromCode",
+  VIXL_DEPRECATED("GetSRegFromCode",
                   static const VRegister& SRegFromCode(unsigned code)) {
     return GetSRegFromCode(code);
   }
 
   static const VRegister& GetDRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetDRegFromCode",
+  VIXL_DEPRECATED("GetDRegFromCode",
                   static const VRegister& DRegFromCode(unsigned code)) {
     return GetDRegFromCode(code);
   }
 
   static const VRegister& GetQRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetQRegFromCode",
+  VIXL_DEPRECATED("GetQRegFromCode",
                   static const VRegister& QRegFromCode(unsigned code)) {
     return GetQRegFromCode(code);
   }
 
   static const VRegister& GetVRegFromCode(unsigned code);
-  SWANSTATION_VIXL_DEPRECATED("GetVRegFromCode",
+  VIXL_DEPRECATED("GetVRegFromCode",
                   static const VRegister& VRegFromCode(unsigned code)) {
     return GetVRegFromCode(code);
   }
@@ -386,15 +386,15 @@ class VRegister : public CPURegister {
   // even though there are no vectors of equivalent total size with which they
   // could alias.
   bool Is1B() const {
-    SWANSTATION_VIXL_ASSERT(!(Is8Bits() && IsVector()));
+    VIXL_ASSERT(!(Is8Bits() && IsVector()));
     return Is8Bits();
   }
   bool Is1H() const {
-    SWANSTATION_VIXL_ASSERT(!(Is16Bits() && IsVector()));
+    VIXL_ASSERT(!(Is16Bits() && IsVector()));
     return Is16Bits();
   }
   bool Is1S() const {
-    SWANSTATION_VIXL_ASSERT(!(Is32Bits() && IsVector()));
+    VIXL_ASSERT(!(Is32Bits() && IsVector()));
     return Is32Bits();
   }
 
@@ -408,7 +408,7 @@ class VRegister : public CPURegister {
   bool IsLaneSizeD() const { return GetLaneSizeInBits() == kDRegSize; }
 
   int GetLanes() const { return lanes_; }
-  SWANSTATION_VIXL_DEPRECATED("GetLanes", int lanes() const) { return GetLanes(); }
+  VIXL_DEPRECATED("GetLanes", int lanes() const) { return GetLanes(); }
 
   bool IsScalar() const { return lanes_ == 1; }
 
@@ -419,12 +419,12 @@ class VRegister : public CPURegister {
   }
 
   unsigned GetLaneSizeInBytes() const { return GetSizeInBytes() / lanes_; }
-  SWANSTATION_VIXL_DEPRECATED("GetLaneSizeInBytes", unsigned LaneSizeInBytes() const) {
+  VIXL_DEPRECATED("GetLaneSizeInBytes", unsigned LaneSizeInBytes() const) {
     return GetLaneSizeInBytes();
   }
 
   unsigned GetLaneSizeInBits() const { return GetLaneSizeInBytes() * 8; }
-  SWANSTATION_VIXL_DEPRECATED("GetLaneSizeInBits", unsigned LaneSizeInBits() const) {
+  VIXL_DEPRECATED("GetLaneSizeInBits", unsigned LaneSizeInBits() const) {
     return GetLaneSizeInBits();
   }
 
@@ -556,13 +556,13 @@ class CPURegList {
       : list_(reg1.GetBit() | reg2.GetBit() | reg3.GetBit() | reg4.GetBit()),
         size_(reg1.GetSizeInBits()),
         type_(reg1.GetType()) {
-    SWANSTATION_VIXL_ASSERT(AreSameSizeAndType(reg1, reg2, reg3, reg4));
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(AreSameSizeAndType(reg1, reg2, reg3, reg4));
+    VIXL_ASSERT(IsValid());
   }
 
   CPURegList(CPURegister::RegisterType type, unsigned size, RegList list)
       : list_(list), size_(size), type_(type) {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
   }
 
   CPURegList(CPURegister::RegisterType type,
@@ -570,21 +570,21 @@ class CPURegList {
              unsigned first_reg,
              unsigned last_reg)
       : size_(size), type_(type) {
-    SWANSTATION_VIXL_ASSERT(
+    VIXL_ASSERT(
         ((type == CPURegister::kRegister) && (last_reg < kNumberOfRegisters)) ||
         ((type == CPURegister::kVRegister) &&
          (last_reg < kNumberOfVRegisters)));
-    SWANSTATION_VIXL_ASSERT(last_reg >= first_reg);
+    VIXL_ASSERT(last_reg >= first_reg);
     list_ = (UINT64_C(1) << (last_reg + 1)) - 1;
     list_ &= ~((UINT64_C(1) << first_reg) - 1);
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
   }
 
   CPURegister::RegisterType GetType() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return type_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetType", CPURegister::RegisterType type() const) {
+  VIXL_DEPRECATED("GetType", CPURegister::RegisterType type() const) {
     return GetType();
   }
 
@@ -592,9 +592,9 @@ class CPURegList {
   // this list are left unchanged. The type and size of the registers in the
   // 'other' list must match those in this list.
   void Combine(const CPURegList& other) {
-    SWANSTATION_VIXL_ASSERT(IsValid());
-    SWANSTATION_VIXL_ASSERT(other.GetType() == type_);
-    SWANSTATION_VIXL_ASSERT(other.GetRegisterSizeInBits() == size_);
+    VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(other.GetType() == type_);
+    VIXL_ASSERT(other.GetRegisterSizeInBits() == size_);
     list_ |= other.GetList();
   }
 
@@ -602,42 +602,42 @@ class CPURegList {
   // do not exist in this list are ignored. The type and size of the registers
   // in the 'other' list must match those in this list.
   void Remove(const CPURegList& other) {
-    SWANSTATION_VIXL_ASSERT(IsValid());
-    SWANSTATION_VIXL_ASSERT(other.GetType() == type_);
-    SWANSTATION_VIXL_ASSERT(other.GetRegisterSizeInBits() == size_);
+    VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(other.GetType() == type_);
+    VIXL_ASSERT(other.GetRegisterSizeInBits() == size_);
     list_ &= ~other.GetList();
   }
 
   // Variants of Combine and Remove which take a single register.
   void Combine(const CPURegister& other) {
-    SWANSTATION_VIXL_ASSERT(other.GetType() == type_);
-    SWANSTATION_VIXL_ASSERT(other.GetSizeInBits() == size_);
+    VIXL_ASSERT(other.GetType() == type_);
+    VIXL_ASSERT(other.GetSizeInBits() == size_);
     Combine(other.GetCode());
   }
 
   void Remove(const CPURegister& other) {
-    SWANSTATION_VIXL_ASSERT(other.GetType() == type_);
-    SWANSTATION_VIXL_ASSERT(other.GetSizeInBits() == size_);
+    VIXL_ASSERT(other.GetType() == type_);
+    VIXL_ASSERT(other.GetSizeInBits() == size_);
     Remove(other.GetCode());
   }
 
   // Variants of Combine and Remove which take a single register by its code;
   // the type and size of the register is inferred from this list.
   void Combine(int code) {
-    SWANSTATION_VIXL_ASSERT(IsValid());
-    SWANSTATION_VIXL_ASSERT(CPURegister(code, size_, type_).IsValid());
+    VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(CPURegister(code, size_, type_).IsValid());
     list_ |= (UINT64_C(1) << code);
   }
 
   void Remove(int code) {
-    SWANSTATION_VIXL_ASSERT(IsValid());
-    SWANSTATION_VIXL_ASSERT(CPURegister(code, size_, type_).IsValid());
+    VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(CPURegister(code, size_, type_).IsValid());
     list_ &= ~(UINT64_C(1) << code);
   }
 
   static CPURegList Union(const CPURegList& list_1, const CPURegList& list_2) {
-    SWANSTATION_VIXL_ASSERT(list_1.type_ == list_2.type_);
-    SWANSTATION_VIXL_ASSERT(list_1.size_ == list_2.size_);
+    VIXL_ASSERT(list_1.type_ == list_2.type_);
+    VIXL_ASSERT(list_1.size_ == list_2.size_);
     return CPURegList(list_1.type_, list_1.size_, list_1.list_ | list_2.list_);
   }
   static CPURegList Union(const CPURegList& list_1,
@@ -650,8 +650,8 @@ class CPURegList {
 
   static CPURegList Intersection(const CPURegList& list_1,
                                  const CPURegList& list_2) {
-    SWANSTATION_VIXL_ASSERT(list_1.type_ == list_2.type_);
-    SWANSTATION_VIXL_ASSERT(list_1.size_ == list_2.size_);
+    VIXL_ASSERT(list_1.type_ == list_2.type_);
+    VIXL_ASSERT(list_1.size_ == list_2.size_);
     return CPURegList(list_1.type_, list_1.size_, list_1.list_ & list_2.list_);
   }
   static CPURegList Intersection(const CPURegList& list_1,
@@ -667,16 +667,16 @@ class CPURegList {
   }
 
   RegList GetList() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return list_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetList", RegList list() const) { return GetList(); }
+  VIXL_DEPRECATED("GetList", RegList list() const) { return GetList(); }
 
   void SetList(RegList new_list) {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     list_ = new_list;
   }
-  SWANSTATION_VIXL_DEPRECATED("SetList", void set_list(RegList new_list)) {
+  VIXL_DEPRECATED("SetList", void set_list(RegList new_list)) {
     return SetList(new_list);
   }
 
@@ -698,48 +698,48 @@ class CPURegList {
   static CPURegList GetCallerSavedV(unsigned size = kDRegSize);
 
   bool IsEmpty() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return list_ == 0;
   }
 
   bool IncludesAliasOf(const CPURegister& other) const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return (type_ == other.GetType()) && ((other.GetBit() & list_) != 0);
   }
 
   bool IncludesAliasOf(int code) const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return ((code & list_) != 0);
   }
 
   int GetCount() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return CountSetBits(list_);
   }
-  SWANSTATION_VIXL_DEPRECATED("GetCount", int Count()) const { return GetCount(); }
+  VIXL_DEPRECATED("GetCount", int Count()) const { return GetCount(); }
 
   int GetRegisterSizeInBits() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return size_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetRegisterSizeInBits", int RegisterSizeInBits() const) {
+  VIXL_DEPRECATED("GetRegisterSizeInBits", int RegisterSizeInBits() const) {
     return GetRegisterSizeInBits();
   }
 
   int GetRegisterSizeInBytes() const {
     int size_in_bits = GetRegisterSizeInBits();
-    SWANSTATION_VIXL_ASSERT((size_in_bits % 8) == 0);
+    VIXL_ASSERT((size_in_bits % 8) == 0);
     return size_in_bits / 8;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetRegisterSizeInBytes", int RegisterSizeInBytes() const) {
+  VIXL_DEPRECATED("GetRegisterSizeInBytes", int RegisterSizeInBytes() const) {
     return GetRegisterSizeInBytes();
   }
 
   unsigned GetTotalSizeInBytes() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return GetRegisterSizeInBytes() * GetCount();
   }
-  SWANSTATION_VIXL_DEPRECATED("GetTotalSizeInBytes", unsigned TotalSizeInBytes() const) {
+  VIXL_DEPRECATED("GetTotalSizeInBytes", unsigned TotalSizeInBytes() const) {
     return GetTotalSizeInBytes();
   }
 
@@ -796,10 +796,10 @@ class Operand {
   Operand ToExtendedRegister() const;
 
   int64_t GetImmediate() const {
-    SWANSTATION_VIXL_ASSERT(IsImmediate());
+    VIXL_ASSERT(IsImmediate());
     return immediate_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetImmediate", int64_t immediate() const) {
+  VIXL_DEPRECATED("GetImmediate", int64_t immediate() const) {
     return GetImmediate();
   }
 
@@ -808,29 +808,29 @@ class Operand {
   }
 
   Register GetRegister() const {
-    SWANSTATION_VIXL_ASSERT(IsShiftedRegister() || IsExtendedRegister());
+    VIXL_ASSERT(IsShiftedRegister() || IsExtendedRegister());
     return reg_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetRegister", Register reg() const) { return GetRegister(); }
+  VIXL_DEPRECATED("GetRegister", Register reg() const) { return GetRegister(); }
   Register GetBaseRegister() const { return GetRegister(); }
 
   Shift GetShift() const {
-    SWANSTATION_VIXL_ASSERT(IsShiftedRegister());
+    VIXL_ASSERT(IsShiftedRegister());
     return shift_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetShift", Shift shift() const) { return GetShift(); }
+  VIXL_DEPRECATED("GetShift", Shift shift() const) { return GetShift(); }
 
   Extend GetExtend() const {
-    SWANSTATION_VIXL_ASSERT(IsExtendedRegister());
+    VIXL_ASSERT(IsExtendedRegister());
     return extend_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetExtend", Extend extend() const) { return GetExtend(); }
+  VIXL_DEPRECATED("GetExtend", Extend extend() const) { return GetExtend(); }
 
   unsigned GetShiftAmount() const {
-    SWANSTATION_VIXL_ASSERT(IsShiftedRegister() || IsExtendedRegister());
+    VIXL_ASSERT(IsShiftedRegister() || IsExtendedRegister());
     return shift_amount_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetShiftAmount", unsigned shift_amount() const) {
+  VIXL_DEPRECATED("GetShiftAmount", unsigned shift_amount() const) {
     return GetShiftAmount();
   }
 
@@ -862,31 +862,31 @@ class MemOperand {
   MemOperand(Register base, const Operand& offset, AddrMode addrmode = Offset);
 
   const Register& GetBaseRegister() const { return base_; }
-  SWANSTATION_VIXL_DEPRECATED("GetBaseRegister", const Register& base() const) {
+  VIXL_DEPRECATED("GetBaseRegister", const Register& base() const) {
     return GetBaseRegister();
   }
 
   const Register& GetRegisterOffset() const { return regoffset_; }
-  SWANSTATION_VIXL_DEPRECATED("GetRegisterOffset", const Register& regoffset() const) {
+  VIXL_DEPRECATED("GetRegisterOffset", const Register& regoffset() const) {
     return GetRegisterOffset();
   }
 
   int64_t GetOffset() const { return offset_; }
-  SWANSTATION_VIXL_DEPRECATED("GetOffset", int64_t offset() const) { return GetOffset(); }
+  VIXL_DEPRECATED("GetOffset", int64_t offset() const) { return GetOffset(); }
 
   AddrMode GetAddrMode() const { return addrmode_; }
-  SWANSTATION_VIXL_DEPRECATED("GetAddrMode", AddrMode addrmode() const) {
+  VIXL_DEPRECATED("GetAddrMode", AddrMode addrmode() const) {
     return GetAddrMode();
   }
 
   Shift GetShift() const { return shift_; }
-  SWANSTATION_VIXL_DEPRECATED("GetShift", Shift shift() const) { return GetShift(); }
+  VIXL_DEPRECATED("GetShift", Shift shift() const) { return GetShift(); }
 
   Extend GetExtend() const { return extend_; }
-  SWANSTATION_VIXL_DEPRECATED("GetExtend", Extend extend() const) { return GetExtend(); }
+  VIXL_DEPRECATED("GetExtend", Extend extend() const) { return GetExtend(); }
 
   unsigned GetShiftAmount() const { return shift_amount_; }
-  SWANSTATION_VIXL_DEPRECATED("GetShiftAmount", unsigned shift_amount() const) {
+  VIXL_DEPRECATED("GetShiftAmount", unsigned shift_amount() const) {
     return GetShiftAmount();
   }
 
@@ -926,7 +926,7 @@ class MemOperand {
 // `MacroAssembler` provides helpers to move data between generic operands.
 class GenericOperand {
  public:
-  GenericOperand() { SWANSTATION_VIXL_ASSERT(!IsValid()); }
+  GenericOperand() { VIXL_ASSERT(!IsValid()); }
   GenericOperand(const CPURegister& reg);  // NOLINT(runtime/explicit)
   GenericOperand(const MemOperand& mem_op,
                  size_t mem_op_size = 0);  // NOLINT(runtime/explicit)
@@ -936,7 +936,7 @@ class GenericOperand {
   bool Equals(const GenericOperand& other) const;
 
   bool IsCPURegister() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return cpu_register_.IsValid();
   }
 
@@ -954,22 +954,22 @@ class GenericOperand {
   }
 
   bool IsMemOperand() const {
-    SWANSTATION_VIXL_ASSERT(IsValid());
+    VIXL_ASSERT(IsValid());
     return mem_op_.IsValid();
   }
 
   CPURegister GetCPURegister() const {
-    SWANSTATION_VIXL_ASSERT(IsCPURegister());
+    VIXL_ASSERT(IsCPURegister());
     return cpu_register_;
   }
 
   MemOperand GetMemOperand() const {
-    SWANSTATION_VIXL_ASSERT(IsMemOperand());
+    VIXL_ASSERT(IsMemOperand());
     return mem_op_;
   }
 
   size_t GetMemOperandSizeInBytes() const {
-    SWANSTATION_VIXL_ASSERT(IsMemOperand());
+    VIXL_ASSERT(IsMemOperand());
     return mem_op_size_;
   }
 
@@ -988,6 +988,6 @@ class GenericOperand {
   size_t mem_op_size_;
 };
 }
-}  // namespace swanstation_swanstation_vixl::aarch64
+}  // namespace vixl::aarch64
 
-#endif  // SWANSTATION_VIXL_AARCH64_OPERANDS_AARCH64_H_
+#endif  // VIXL_AARCH64_OPERANDS_AARCH64_H_

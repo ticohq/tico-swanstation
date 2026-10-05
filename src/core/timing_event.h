@@ -76,7 +76,7 @@ public:
 
 namespace TimingEvents {
 
-u32 GetGlobalTickCounter();
+uint32_t GetGlobalTickCounter();
 
 void Initialize();
 void Reset();

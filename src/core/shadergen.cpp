@@ -1,5 +1,6 @@
 #include "shadergen.h"
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <glad.h>
 
@@ -36,7 +37,7 @@ bool ShaderGen::UseGLSLBindingLayout()
 
 void ShaderGen::DefineMacro(std::stringstream& ss, const char* name, bool enabled)
 {
-  ss << "#define " << name << " " << BoolToUInt32(enabled) << "\n";
+  ss << "#define " << name << " " << static_cast<uint32_t>(enabled) << "\n";
 }
 
 void ShaderGen::SetGLSLVersionString()
@@ -50,7 +51,26 @@ void ShaderGen::SetGLSLVersionString()
     glsl_version_start++;
 
   int major_version = 0, minor_version = 0;
-  if (std::sscanf(glsl_version_start, "%d.%d", &major_version, &minor_version) == 2)
+  // Parse "<maj>.<min>" without sscanf (avoids strlen-of-whole-string and
+  // internal allocations some libcs do for vsscanf).
+  bool parsed = false;
+  {
+    char* endp = nullptr;
+    const long maj = std::strtol(glsl_version_start, &endp, 10);
+    if (endp != glsl_version_start && *endp == '.')
+    {
+      const char* const min_start = endp + 1;
+      char* endp2 = nullptr;
+      const long min = std::strtol(min_start, &endp2, 10);
+      if (endp2 != min_start)
+      {
+        major_version = static_cast<int>(maj);
+        minor_version = static_cast<int>(min);
+        parsed = true;
+      }
+    }
+  }
+  if (parsed)
   {
     // Cap at GLSL 4.3, we're not using anything newer for now.
     if (!glsl_es && (major_version > 4 || (major_version == 4 && minor_version > 30)))
@@ -270,7 +290,7 @@ void ShaderGen::DeclareUniformBuffer(std::stringstream& ss, const std::initializ
   ss << "};\n\n";
 }
 
-void ShaderGen::DeclareTexture(std::stringstream& ss, const char* name, u32 index, bool multisampled /* = false */)
+void ShaderGen::DeclareTexture(std::stringstream& ss, const char* name, uint32_t index, bool multisampled /* = false */)
 {
   if (m_glsl)
   {
@@ -288,7 +308,7 @@ void ShaderGen::DeclareTexture(std::stringstream& ss, const char* name, u32 inde
   }
 }
 
-void ShaderGen::DeclareTextureBuffer(std::stringstream& ss, const char* name, u32 index, bool is_int, bool is_unsigned)
+void ShaderGen::DeclareTextureBuffer(std::stringstream& ss, const char* name, uint32_t index, bool is_int, bool is_unsigned)
 {
   if (m_glsl)
   {
@@ -321,8 +341,8 @@ const char* ShaderGen::GetInterpolationQualifier(bool interface_block, bool cent
 }
 
 void ShaderGen::DeclareVertexEntryPoint(
-  std::stringstream& ss, const std::initializer_list<const char*>& attributes, u32 num_color_outputs,
-  u32 num_texcoord_outputs, const std::initializer_list<std::pair<const char*, const char*>>& additional_outputs,
+  std::stringstream& ss, const std::initializer_list<const char*>& attributes, uint32_t num_color_outputs,
+  uint32_t num_texcoord_outputs, const std::initializer_list<std::pair<const char*, const char*>>& additional_outputs,
   bool declare_vertex_id /* = false */, const char* output_block_suffix /* = "" */, bool msaa /* = false */,
   bool ssaa /* = false */, bool noperspective_color /* = false */)
 {
@@ -330,7 +350,7 @@ void ShaderGen::DeclareVertexEntryPoint(
   {
     if (m_use_glsl_binding_layout)
     {
-      u32 attribute_counter = 0;
+      uint32_t attribute_counter = 0;
       for (const char* attribute : attributes)
       {
         ss << "layout(location = " << attribute_counter << ") in " << attribute << ";\n";
@@ -351,10 +371,10 @@ void ShaderGen::DeclareVertexEntryPoint(
         ss << "layout(location = 0) ";
 
       ss << "out VertexData" << output_block_suffix << " {\n";
-      for (u32 i = 0; i < num_color_outputs; i++)
+      for (uint32_t i = 0; i < num_color_outputs; i++)
         ss << "  " << (noperspective_color ? "noperspective " : "") << qualifier << "float4 v_col" << i << ";\n";
 
-      for (u32 i = 0; i < num_texcoord_outputs; i++)
+      for (uint32_t i = 0; i < num_texcoord_outputs; i++)
         ss << "  " << qualifier << "float2 v_tex" << i << ";\n";
 
       for (const auto& [qualifiers, name] : additional_outputs)
@@ -368,10 +388,10 @@ void ShaderGen::DeclareVertexEntryPoint(
     {
       const char* qualifier = GetInterpolationQualifier(false, msaa, ssaa, true);
 
-      for (u32 i = 0; i < num_color_outputs; i++)
+      for (uint32_t i = 0; i < num_color_outputs; i++)
         ss << qualifier << (noperspective_color ? "noperspective " : "") << "out float4 v_col" << i << ";\n";
 
-      for (u32 i = 0; i < num_texcoord_outputs; i++)
+      for (uint32_t i = 0; i < num_texcoord_outputs; i++)
         ss << qualifier << "out float2 v_tex" << i << ";\n";
 
       for (const auto& [qualifiers, name] : additional_outputs)
@@ -402,21 +422,21 @@ void ShaderGen::DeclareVertexEntryPoint(
     if (declare_vertex_id)
       ss << "  in uint v_id : SV_VertexID,\n";
 
-    u32 attribute_counter = 0;
+    uint32_t attribute_counter = 0;
     for (const char* attribute : attributes)
     {
       ss << "  in " << attribute << " : ATTR" << attribute_counter << ",\n";
       attribute_counter++;
     }
 
-    for (u32 i = 0; i < num_color_outputs; i++)
+    for (uint32_t i = 0; i < num_color_outputs; i++)
       ss << "  " << qualifier << (noperspective_color ? "noperspective " : "") << "out float4 v_col" << i << " : COLOR"
          << i << ",\n";
 
-    for (u32 i = 0; i < num_texcoord_outputs; i++)
+    for (uint32_t i = 0; i < num_texcoord_outputs; i++)
       ss << "  " << qualifier << "out float2 v_tex" << i << " : TEXCOORD" << i << ",\n";
 
-    u32 additional_counter = num_texcoord_outputs;
+    uint32_t additional_counter = num_texcoord_outputs;
     for (const auto& [qualifiers, name] : additional_outputs)
     {
       const char* qualifier_to_use = (qualifiers && qualifiers[0] != '\0') ? qualifiers : qualifier;
@@ -429,9 +449,9 @@ void ShaderGen::DeclareVertexEntryPoint(
 }
 
 void ShaderGen::DeclareFragmentEntryPoint(
-  std::stringstream& ss, u32 num_color_inputs, u32 num_texcoord_inputs,
+  std::stringstream& ss, uint32_t num_color_inputs, uint32_t num_texcoord_inputs,
   const std::initializer_list<std::pair<const char*, const char*>>& additional_inputs,
-  bool declare_fragcoord /* = false */, u32 num_color_outputs /* = 1 */, bool depth_output /* = false */,
+  bool declare_fragcoord /* = false */, uint32_t num_color_outputs /* = 1 */, bool depth_output /* = false */,
   bool msaa /* = false */, bool ssaa /* = false */, bool declare_sample_id /* = false */,
   bool noperspective_color /* = false */)
 {
@@ -445,10 +465,10 @@ void ShaderGen::DeclareFragmentEntryPoint(
         ss << "layout(location = 0) ";
 
       ss << "in VertexData {\n";
-      for (u32 i = 0; i < num_color_inputs; i++)
+      for (uint32_t i = 0; i < num_color_inputs; i++)
         ss << "  " << qualifier << (noperspective_color ? "noperspective " : "") << "float4 v_col" << i << ";\n";
 
-      for (u32 i = 0; i < num_texcoord_inputs; i++)
+      for (uint32_t i = 0; i < num_texcoord_inputs; i++)
         ss << "  " << qualifier << "float2 v_tex" << i << ";\n";
 
       for (const auto& [qualifiers, name] : additional_inputs)
@@ -462,10 +482,10 @@ void ShaderGen::DeclareFragmentEntryPoint(
     {
       const char* qualifier = GetInterpolationQualifier(false, msaa, ssaa, false);
 
-      for (u32 i = 0; i < num_color_inputs; i++)
+      for (uint32_t i = 0; i < num_color_inputs; i++)
         ss << qualifier << (noperspective_color ? "noperspective " : "") << "in float4 v_col" << i << ";\n";
 
-      for (u32 i = 0; i < num_texcoord_inputs; i++)
+      for (uint32_t i = 0; i < num_texcoord_inputs; i++)
         ss << qualifier << "in float2 v_tex" << i << ";\n";
 
       for (const auto& [qualifiers, name] : additional_inputs)
@@ -488,18 +508,18 @@ void ShaderGen::DeclareFragmentEntryPoint(
     {
       if (m_supports_dual_source_blend)
       {
-        for (u32 i = 0; i < num_color_outputs; i++)
+        for (uint32_t i = 0; i < num_color_outputs; i++)
           ss << "layout(location = 0, index = " << i << ") out float4 o_col" << i << ";\n";
       }
       else
       {
-        for (u32 i = 0; i < num_color_outputs; i++)
+        for (uint32_t i = 0; i < num_color_outputs; i++)
           ss << "layout(location = " << i << ") out float4 o_col" << i << ";\n";
       }
     }
     else
     {
-      for (u32 i = 0; i < num_color_outputs; i++)
+      for (uint32_t i = 0; i < num_color_outputs; i++)
         ss << "out float4 o_col" << i << ";\n";
     }
 
@@ -513,14 +533,14 @@ void ShaderGen::DeclareFragmentEntryPoint(
 
     ss << "void main(\n";
 
-    for (u32 i = 0; i < num_color_inputs; i++)
+    for (uint32_t i = 0; i < num_color_inputs; i++)
       ss << "  " << qualifier << (noperspective_color ? "noperspective " : "") << "in float4 v_col" << i << " : COLOR"
          << i << ",\n";
 
-    for (u32 i = 0; i < num_texcoord_inputs; i++)
+    for (uint32_t i = 0; i < num_texcoord_inputs; i++)
       ss << "  " << qualifier << "in float2 v_tex" << i << " : TEXCOORD" << i << ",\n";
 
-    u32 additional_counter = num_texcoord_inputs;
+    uint32_t additional_counter = num_texcoord_inputs;
     for (const auto& [qualifiers, name] : additional_inputs)
     {
       const char* qualifier_to_use = (qualifiers && qualifiers[0] != '\0') ? qualifiers : qualifier;
@@ -542,7 +562,7 @@ void ShaderGen::DeclareFragmentEntryPoint(
         ss << ")\n";
     }
 
-    for (u32 i = 0; i < num_color_outputs; i++)
+    for (uint32_t i = 0; i < num_color_outputs; i++)
     {
       ss << "  out float4 o_col" << i << " : SV_Target" << i;
 
@@ -592,23 +612,6 @@ std::string ShaderGen::GenerateUVQuadVertexShader()
   return ss.str();
 }
 
-std::string ShaderGen::GenerateFillFragmentShader()
-{
-  std::stringstream ss;
-  WriteHeader(ss);
-  DeclareUniformBuffer(ss, {"float4 u_fill_color"}, true);
-  DeclareFragmentEntryPoint(ss, 0, 1, {}, false, 1, true);
-
-  ss << R"(
-{
-  o_col0 = u_fill_color;
-  o_depth = u_fill_color.a;
-}
-)";
-
-  return ss.str();
-}
-
 std::string ShaderGen::GenerateCopyFragmentShader()
 {
   std::stringstream ss;
@@ -621,22 +624,6 @@ std::string ShaderGen::GenerateCopyFragmentShader()
 {
   float2 coords = u_src_rect.xy + v_tex0 * u_src_rect.zw;
   o_col0 = SAMPLE_TEXTURE(samp0, coords);
-}
-)";
-
-  return ss.str();
-}
-
-std::string ShaderGen::GenerateSampleFragmentShader()
-{
-  std::stringstream ss;
-  WriteHeader(ss);
-  DeclareTexture(ss, "samp0", 0);
-  DeclareFragmentEntryPoint(ss, 0, 1, {}, false, 1);
-
-  ss << R"(
-{
-  o_col0 = SAMPLE_TEXTURE(samp0, v_tex0);
 }
 )";
 

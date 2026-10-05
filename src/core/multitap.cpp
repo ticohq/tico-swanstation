@@ -21,7 +21,7 @@ void Multitap::Reset()
   m_transfer_buffer.fill(0xFF);
 }
 
-void Multitap::SetEnable(bool enable, u32 base_index)
+void Multitap::SetEnable(bool enable, uint32_t base_index)
 {
   if (m_enabled != enable || m_base_index != base_index)
   {
@@ -55,7 +55,7 @@ void Multitap::ResetTransferState()
   // Controller and memory card transfer resets are handled in the Pad class
 }
 
-bool Multitap::TransferController(u32 slot, const u8 data_in, u8* data_out) const
+bool Multitap::TransferController(uint32_t slot, const uint8_t data_in, uint8_t* data_out) const
 {
   Controller* const selected_controller = g_pad.GetController(m_base_index + slot);
   if (!selected_controller)
@@ -67,7 +67,7 @@ bool Multitap::TransferController(u32 slot, const u8 data_in, u8* data_out) cons
   return selected_controller->Transfer(data_in, data_out);
 }
 
-bool Multitap::TransferMemoryCard(u32 slot, const u8 data_in, u8* data_out) const
+bool Multitap::TransferMemoryCard(uint32_t slot, const uint8_t data_in, uint8_t* data_out) const
 {
   MemoryCard* const selected_memcard = g_pad.GetMemoryCard(m_base_index + slot);
   if (!selected_memcard)
@@ -79,7 +79,7 @@ bool Multitap::TransferMemoryCard(u32 slot, const u8 data_in, u8* data_out) cons
   return selected_memcard->Transfer(data_in, data_out);
 }
 
-bool Multitap::Transfer(const u8 data_in, u8* data_out)
+bool Multitap::Transfer(const uint8_t data_in, uint8_t* data_out)
 {
   bool ack = false;
   switch (m_transfer_state)
@@ -116,8 +116,8 @@ bool Multitap::Transfer(const u8 data_in, u8* data_out)
             if (m_transfer_all_controllers)
             {
               // Send access byte to remaining controllers for this transfer mode
-              u8 dummy_value;
-              for (u32 i = 0; i < 4; i++)
+              uint8_t dummy_value;
+              for (uint32_t i = 0; i < 4; i++)
               {
                 if (i != m_selected_slot)
                   TransferController(i, 0x01, &dummy_value);

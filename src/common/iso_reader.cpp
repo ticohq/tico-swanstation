@@ -2,11 +2,12 @@
 #include "cd_image.h"
 #include "log.h"
 #include <cctype>
+#include <cstring>
 Log_SetChannel(ISOReader);
 
-static bool FilenamesEqual(const char* a, const char* b, u32 length)
+static bool FilenamesEqual(const char* a, const char* b, uint32_t length)
 {
-  u32 pos = 0;
+  uint32_t pos = 0;
   for (; pos < length && *a != '\0' && *b != '\0'; pos++)
   {
     if (std::tolower(*(a++)) != std::tolower(*(b++)))
@@ -20,7 +21,7 @@ ISOReader::ISOReader() = default;
 
 ISOReader::~ISOReader() = default;
 
-bool ISOReader::Open(CDImage* image, u32 track_number)
+bool ISOReader::Open(CDImage* image, uint32_t track_number)
 {
   m_image = image;
   m_track_number = track_number;
@@ -37,9 +38,9 @@ bool ISOReader::ReadPVD()
     return false;
 
   // try only a maximum of 256 volume descriptors
-  for (u32 i = 0; i < 256; i++)
+  for (uint32_t i = 0; i < 256; i++)
   {
-    u8 buffer[SECTOR_SIZE];
+    uint8_t buffer[SECTOR_SIZE];
     if (m_image->Read(CDImage::ReadMode::DataOnly, 1, buffer) != 1)
       return false;
 
@@ -59,7 +60,7 @@ bool ISOReader::ReadPVD()
 
 std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* path)
 {
-  u8 sector_buffer[SECTOR_SIZE];
+  uint8_t sector_buffer[SECTOR_SIZE];
 
   const ISODirectoryEntry* root_de = reinterpret_cast<const ISODirectoryEntry*>(m_pvd.root_directory_entry);
   if (*path == '\0' || std::strcmp(path, "/") == 0)
@@ -72,8 +73,8 @@ std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* pa
   return LocateFile(path, sector_buffer, root_de->location_le, root_de->length_le);
 }
 
-std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* path, u8* sector_buffer,
-                                                                  u32 directory_record_lba, u32 directory_record_size)
+std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* path, uint8_t* sector_buffer,
+                                                                  uint32_t directory_record_lba, uint32_t directory_record_size)
 {
   if (directory_record_size == 0)
   {
@@ -86,7 +87,7 @@ std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* pa
   while (*path_component_start == '/' || *path_component_start == '\\')
     path_component_start++;
 
-  u32 path_component_length = 0;
+  uint32_t path_component_length = 0;
   const char* path_component_end = path_component_start;
   while (*path_component_end != '\0' && *path_component_end != '/' && *path_component_end != '\\')
   {
@@ -95,14 +96,14 @@ std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* pa
   }
 
   // start reading directory entries
-  const u32 num_sectors = (directory_record_size + (SECTOR_SIZE - 1)) / SECTOR_SIZE;
+  const uint32_t num_sectors = (directory_record_size + (SECTOR_SIZE - 1)) / SECTOR_SIZE;
   if (!m_image->Seek(m_track_number, directory_record_lba))
   {
     Log_ErrorPrintf("Seek to LBA %u failed", directory_record_lba);
     return std::nullopt;
   }
 
-  for (u32 i = 0; i < num_sectors; i++)
+  for (uint32_t i = 0; i < num_sectors; i++)
   {
     if (m_image->Read(CDImage::ReadMode::DataOnly, 1, sector_buffer) != 1)
     {
@@ -110,7 +111,7 @@ std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* pa
       return std::nullopt;
     }
 
-    u32 sector_offset = 0;
+    uint32_t sector_offset = 0;
     while ((sector_offset + sizeof(ISODirectoryEntry)) < SECTOR_SIZE)
     {
       const ISODirectoryEntry* de = reinterpret_cast<const ISODirectoryEntry*>(&sector_buffer[sector_offset]);
@@ -170,95 +171,7 @@ std::optional<ISOReader::ISODirectoryEntry> ISOReader::LocateFile(const char* pa
   return std::nullopt;
 }
 
-std::vector<std::string> ISOReader::GetFilesInDirectory(const char* path)
-{
-  std::string base_path = path;
-  u32 directory_record_lba;
-  u32 directory_record_length;
-  if (base_path.empty())
-  {
-    // root directory
-    const ISODirectoryEntry* root_de = reinterpret_cast<const ISODirectoryEntry*>(m_pvd.root_directory_entry);
-    directory_record_lba = root_de->location_le;
-    directory_record_length = root_de->length_le;
-  }
-  else
-  {
-    auto directory_de = LocateFile(base_path.c_str());
-    if (!directory_de)
-    {
-      Log_ErrorPrintf("Directory entry not found for '%s'", path);
-      return {};
-    }
-
-    if ((directory_de->flags & ISODirectoryEntryFlag_Directory) == 0)
-    {
-      Log_ErrorPrintf("Path '%s' is not a directory, can't list", path);
-      return {};
-    }
-
-    directory_record_lba = directory_de->location_le;
-    directory_record_length = directory_de->length_le;
-
-    if (base_path[base_path.size() - 1] != '/')
-      base_path += '/';
-  }
-
-  // start reading directory entries
-  const u32 num_sectors = (directory_record_length + (SECTOR_SIZE - 1)) / SECTOR_SIZE;
-  if (!m_image->Seek(m_track_number, directory_record_lba))
-  {
-    Log_ErrorPrintf("Seek to LBA %u failed", directory_record_lba);
-    return {};
-  }
-
-  std::vector<std::string> files;
-  u8 sector_buffer[SECTOR_SIZE];
-  for (u32 i = 0; i < num_sectors; i++)
-  {
-    if (m_image->Read(CDImage::ReadMode::DataOnly, 1, sector_buffer) != 1)
-    {
-      Log_ErrorPrintf("Failed to read LBA %u", directory_record_lba + i);
-      break;
-    }
-
-    u32 sector_offset = 0;
-    while ((sector_offset + sizeof(ISODirectoryEntry)) < SECTOR_SIZE)
-    {
-      const ISODirectoryEntry* de = reinterpret_cast<const ISODirectoryEntry*>(&sector_buffer[sector_offset]);
-      const char* de_filename =
-        reinterpret_cast<const char*>(&sector_buffer[sector_offset + sizeof(ISODirectoryEntry)]);
-      if ((sector_offset + de->entry_length) > SECTOR_SIZE || de->filename_length > de->entry_length ||
-          de->entry_length < sizeof(ISODirectoryEntry))
-      {
-        break;
-      }
-
-      sector_offset += de->entry_length;
-
-      // skip current/parent directory
-      if (de->filename_length == 1 && (*de_filename == '\x0' || *de_filename == '\x1'))
-        continue;
-
-      // strip off terminator/file version
-      std::string filename(de_filename, de->filename_length);
-      std::string::size_type pos = filename.rfind(';');
-      if (pos == std::string::npos)
-      {
-        Log_ErrorPrintf("Invalid filename '%s'", filename.c_str());
-        continue;
-      }
-      filename.erase(pos);
-
-      if (!filename.empty())
-        files.push_back(base_path + filename);
-    }
-  }
-
-  return files;
-}
-
-bool ISOReader::ReadFile(const char* path, std::vector<u8>* data)
+bool ISOReader::ReadFile(const char* path, std::vector<uint8_t>* data)
 {
   auto de = LocateFile(path);
   if (!de)
@@ -281,8 +194,8 @@ bool ISOReader::ReadFile(const char* path, std::vector<u8>* data)
     return true;
   }
 
-  const u32 num_sectors = (de->length_le + (SECTOR_SIZE - 1)) / SECTOR_SIZE;
-  data->resize(num_sectors * u64(SECTOR_SIZE));
+  const uint32_t num_sectors = (de->length_le + (SECTOR_SIZE - 1)) / SECTOR_SIZE;
+  data->resize(num_sectors * uint64_t(SECTOR_SIZE));
   if (m_image->Read(CDImage::ReadMode::DataOnly, num_sectors, data->data()) != num_sectors)
     return false;
 

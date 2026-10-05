@@ -187,13 +187,13 @@ std::optional<VirtualMemoryAddress> GetLoadStoreEffectiveAddress(const Instructi
     case InstructionOp::sh:
     case InstructionOp::sw:
     case InstructionOp::swc2:
-      return (regs->r[static_cast<u32>(instruction.i.rs.GetValue())] + instruction.i.imm_sext32());
+      return (regs->r[static_cast<uint32_t>(instruction.i.rs.GetValue())] + instruction.i.imm_sext32());
 
     case InstructionOp::lwl:
     case InstructionOp::lwr:
     case InstructionOp::swl:
     case InstructionOp::swr:
-      return (regs->r[static_cast<u32>(instruction.i.rs.GetValue())] + instruction.i.imm_sext32()) & ~UINT32_C(3);
+      return (regs->r[static_cast<uint32_t>(instruction.i.rs.GetValue())] + instruction.i.imm_sext32()) & ~UINT32_C(3);
 
     default:
       return std::nullopt;

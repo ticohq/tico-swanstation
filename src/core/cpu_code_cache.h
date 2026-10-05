@@ -18,15 +18,15 @@ namespace CPU {
 
 union CodeBlockKey
 {
-  u32 bits;
+  uint32_t bits;
 
-  BitField<u32, bool, 0, 1> user_mode;
-  BitField<u32, u32, 2, 30> aligned_pc;
+  BitField<uint32_t, bool, 0, 1> user_mode;
+  BitField<uint32_t, uint32_t, 2, 30> aligned_pc;
 
-  ALWAYS_INLINE u32 GetPC() const { return aligned_pc << 2; }
-  ALWAYS_INLINE void SetPC(u32 pc) { aligned_pc = pc >> 2; }
+  ALWAYS_INLINE uint32_t GetPC() const { return aligned_pc << 2; }
+  ALWAYS_INLINE void SetPC(uint32_t pc) { aligned_pc = pc >> 2; }
 
-  ALWAYS_INLINE u32 GetPCPhysicalAddress() const { return (aligned_pc << 2) & PHYSICAL_MEMORY_ADDRESS_MASK; }
+  ALWAYS_INLINE uint32_t GetPCPhysicalAddress() const { return (aligned_pc << 2) & PHYSICAL_MEMORY_ADDRESS_MASK; }
 
   ALWAYS_INLINE CodeBlockKey() = default;
   ALWAYS_INLINE CodeBlockKey(const CodeBlockKey&) = default;
@@ -36,16 +36,12 @@ union CodeBlockKey
     bits = rhs.bits;
     return *this;
   }
-
-  ALWAYS_INLINE bool operator==(const CodeBlockKey& rhs) const { return bits == rhs.bits; }
-  ALWAYS_INLINE bool operator!=(const CodeBlockKey& rhs) const { return bits != rhs.bits; }
-  ALWAYS_INLINE bool operator<(const CodeBlockKey& rhs) const { return bits < rhs.bits; }
 };
 
 struct CodeBlockInstruction
 {
   Instruction instruction;
-  u32 pc;
+  uint32_t pc;
 
   bool is_branch_instruction : 1;
   bool is_direct_branch_instruction : 1;
@@ -53,10 +49,7 @@ struct CodeBlockInstruction
   bool is_branch_delay_slot : 1;
   bool is_load_instruction : 1;
   bool is_store_instruction : 1;
-  bool is_load_delay_slot : 1;
-  bool is_last_instruction : 1;
   bool has_load_delay : 1;
-  bool can_trap : 1;
 };
 
 struct CodeBlock
@@ -68,13 +61,13 @@ struct CodeBlock
     CodeBlock* block;
     void* host_pc;
     void* host_resolve_pc;
-    u32 host_pc_size;
+    uint32_t host_pc_size;
   };
 
   CodeBlock(const CodeBlockKey key_) : key(key_) {}
 
   CodeBlockKey key;
-  u32 host_code_size = 0;
+  uint32_t host_code_size = 0;
   HostCodePointer host_code = nullptr;
 
   std::vector<CodeBlockInstruction> instructions;
@@ -82,7 +75,7 @@ struct CodeBlock
   std::vector<LinkInfo> link_successors;
 
   TickCount uncached_fetch_ticks = 0;
-  u32 icache_line_count = 0;
+  uint32_t icache_line_count = 0;
 
 #ifdef WITH_RECOMPILER
   std::vector<Recompiler::LoadStoreBackpatchInfo> loadstore_backpatch_info;
@@ -93,14 +86,14 @@ struct CodeBlock
   bool invalidated = false;
   bool can_link = true;
 
-  u32 recompile_frame_number = 0;
-  u32 recompile_count = 0;
-  u32 invalidate_frame_number = 0;
+  uint32_t recompile_frame_number = 0;
+  uint32_t recompile_count = 0;
+  uint32_t invalidate_frame_number = 0;
 
-  u32 GetPC() const { return key.GetPC(); }
-  u32 GetSizeInBytes() const { return static_cast<u32>(instructions.size()) * sizeof(Instruction); }
-  u32 GetStartPageIndex() const { return (key.GetPCPhysicalAddress() / HOST_PAGE_SIZE); }
-  u32 GetEndPageIndex() const { return ((key.GetPCPhysicalAddress() + GetSizeInBytes()) / HOST_PAGE_SIZE); }
+  uint32_t GetPC() const { return key.GetPC(); }
+  uint32_t GetSizeInBytes() const { return static_cast<uint32_t>(instructions.size()) * sizeof(Instruction); }
+  uint32_t GetStartPageIndex() const { return (key.GetPCPhysicalAddress() / HOST_PAGE_SIZE); }
+  uint32_t GetEndPageIndex() const { return ((key.GetPCPhysicalAddress() + GetSizeInBytes()) / HOST_PAGE_SIZE); }
   bool IsInRAM() const
   {
     // TODO: Constant
@@ -110,7 +103,7 @@ struct CodeBlock
 
 namespace CodeCache {
 
-inline constexpr u32 FAST_MAP_TABLE_COUNT = 0x10000,
+inline constexpr uint32_t FAST_MAP_TABLE_COUNT = 0x10000,
                      FAST_MAP_TABLE_SIZE = 0x10000 / 4, // 16384
   FAST_MAP_TABLE_SHIFT = 16;
 
@@ -138,7 +131,7 @@ void Flush();
 void Reinitialize();
 
 /// Invalidates all blocks which are in the range of the specified code page.
-void InvalidateBlocksWithPageIndex(u32 page_index);
+void InvalidateBlocksWithPageIndex(uint32_t page_index);
 
 /// Invalidates all blocks in the cache.
 void InvalidateAll();
@@ -150,11 +143,11 @@ template<PGXPMode pgxp_mode>
 void InterpretUncachedBlock();
 
 /// Invalidates any code pages which overlap the specified range.
-ALWAYS_INLINE void InvalidateCodePages(PhysicalMemoryAddress address, u32 word_count)
+ALWAYS_INLINE void InvalidateCodePages(PhysicalMemoryAddress address, uint32_t word_count)
 {
-  const u32 start_page = address / HOST_PAGE_SIZE;
-  const u32 end_page = (address + word_count * sizeof(u32) - sizeof(u32)) / HOST_PAGE_SIZE;
-  for (u32 page = start_page; page <= end_page; page++)
+  const uint32_t start_page = address / HOST_PAGE_SIZE;
+  const uint32_t end_page = (address + word_count * sizeof(uint32_t) - sizeof(uint32_t)) / HOST_PAGE_SIZE;
+  for (uint32_t page = start_page; page <= end_page; page++)
   {
     if (Bus::m_ram_code_bits[page])
       CPU::CodeCache::InvalidateBlocksWithPageIndex(page);

@@ -11,9 +11,6 @@
 template<typename BackingDataType, typename DataType, unsigned BitIndex, unsigned BitCount>
 struct BitField
 {
-  // We have to delete the copy assignment operator otherwise we can't use this class in anonymous structs/unions.
-  BitField& operator=(const BitField& rhs) = delete;
-
   ALWAYS_INLINE constexpr BackingDataType GetMask() const
   {
     return ((static_cast<BackingDataType>(~0)) >> (8 * sizeof(BackingDataType) - BitCount)) << BitIndex;
@@ -27,34 +24,6 @@ struct BitField
     return *this;
   }
 
-  ALWAYS_INLINE constexpr DataType operator++()
-  {
-    DataType value = GetValue() + 1;
-    SetValue(value);
-    return GetValue();
-  }
-
-  ALWAYS_INLINE constexpr DataType operator++(int)
-  {
-    DataType value = GetValue();
-    SetValue(value + 1);
-    return value;
-  }
-
-  ALWAYS_INLINE constexpr DataType operator--()
-  {
-    DataType value = GetValue() - 1;
-    SetValue(value);
-    return GetValue();
-  }
-
-  ALWAYS_INLINE constexpr DataType operator--(int)
-  {
-    DataType value = GetValue();
-    SetValue(value - 1);
-    return value;
-  }
-
   ALWAYS_INLINE constexpr BitField& operator+=(DataType rhs)
   {
     SetValue(GetValue() + rhs);
@@ -64,12 +33,6 @@ struct BitField
   ALWAYS_INLINE constexpr BitField& operator-=(DataType rhs)
   {
     SetValue(GetValue() - rhs);
-    return *this;
-  }
-
-  ALWAYS_INLINE constexpr BitField& operator*=(DataType rhs)
-  {
-    SetValue(GetValue() * rhs);
     return *this;
   }
 
@@ -103,12 +66,6 @@ struct BitField
     return *this;
   }
 
-  ALWAYS_INLINE constexpr BitField& operator>>=(DataType rhs)
-  {
-    SetValue(GetValue() >> rhs);
-    return *this;
-  }
-
   ALWAYS_INLINE constexpr DataType GetValue() const
   {
     if constexpr (std::is_same_v<DataType, bool>)
@@ -117,8 +74,15 @@ struct BitField
     }
     else if constexpr (std::is_signed_v<DataType>)
     {
+      // Sign-extend the BitCount-wide field to a full DataType. Shift left
+      // to put bit (BitCount-1) at the sign-bit position of DataType, then
+      // arithmetic-shift right to replicate the sign bit. The left shift
+      // is performed in the unsigned domain to avoid C++<20 UB on signed
+      // left shifts of values whose product would not fit in DataType
+      // (well-defined since C++20).
+      using UnsignedT = std::make_unsigned_t<DataType>;
       constexpr int shift = 8 * sizeof(DataType) - BitCount;
-      return (static_cast<DataType>(data >> BitIndex) << shift) >> shift;
+      return static_cast<DataType>(static_cast<UnsignedT>(data >> BitIndex) << shift) >> shift;
     }
     else
     {

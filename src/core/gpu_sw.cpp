@@ -5,7 +5,7 @@
 #include "host_display.h"
 #include "system.h"
 #include <algorithm>
-
+#include <cstring>
 #if defined(CPU_X64)
 #include <emmintrin.h>
 #elif defined(CPU_AARCH64)
@@ -35,11 +35,6 @@ GPU_SW::~GPU_SW()
   m_backend.Shutdown();
   if (m_host_display)
     m_host_display->ClearDisplayTexture();
-}
-
-GPURenderer GPU_SW::GetRendererType() const
-{
-  return GPURenderer::Software;
 }
 
 bool GPU_SW::Initialize(HostDisplay* host_display)
@@ -92,64 +87,64 @@ void GPU_SW::UpdateSettings()
 }
 
 template<HostDisplayPixelFormat out_format, typename out_type>
-static void CopyOutRow16(const u16* src_ptr, out_type* dst_ptr, u32 width);
+static void CopyOutRow16(const uint16_t* src_ptr, out_type* dst_ptr, uint32_t width);
 
 template<HostDisplayPixelFormat out_format, typename out_type>
-static out_type VRAM16ToOutput(u16 value);
+static out_type VRAM16ToOutput(uint16_t value);
 
 template<>
-ALWAYS_INLINE u16 VRAM16ToOutput<HostDisplayPixelFormat::RGBA5551, u16>(u16 value)
+ALWAYS_INLINE uint16_t VRAM16ToOutput<HostDisplayPixelFormat::RGBA5551, uint16_t>(uint16_t value)
 {
   return (value & 0x3E0) | ((value >> 10) & 0x1F) | ((value & 0x1F) << 10);
 }
 
 template<>
-ALWAYS_INLINE u16 VRAM16ToOutput<HostDisplayPixelFormat::RGB565, u16>(u16 value)
+ALWAYS_INLINE uint16_t VRAM16ToOutput<HostDisplayPixelFormat::RGB565, uint16_t>(uint16_t value)
 {
   return ((value & 0x3E0) << 1) | ((value & 0x20) << 1) | ((value >> 10) & 0x1F) | ((value & 0x1F) << 11);
 }
 
 template<>
-ALWAYS_INLINE u32 VRAM16ToOutput<HostDisplayPixelFormat::RGBA8, u32>(u16 value)
+ALWAYS_INLINE uint32_t VRAM16ToOutput<HostDisplayPixelFormat::RGBA8, uint32_t>(uint16_t value)
 {
-  const u32 value32 = ZeroExtend32(value);
-  const u32 r = (value32 & 31u) << 3;
-  const u32 g = ((value32 >> 5) & 31u) << 3;
-  const u32 b = ((value32 >> 10) & 31u) << 3;
-  const u32 a = ((value >> 15) != 0) ? 255 : 0;
-  return ZeroExtend32(r) | (ZeroExtend32(g) << 8) | (ZeroExtend32(b) << 16) | (ZeroExtend32(a) << 24);
+  const uint32_t value32 = static_cast<uint32_t>(value);
+  const uint32_t r = (value32 & 31u) << 3;
+  const uint32_t g = ((value32 >> 5) & 31u) << 3;
+  const uint32_t b = ((value32 >> 10) & 31u) << 3;
+  const uint32_t a = ((value >> 15) != 0) ? 255 : 0;
+  return static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b) << 16) | (static_cast<uint32_t>(a) << 24);
 }
 
 template<>
-ALWAYS_INLINE u32 VRAM16ToOutput<HostDisplayPixelFormat::BGRA8, u32>(u16 value)
+ALWAYS_INLINE uint32_t VRAM16ToOutput<HostDisplayPixelFormat::BGRA8, uint32_t>(uint16_t value)
 {
-  const u32 value32 = ZeroExtend32(value);
-  const u32 r = (value32 & 31u) << 3;
-  const u32 g = ((value32 >> 5) & 31u) << 3;
-  const u32 b = ((value32 >> 10) & 31u) << 3;
-  return ZeroExtend32(b) | (ZeroExtend32(g) << 8) | (ZeroExtend32(r) << 16) | (0xFF000000u);
+  const uint32_t value32 = static_cast<uint32_t>(value);
+  const uint32_t r = (value32 & 31u) << 3;
+  const uint32_t g = ((value32 >> 5) & 31u) << 3;
+  const uint32_t b = ((value32 >> 10) & 31u) << 3;
+  return static_cast<uint32_t>(b) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(r) << 16) | (0xFF000000u);
 }
 
 #if defined(CPU_X64) || defined(CPU_AARCH64)
-static u32 AlignDownPow2(u32 value, unsigned int alignment)
+static uint32_t AlignDownPow2(uint32_t value, unsigned int alignment)
 {
   return value & (~(alignment - 1));
 }
 #endif
 
 template<>
-ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGBA5551, u16>(const u16* src_ptr, u16* dst_ptr, u32 width)
+ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGBA5551, uint16_t>(const uint16_t* src_ptr, uint16_t* dst_ptr, uint32_t width)
 {
-  u32 col = 0;
+  uint32_t col = 0;
 
 #if defined(CPU_X64)
-  const u32 aligned_width = AlignDownPow2(width, 8);
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
   for (; col < aligned_width; col += 8)
   {
     const __m128i single_mask = _mm_set1_epi16(0x1F);
     __m128i value = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_ptr));
     src_ptr += 8;
-    __m128i a = _mm_and_si128(value, _mm_set1_epi16(static_cast<s16>(static_cast<u16>(0x3E0))));
+    __m128i a = _mm_and_si128(value, _mm_set1_epi16(static_cast<int16_t>(0x3E0)));
     __m128i b = _mm_and_si128(_mm_srli_epi16(value, 10), single_mask);
     __m128i c = _mm_slli_epi16(_mm_and_si128(value, single_mask), 10);
     value = _mm_or_si128(_mm_or_si128(a, b), c);
@@ -157,7 +152,7 @@ ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGBA5551, u16>(const u16
     dst_ptr += 8;
   }
 #elif defined(CPU_AARCH64)
-  const u32 aligned_width = AlignDownPow2(width, 8);
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
   for (; col < aligned_width; col += 8)
   {
     const uint16x8_t single_mask = vdupq_n_u16(0x1F);
@@ -173,23 +168,23 @@ ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGBA5551, u16>(const u16
 #endif
 
   for (; col < width; col++)
-    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::RGBA5551, u16>(*(src_ptr++));
+    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::RGBA5551, uint16_t>(*(src_ptr++));
 }
 
 template<>
-ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGB565, u16>(const u16* src_ptr, u16* dst_ptr, u32 width)
+ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGB565, uint16_t>(const uint16_t* src_ptr, uint16_t* dst_ptr, uint32_t width)
 {
-  u32 col = 0;
+  uint32_t col = 0;
 
 #if defined(CPU_X64)
-  const u32 aligned_width = AlignDownPow2(width, 8);
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
   for (; col < aligned_width; col += 8)
   {
     const __m128i single_mask = _mm_set1_epi16(0x1F);
     __m128i value = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_ptr));
     src_ptr += 8;
-    __m128i a = _mm_slli_epi16(_mm_and_si128(value, _mm_set1_epi16(static_cast<s16>(static_cast<u16>(0x3E0)))), 1);
-    __m128i b = _mm_slli_epi16(_mm_and_si128(value, _mm_set1_epi16(static_cast<s16>(static_cast<u16>(0x20)))), 1);
+    __m128i a = _mm_slli_epi16(_mm_and_si128(value, _mm_set1_epi16(static_cast<int16_t>(0x3E0))), 1);
+    __m128i b = _mm_slli_epi16(_mm_and_si128(value, _mm_set1_epi16(static_cast<int16_t>(0x20))), 1);
     __m128i c = _mm_and_si128(_mm_srli_epi16(value, 10), single_mask);
     __m128i d = _mm_slli_epi16(_mm_and_si128(value, single_mask), 11);
     value = _mm_or_si128(_mm_or_si128(_mm_or_si128(a, b), c), d);
@@ -197,7 +192,7 @@ ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGB565, u16>(const u16* 
     dst_ptr += 8;
   }
 #elif defined(CPU_AARCH64)
-  const u32 aligned_width = AlignDownPow2(width, 8);
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
   const uint16x8_t single_mask = vdupq_n_u16(0x1F);
   for (; col < aligned_width; col += 8)
   {
@@ -214,31 +209,122 @@ ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGB565, u16>(const u16* 
 #endif
 
   for (; col < width; col++)
-    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::RGB565, u16>(*(src_ptr++));
+    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::RGB565, uint16_t>(*(src_ptr++));
 }
 
 template<>
-ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGBA8, u32>(const u16* src_ptr, u32* dst_ptr, u32 width)
+ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::RGBA8, uint32_t>(const uint16_t* src_ptr, uint32_t* dst_ptr, uint32_t width)
 {
-  for (u32 col = 0; col < width; col++)
-    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::RGBA8, u32>(*(src_ptr++));
+  uint32_t col = 0;
+
+#if defined(CPU_X64)
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
+  const __m128i single_mask = _mm_set1_epi16(0x1F);
+  for (; col < aligned_width; col += 8)
+  {
+    __m128i value = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_ptr));
+    src_ptr += 8;
+    /* Extract 5-bit channels, then scale to 8 bits. */
+    __m128i r8 = _mm_slli_epi16(_mm_and_si128(value, single_mask), 3);
+    __m128i g8 = _mm_slli_epi16(_mm_and_si128(_mm_srli_epi16(value,  5), single_mask), 3);
+    __m128i b8 = _mm_slli_epi16(_mm_and_si128(_mm_srli_epi16(value, 10), single_mask), 3);
+    /* Alpha: bit 15 expanded.  Arithmetic right shift by 15 fills the
+     * lane with 0xFFFF when the STP bit was set and 0x0000 otherwise;
+     * left-shifting by 8 leaves 0xFF (or 0x00) in the high byte where
+     * the alpha channel needs to land after the unpack. */
+    __m128i a_hi = _mm_slli_epi16(_mm_srai_epi16(value, 15), 8);
+    /* Pack into pairs of u16 lanes that, after interleaving, form the
+     * 32-bit RGBA pixel in little-endian byte order R|G|B|A. */
+    __m128i rg = _mm_or_si128(r8, _mm_slli_epi16(g8, 8));
+    __m128i ba = _mm_or_si128(b8, a_hi);
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst_ptr),     _mm_unpacklo_epi16(rg, ba));
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst_ptr + 4), _mm_unpackhi_epi16(rg, ba));
+    dst_ptr += 8;
+  }
+#elif defined(CPU_AARCH64)
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
+  const uint16x8_t single_mask = vdupq_n_u16(0x1F);
+  for (; col < aligned_width; col += 8)
+  {
+    uint16x8_t value = vld1q_u16(src_ptr);
+    src_ptr += 8;
+    uint16x8_t r8 = vshlq_n_u16(vandq_u16(value, single_mask), 3);
+    uint16x8_t g8 = vshlq_n_u16(vandq_u16(vshrq_n_u16(value,  5), single_mask), 3);
+    uint16x8_t b8 = vshlq_n_u16(vandq_u16(vshrq_n_u16(value, 10), single_mask), 3);
+    /* Arithmetic >> 15 on the signed reinterpretation gives -1 (0xFFFF)
+     * or 0 per lane based on the STP bit; << 8 leaves 0xFF or 0 in the
+     * high byte. */
+    uint16x8_t a_hi = vshlq_n_u16(vreinterpretq_u16_s16(vshrq_n_s16(vreinterpretq_s16_u16(value), 15)), 8);
+    uint16x8x2_t pair;
+    pair.val[0] = vorrq_u16(r8, vshlq_n_u16(g8, 8));   // R|G in u16 lanes
+    pair.val[1] = vorrq_u16(b8, a_hi);                  // B|A in u16 lanes
+    /* vst2q stores .val[0][i] then .val[1][i] for each lane,
+     * producing the little-endian R|G|B|A layout when read as u32. */
+    vst2q_u16(reinterpret_cast<uint16_t*>(dst_ptr), pair);
+    dst_ptr += 8;
+  }
+#endif
+
+  for (; col < width; col++)
+    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::RGBA8, uint32_t>(*(src_ptr++));
 }
 
 template<>
-ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::BGRA8, u32>(const u16* src_ptr, u32* dst_ptr, u32 width)
+ALWAYS_INLINE void CopyOutRow16<HostDisplayPixelFormat::BGRA8, uint32_t>(const uint16_t* src_ptr, uint32_t* dst_ptr, uint32_t width)
 {
-  for (u32 col = 0; col < width; col++)
-    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::BGRA8, u32>(*(src_ptr++));
+  uint32_t col = 0;
+
+#if defined(CPU_X64)
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
+  const __m128i single_mask = _mm_set1_epi16(0x1F);
+  /* BGRA8 always emits 0xFF in the alpha channel regardless of the
+   * source STP bit; keep that as a constant high byte. */
+  const __m128i alpha_hi = _mm_set1_epi16(static_cast<int16_t>(0xFF00));
+  for (; col < aligned_width; col += 8)
+  {
+    __m128i value = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_ptr));
+    src_ptr += 8;
+    __m128i r8 = _mm_slli_epi16(_mm_and_si128(value, single_mask), 3);
+    __m128i g8 = _mm_slli_epi16(_mm_and_si128(_mm_srli_epi16(value,  5), single_mask), 3);
+    __m128i b8 = _mm_slli_epi16(_mm_and_si128(_mm_srli_epi16(value, 10), single_mask), 3);
+    /* Pack pairs so the unpack interleaves them into B|G|R|A bytes. */
+    __m128i bg = _mm_or_si128(b8, _mm_slli_epi16(g8, 8));
+    __m128i ra = _mm_or_si128(r8, alpha_hi);
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst_ptr),     _mm_unpacklo_epi16(bg, ra));
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst_ptr + 4), _mm_unpackhi_epi16(bg, ra));
+    dst_ptr += 8;
+  }
+#elif defined(CPU_AARCH64)
+  const uint32_t aligned_width = AlignDownPow2(width, 8);
+  const uint16x8_t single_mask = vdupq_n_u16(0x1F);
+  const uint16x8_t alpha_hi    = vdupq_n_u16(0xFF00);
+  for (; col < aligned_width; col += 8)
+  {
+    uint16x8_t value = vld1q_u16(src_ptr);
+    src_ptr += 8;
+    uint16x8_t r8 = vshlq_n_u16(vandq_u16(value, single_mask), 3);
+    uint16x8_t g8 = vshlq_n_u16(vandq_u16(vshrq_n_u16(value,  5), single_mask), 3);
+    uint16x8_t b8 = vshlq_n_u16(vandq_u16(vshrq_n_u16(value, 10), single_mask), 3);
+    uint16x8x2_t pair;
+    pair.val[0] = vorrq_u16(b8, vshlq_n_u16(g8, 8));   // B|G in u16 lanes
+    pair.val[1] = vorrq_u16(r8, alpha_hi);              // R|A (A=0xFF) in u16 lanes
+    vst2q_u16(reinterpret_cast<uint16_t*>(dst_ptr), pair);
+    dst_ptr += 8;
+  }
+#endif
+
+  for (; col < width; col++)
+    *(dst_ptr++) = VRAM16ToOutput<HostDisplayPixelFormat::BGRA8, uint32_t>(*(src_ptr++));
 }
 
 template<HostDisplayPixelFormat display_format>
-void GPU_SW::CopyOut15Bit(u32 src_x, u32 src_y, u32 width, u32 height, u32 field, bool interlaced, bool interleaved)
+void GPU_SW::CopyOut15Bit(uint32_t src_x, uint32_t src_y, uint32_t width, uint32_t height, uint32_t field, bool interlaced, bool interleaved)
 {
-  u8* dst_ptr;
-  u32 dst_stride;
+  uint8_t* dst_ptr;
+  uint32_t dst_stride;
 
   using OutputPixelType = std::conditional_t<
-    display_format == HostDisplayPixelFormat::RGBA8 || display_format == HostDisplayPixelFormat::BGRA8, u32, u16>;
+    display_format == HostDisplayPixelFormat::RGBA8 || display_format == HostDisplayPixelFormat::BGRA8, uint32_t, uint16_t>;
 
   if (!interlaced)
   {
@@ -254,19 +340,19 @@ void GPU_SW::CopyOut15Bit(u32 src_x, u32 src_y, u32 width, u32 height, u32 field
     dst_ptr = m_display_texture_buffer.data() + (field != 0 ? dst_stride : 0);
   }
 
-  const u32 output_stride = dst_stride;
-  const u8 interlaced_shift = BoolToUInt8(interlaced);
-  const u8 interleaved_shift = BoolToUInt8(interleaved);
+  const uint32_t output_stride = dst_stride;
+  const uint8_t interlaced_shift = static_cast<uint8_t>(interlaced);
+  const uint8_t interleaved_shift = static_cast<uint8_t>(interleaved);
 
   // Fast path when not wrapping around.
   if ((src_x + width) <= VRAM_WIDTH && (src_y + height) <= VRAM_HEIGHT)
   {
-    const u32 rows = height >> interlaced_shift;
+    const uint32_t rows = height >> interlaced_shift;
     dst_stride <<= interlaced_shift;
 
-    const u16* src_ptr = &m_vram_ptr[src_y * VRAM_WIDTH + src_x];
-    const u32 src_step = VRAM_WIDTH << interleaved_shift;
-    for (u32 row = 0; row < rows; row++)
+    const uint16_t* src_ptr = &m_vram_ptr[src_y * VRAM_WIDTH + src_x];
+    const uint32_t src_step = VRAM_WIDTH << interleaved_shift;
+    for (uint32_t row = 0; row < rows; row++)
     {
       CopyOutRow16<display_format>(src_ptr, reinterpret_cast<OutputPixelType*>(dst_ptr), width);
       src_ptr += src_step;
@@ -275,16 +361,16 @@ void GPU_SW::CopyOut15Bit(u32 src_x, u32 src_y, u32 width, u32 height, u32 field
   }
   else
   {
-    const u32 rows = height >> interlaced_shift;
+    const uint32_t rows = height >> interlaced_shift;
     dst_stride <<= interlaced_shift;
 
-    const u32 end_x = src_x + width;
-    for (u32 row = 0; row < rows; row++)
+    const uint32_t end_x = src_x + width;
+    for (uint32_t row = 0; row < rows; row++)
     {
-      const u16* src_row_ptr = &m_vram_ptr[(src_y % VRAM_HEIGHT) * VRAM_WIDTH];
+      const uint16_t* src_row_ptr = &m_vram_ptr[(src_y % VRAM_HEIGHT) * VRAM_WIDTH];
       OutputPixelType* dst_row_ptr = reinterpret_cast<OutputPixelType*>(dst_ptr);
 
-      for (u32 col = src_x; col < end_x; col++)
+      for (uint32_t col = src_x; col < end_x; col++)
         *(dst_row_ptr++) = VRAM16ToOutput<display_format, OutputPixelType>(src_row_ptr[col % VRAM_WIDTH]);
 
       src_y += (1 << interleaved_shift);
@@ -302,7 +388,7 @@ void GPU_SW::CopyOut15Bit(u32 src_x, u32 src_y, u32 width, u32 height, u32 field
   }
 }
 
-void GPU_SW::CopyOut15Bit(HostDisplayPixelFormat display_format, u32 src_x, u32 src_y, u32 width, u32 height, u32 field,
+void GPU_SW::CopyOut15Bit(HostDisplayPixelFormat display_format, uint32_t src_x, uint32_t src_y, uint32_t width, uint32_t height, uint32_t field,
                           bool interlaced, bool interleaved)
 {
   switch (display_format)
@@ -325,14 +411,14 @@ void GPU_SW::CopyOut15Bit(HostDisplayPixelFormat display_format, u32 src_x, u32 
 }
 
 template<HostDisplayPixelFormat display_format>
-void GPU_SW::CopyOut24Bit(u32 src_x, u32 src_y, u32 skip_x, u32 width, u32 height, u32 field, bool interlaced,
+void GPU_SW::CopyOut24Bit(uint32_t src_x, uint32_t src_y, uint32_t skip_x, uint32_t width, uint32_t height, uint32_t field, bool interlaced,
                           bool interleaved)
 {
-  u8* dst_ptr;
-  u32 dst_stride;
+  uint8_t* dst_ptr;
+  uint32_t dst_stride;
 
   using OutputPixelType = std::conditional_t<
-    display_format == HostDisplayPixelFormat::RGBA8 || display_format == HostDisplayPixelFormat::BGRA8, u32, u16>;
+    display_format == HostDisplayPixelFormat::RGBA8 || display_format == HostDisplayPixelFormat::BGRA8, uint32_t, uint16_t>;
 
   if (!interlaced)
   {
@@ -342,27 +428,27 @@ void GPU_SW::CopyOut24Bit(u32 src_x, u32 src_y, u32 skip_x, u32 width, u32 heigh
   }
   else
   {
-    dst_stride = Common::AlignUpPow2<u32>(width * sizeof(OutputPixelType), 4);
+    dst_stride = Common::AlignUpPow2<uint32_t>(width * sizeof(OutputPixelType), 4);
     dst_ptr = m_display_texture_buffer.data() + (field != 0 ? dst_stride : 0);
   }
 
-  const u32 output_stride = dst_stride;
-  const u8 interlaced_shift = BoolToUInt8(interlaced);
-  const u8 interleaved_shift = BoolToUInt8(interleaved);
-  const u32 rows = height >> interlaced_shift;
+  const uint32_t output_stride = dst_stride;
+  const uint8_t interlaced_shift = static_cast<uint8_t>(interlaced);
+  const uint8_t interleaved_shift = static_cast<uint8_t>(interleaved);
+  const uint32_t rows = height >> interlaced_shift;
   dst_stride <<= interlaced_shift;
 
   if ((src_x + width) <= VRAM_WIDTH && (src_y + (rows << interleaved_shift)) <= VRAM_HEIGHT)
   {
-    const u8* src_ptr = reinterpret_cast<const u8*>(&m_vram_ptr[src_y * VRAM_WIDTH + src_x]) + (skip_x * 3);
-    const u32 src_stride = (VRAM_WIDTH << interleaved_shift) * sizeof(u16);
-    for (u32 row = 0; row < rows; row++)
+    const uint8_t* src_ptr = reinterpret_cast<const uint8_t*>(&m_vram_ptr[src_y * VRAM_WIDTH + src_x]) + (skip_x * 3);
+    const uint32_t src_stride = (VRAM_WIDTH << interleaved_shift) * sizeof(uint16_t);
+    for (uint32_t row = 0; row < rows; row++)
     {
       if constexpr (display_format == HostDisplayPixelFormat::RGBA8)
       {
-        const u8* src_row_ptr = src_ptr;
-        u8* dst_row_ptr = reinterpret_cast<u8*>(dst_ptr);
-        for (u32 col = 0; col < width; col++)
+        const uint8_t* src_row_ptr = src_ptr;
+        uint8_t* dst_row_ptr = reinterpret_cast<uint8_t*>(dst_ptr);
+        for (uint32_t col = 0; col < width; col++)
         {
           *(dst_row_ptr++) = *(src_row_ptr++);
           *(dst_row_ptr++) = *(src_row_ptr++);
@@ -372,9 +458,9 @@ void GPU_SW::CopyOut24Bit(u32 src_x, u32 src_y, u32 skip_x, u32 width, u32 heigh
       }
       else if constexpr (display_format == HostDisplayPixelFormat::BGRA8)
       {
-        const u8* src_row_ptr = src_ptr;
-        u8* dst_row_ptr = reinterpret_cast<u8*>(dst_ptr);
-        for (u32 col = 0; col < width; col++)
+        const uint8_t* src_row_ptr = src_ptr;
+        uint8_t* dst_row_ptr = reinterpret_cast<uint8_t*>(dst_ptr);
+        for (uint32_t col = 0; col < width; col++)
         {
           *(dst_row_ptr++) = src_row_ptr[2];
           *(dst_row_ptr++) = src_row_ptr[1];
@@ -385,23 +471,23 @@ void GPU_SW::CopyOut24Bit(u32 src_x, u32 src_y, u32 skip_x, u32 width, u32 heigh
       }
       else if constexpr (display_format == HostDisplayPixelFormat::RGB565)
       {
-        const u8* src_row_ptr = src_ptr;
-        u16* dst_row_ptr = reinterpret_cast<u16*>(dst_ptr);
-        for (u32 col = 0; col < width; col++)
+        const uint8_t* src_row_ptr = src_ptr;
+        uint16_t* dst_row_ptr = reinterpret_cast<uint16_t*>(dst_ptr);
+        for (uint32_t col = 0; col < width; col++)
         {
-          *(dst_row_ptr++) = ((static_cast<u16>(src_row_ptr[0]) >> 3) << 11) |
-                             ((static_cast<u16>(src_row_ptr[1]) >> 2) << 5) | (static_cast<u16>(src_row_ptr[2]) >> 3);
+          *(dst_row_ptr++) = ((static_cast<uint16_t>(src_row_ptr[0]) >> 3) << 11) |
+                             ((static_cast<uint16_t>(src_row_ptr[1]) >> 2) << 5) | (static_cast<uint16_t>(src_row_ptr[2]) >> 3);
           src_row_ptr += 3;
         }
       }
       else if constexpr (display_format == HostDisplayPixelFormat::RGBA5551)
       {
-        const u8* src_row_ptr = src_ptr;
-        u16* dst_row_ptr = reinterpret_cast<u16*>(dst_ptr);
-        for (u32 col = 0; col < width; col++)
+        const uint8_t* src_row_ptr = src_ptr;
+        uint16_t* dst_row_ptr = reinterpret_cast<uint16_t*>(dst_ptr);
+        for (uint32_t col = 0; col < width; col++)
         {
-          *(dst_row_ptr++) = ((static_cast<u16>(src_row_ptr[0]) >> 3) << 10) |
-                             ((static_cast<u16>(src_row_ptr[1]) >> 3) << 5) | (static_cast<u16>(src_row_ptr[2]) >> 3);
+          *(dst_row_ptr++) = ((static_cast<uint16_t>(src_row_ptr[0]) >> 3) << 10) |
+                             ((static_cast<uint16_t>(src_row_ptr[1]) >> 3) << 5) | (static_cast<uint16_t>(src_row_ptr[2]) >> 3);
           src_row_ptr += 3;
         }
       }
@@ -412,18 +498,18 @@ void GPU_SW::CopyOut24Bit(u32 src_x, u32 src_y, u32 skip_x, u32 width, u32 heigh
   }
   else
   {
-    for (u32 row = 0; row < rows; row++)
+    for (uint32_t row = 0; row < rows; row++)
     {
-      const u16* src_row_ptr = &m_vram_ptr[(src_y % VRAM_HEIGHT) * VRAM_WIDTH];
+      const uint16_t* src_row_ptr = &m_vram_ptr[(src_y % VRAM_HEIGHT) * VRAM_WIDTH];
       OutputPixelType* dst_row_ptr = reinterpret_cast<OutputPixelType*>(dst_ptr);
 
-      for (u32 col = 0; col < width; col++)
+      for (uint32_t col = 0; col < width; col++)
       {
-        const u32 offset = (src_x + (((skip_x + col) * 3) / 2));
-        const u16 s0 = src_row_ptr[offset % VRAM_WIDTH];
-        const u16 s1 = src_row_ptr[(offset + 1) % VRAM_WIDTH];
-        const u8 shift = static_cast<u8>(col & 1u) * 8;
-        const u32 rgb = (((ZeroExtend32(s1) << 16) | ZeroExtend32(s0)) >> shift);
+        const uint32_t offset = (src_x + (((skip_x + col) * 3) / 2));
+        const uint16_t s0 = src_row_ptr[offset % VRAM_WIDTH];
+        const uint16_t s1 = src_row_ptr[(offset + 1) % VRAM_WIDTH];
+        const uint8_t shift = static_cast<uint8_t>(col & 1u) * 8;
+        const uint32_t rgb = (((static_cast<uint32_t>(s1) << 16) | static_cast<uint32_t>(s0)) >> shift);
 
         if constexpr (display_format == HostDisplayPixelFormat::RGBA8)
         {
@@ -458,8 +544,8 @@ void GPU_SW::CopyOut24Bit(u32 src_x, u32 src_y, u32 skip_x, u32 width, u32 heigh
   }
 }
 
-void GPU_SW::CopyOut24Bit(HostDisplayPixelFormat display_format, u32 src_x, u32 src_y, u32 skip_x, u32 width,
-                          u32 height, u32 field, bool interlaced, bool interleaved)
+void GPU_SW::CopyOut24Bit(HostDisplayPixelFormat display_format, uint32_t src_x, uint32_t src_y, uint32_t skip_x, uint32_t width,
+                          uint32_t height, uint32_t field, bool interlaced, bool interleaved)
 {
   switch (display_format)
   {
@@ -503,13 +589,13 @@ void GPU_SW::UpdateDisplay()
       return;
     }
 
-    const u32 vram_offset_y = m_crtc_state.display_vram_top;
-    const u32 display_width = m_crtc_state.display_vram_width;
-    const u32 display_height = m_crtc_state.display_vram_height;
+    const uint32_t vram_offset_y = m_crtc_state.display_vram_top;
+    const uint32_t display_width = m_crtc_state.display_vram_width;
+    const uint32_t display_height = m_crtc_state.display_vram_height;
 
     if (IsInterlacedDisplayEnabled())
     {
-      const u32 field = GetInterlacedDisplayField();
+      const uint32_t field = GetInterlacedDisplayField();
       if (m_GPUSTAT.display_area_color_depth_24)
       {
         CopyOut24Bit(m_24bit_display_format, m_crtc_state.regs.X, vram_offset_y + field,
@@ -573,22 +659,22 @@ void GPU_SW::DispatchRenderCommand()
   {
     case GPUPrimitive::Polygon:
     {
-      const u32 num_vertices = rc.quad_polygon ? 4 : 3;
+      const uint32_t num_vertices = rc.quad_polygon ? 4 : 3;
       GPUBackendDrawPolygonCommand* cmd = m_backend.NewDrawPolygonCommand(num_vertices);
       FillDrawCommand(cmd, rc);
 
-      const u32 first_color = rc.color_for_first_vertex;
+      const uint32_t first_color = rc.color_for_first_vertex;
       const bool shaded = rc.shading_enable;
       const bool textured = rc.texture_enable;
-      for (u32 i = 0; i < num_vertices; i++)
+      for (uint32_t i = 0; i < num_vertices; i++)
       {
         GPUBackendDrawPolygonCommand::Vertex* vert = &cmd->vertices[i];
         vert->color = (shaded && i > 0) ? (FifoPop() & UINT32_C(0x00FFFFFF)) : first_color;
-        const u64 maddr_and_pos = m_fifo.Pop();
-        const GPUVertexPosition vp{Truncate32(maddr_and_pos)};
+        const uint64_t maddr_and_pos = m_fifo.Pop();
+        const GPUVertexPosition vp{static_cast<uint32_t>(maddr_and_pos)};
         vert->x = m_drawing_offset.x + vp.x;
         vert->y = m_drawing_offset.y + vp.y;
-        vert->texcoord = textured ? Truncate16(FifoPop()) : 0;
+        vert->texcoord = textured ? static_cast<uint16_t>(FifoPop()) : 0;
       }
 
       if (!IsDrawingAreaIsValid())
@@ -597,10 +683,10 @@ void GPU_SW::DispatchRenderCommand()
       // Cull polygons which are too large.
       const auto [min_x_12, max_x_12] = MinMax(cmd->vertices[1].x, cmd->vertices[2].x);
       const auto [min_y_12, max_y_12] = MinMax(cmd->vertices[1].y, cmd->vertices[2].y);
-      const s32 min_x = std::min(min_x_12, cmd->vertices[0].x);
-      const s32 max_x = std::max(max_x_12, cmd->vertices[0].x);
-      const s32 min_y = std::min(min_y_12, cmd->vertices[0].y);
-      const s32 max_y = std::max(max_y_12, cmd->vertices[0].y);
+      const int32_t min_x = std::min(min_x_12, cmd->vertices[0].x);
+      const int32_t max_x = std::max(max_x_12, cmd->vertices[0].x);
+      const int32_t min_y = std::min(min_y_12, cmd->vertices[0].y);
+      const int32_t max_y = std::max(max_y_12, cmd->vertices[0].y);
 
       if ((max_x - min_x) >= MAX_PRIMITIVE_WIDTH || (max_y - min_y) >= MAX_PRIMITIVE_HEIGHT)
       {
@@ -615,10 +701,10 @@ void GPU_SW::DispatchRenderCommand()
       // quads
       if (rc.quad_polygon)
       {
-        const s32 min_x_123 = std::min(min_x_12, cmd->vertices[3].x);
-        const s32 max_x_123 = std::max(max_x_12, cmd->vertices[3].x);
-        const s32 min_y_123 = std::min(min_y_12, cmd->vertices[3].y);
-        const s32 max_y_123 = std::max(max_y_12, cmd->vertices[3].y);
+        const int32_t min_x_123 = std::min(min_x_12, cmd->vertices[3].x);
+        const int32_t max_x_123 = std::max(max_x_12, cmd->vertices[3].x);
+        const int32_t min_y_123 = std::min(min_y_12, cmd->vertices[3].y);
+        const int32_t max_y_123 = std::max(max_y_12, cmd->vertices[3].y);
 
         // Cull polygons which are too large.
         if ((max_x_123 - min_x_123) >= MAX_PRIMITIVE_WIDTH || (max_y_123 - min_y_123) >= MAX_PRIMITIVE_HEIGHT)
@@ -648,9 +734,9 @@ void GPU_SW::DispatchRenderCommand()
 
       if (rc.texture_enable)
       {
-        const u32 texcoord_and_palette = FifoPop();
-        cmd->palette.bits = Truncate16(texcoord_and_palette >> 16);
-        cmd->texcoord = Truncate16(texcoord_and_palette);
+        const uint32_t texcoord_and_palette = FifoPop();
+        cmd->palette.bits = static_cast<uint16_t>(texcoord_and_palette >> 16);
+        cmd->texcoord = static_cast<uint16_t>(texcoord_and_palette);
       }
       else
       {
@@ -674,9 +760,9 @@ void GPU_SW::DispatchRenderCommand()
           break;
         default:
         {
-          const u32 width_and_height = FifoPop();
-          cmd->width = static_cast<u16>(width_and_height & VRAM_WIDTH_MASK);
-          cmd->height = static_cast<u16>((width_and_height >> 16) & VRAM_HEIGHT_MASK);
+          const uint32_t width_and_height = FifoPop();
+          cmd->width = static_cast<uint16_t>(width_and_height & VRAM_WIDTH_MASK);
+          cmd->height = static_cast<uint16_t>((width_and_height >> 16) & VRAM_HEIGHT_MASK);
 
           if (cmd->width >= MAX_PRIMITIVE_WIDTH || cmd->height >= MAX_PRIMITIVE_HEIGHT)
             return;
@@ -687,12 +773,12 @@ void GPU_SW::DispatchRenderCommand()
       if (!IsDrawingAreaIsValid())
         return;
 
-      const u32 clip_left = static_cast<u32>(std::clamp<s32>(cmd->x, m_drawing_area.left, m_drawing_area.right));
-      const u32 clip_right =
-        static_cast<u32>(std::clamp<s32>(cmd->x + cmd->width, m_drawing_area.left, m_drawing_area.right)) + 1u;
-      const u32 clip_top = static_cast<u32>(std::clamp<s32>(cmd->y, m_drawing_area.top, m_drawing_area.bottom));
-      const u32 clip_bottom =
-        static_cast<u32>(std::clamp<s32>(cmd->y + cmd->height, m_drawing_area.top, m_drawing_area.bottom)) + 1u;
+      const uint32_t clip_left = static_cast<uint32_t>(std::clamp<int32_t>(cmd->x, m_drawing_area.left, m_drawing_area.right));
+      const uint32_t clip_right =
+        static_cast<uint32_t>(std::clamp<int32_t>(cmd->x + cmd->width, m_drawing_area.left, m_drawing_area.right)) + 1u;
+      const uint32_t clip_top = static_cast<uint32_t>(std::clamp<int32_t>(cmd->y, m_drawing_area.top, m_drawing_area.bottom));
+      const uint32_t clip_bottom =
+        static_cast<uint32_t>(std::clamp<int32_t>(cmd->y + cmd->height, m_drawing_area.top, m_drawing_area.bottom)) + 1u;
 
       AddDrawRectangleTicks(clip_right - clip_left, clip_bottom - clip_top, rc.texture_enable, rc.transparency_enable);
 
@@ -742,30 +828,30 @@ void GPU_SW::DispatchRenderCommand()
         if ((max_x - min_x) >= MAX_PRIMITIVE_WIDTH || (max_y - min_y) >= MAX_PRIMITIVE_HEIGHT)
           return;
 
-        const u32 clip_left = static_cast<u32>(std::clamp<s32>(min_x, m_drawing_area.left, m_drawing_area.right));
-        const u32 clip_right = static_cast<u32>(std::clamp<s32>(max_x, m_drawing_area.left, m_drawing_area.right)) + 1u;
-        const u32 clip_top = static_cast<u32>(std::clamp<s32>(min_y, m_drawing_area.top, m_drawing_area.bottom));
-        const u32 clip_bottom =
-          static_cast<u32>(std::clamp<s32>(max_y, m_drawing_area.top, m_drawing_area.bottom)) + 1u;
+        const uint32_t clip_left = static_cast<uint32_t>(std::clamp<int32_t>(min_x, m_drawing_area.left, m_drawing_area.right));
+        const uint32_t clip_right = static_cast<uint32_t>(std::clamp<int32_t>(max_x, m_drawing_area.left, m_drawing_area.right)) + 1u;
+        const uint32_t clip_top = static_cast<uint32_t>(std::clamp<int32_t>(min_y, m_drawing_area.top, m_drawing_area.bottom));
+        const uint32_t clip_bottom =
+          static_cast<uint32_t>(std::clamp<int32_t>(max_y, m_drawing_area.top, m_drawing_area.bottom)) + 1u;
         AddDrawLineTicks(clip_right - clip_left, clip_bottom - clip_top, rc.shading_enable);
 
         m_backend.PushCommand(cmd);
       }
       else
       {
-        const u32 num_vertices = GetPolyLineVertexCount();
+        const uint32_t num_vertices = GetPolyLineVertexCount();
 
         GPUBackendDrawLineCommand* cmd = m_backend.NewDrawLineCommand(num_vertices);
         FillDrawCommand(cmd, m_render_command);
 
-        u32 buffer_pos = 0;
+        uint32_t buffer_pos = 0;
         const GPUVertexPosition start_vp{m_blit_buffer[buffer_pos++]};
         cmd->vertices[0].x = start_vp.x + m_drawing_offset.x;
         cmd->vertices[0].y = start_vp.y + m_drawing_offset.y;
         cmd->vertices[0].color = m_render_command.color_for_first_vertex;
 
         const bool shaded = m_render_command.shading_enable;
-        for (u32 i = 1; i < num_vertices; i++)
+        for (uint32_t i = 1; i < num_vertices; i++)
         {
           cmd->vertices[i].color =
             shaded ? (m_blit_buffer[buffer_pos++] & UINT32_C(0x00FFFFFF)) : m_render_command.color_for_first_vertex;
@@ -780,12 +866,12 @@ void GPU_SW::DispatchRenderCommand()
           }
           else
           {
-            const u32 clip_left = static_cast<u32>(std::clamp<s32>(min_x, m_drawing_area.left, m_drawing_area.right));
-            const u32 clip_right =
-              static_cast<u32>(std::clamp<s32>(max_x, m_drawing_area.left, m_drawing_area.right)) + 1u;
-            const u32 clip_top = static_cast<u32>(std::clamp<s32>(min_y, m_drawing_area.top, m_drawing_area.bottom));
-            const u32 clip_bottom =
-              static_cast<u32>(std::clamp<s32>(max_y, m_drawing_area.top, m_drawing_area.bottom)) + 1u;
+            const uint32_t clip_left = static_cast<uint32_t>(std::clamp<int32_t>(min_x, m_drawing_area.left, m_drawing_area.right));
+            const uint32_t clip_right =
+              static_cast<uint32_t>(std::clamp<int32_t>(max_x, m_drawing_area.left, m_drawing_area.right)) + 1u;
+            const uint32_t clip_top = static_cast<uint32_t>(std::clamp<int32_t>(min_y, m_drawing_area.top, m_drawing_area.bottom));
+            const uint32_t clip_bottom =
+              static_cast<uint32_t>(std::clamp<int32_t>(max_y, m_drawing_area.top, m_drawing_area.bottom)) + 1u;
 
             AddDrawLineTicks(clip_right - clip_left, clip_bottom - clip_top, m_render_command.shading_enable);
           }
@@ -801,48 +887,48 @@ void GPU_SW::DispatchRenderCommand()
   }
 }
 
-void GPU_SW::ReadVRAM(u32 x, u32 y, u32 width, u32 height)
+void GPU_SW::ReadVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
   m_backend.Sync(false);
 }
 
-void GPU_SW::FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color)
+void GPU_SW::FillVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color)
 {
   GPUBackendFillVRAMCommand* cmd = m_backend.NewFillVRAMCommand();
   FillBackendCommandParameters(cmd);
-  cmd->x = static_cast<u16>(x);
-  cmd->y = static_cast<u16>(y);
-  cmd->width = static_cast<u16>(width);
-  cmd->height = static_cast<u16>(height);
+  cmd->x = static_cast<uint16_t>(x);
+  cmd->y = static_cast<uint16_t>(y);
+  cmd->width = static_cast<uint16_t>(width);
+  cmd->height = static_cast<uint16_t>(height);
   cmd->color = color;
   m_backend.PushCommand(cmd);
 }
 
-void GPU_SW::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data, bool set_mask, bool check_mask)
+void GPU_SW::UpdateVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, bool set_mask, bool check_mask)
 {
-  const u32 num_words = width * height;
+  const uint32_t num_words = width * height;
   GPUBackendUpdateVRAMCommand* cmd = m_backend.NewUpdateVRAMCommand(num_words);
   FillBackendCommandParameters(cmd);
   cmd->params.set_mask_while_drawing = set_mask;
   cmd->params.check_mask_before_draw = check_mask;
-  cmd->x = static_cast<u16>(x);
-  cmd->y = static_cast<u16>(y);
-  cmd->width = static_cast<u16>(width);
-  cmd->height = static_cast<u16>(height);
-  std::memcpy(cmd->data, data, sizeof(u16) * num_words);
+  cmd->x = static_cast<uint16_t>(x);
+  cmd->y = static_cast<uint16_t>(y);
+  cmd->width = static_cast<uint16_t>(width);
+  cmd->height = static_cast<uint16_t>(height);
+  std::memcpy(cmd->data, data, sizeof(uint16_t) * num_words);
   m_backend.PushCommand(cmd);
 }
 
-void GPU_SW::CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height)
+void GPU_SW::CopyVRAM(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   GPUBackendCopyVRAMCommand* cmd = m_backend.NewCopyVRAMCommand();
   FillBackendCommandParameters(cmd);
-  cmd->src_x = static_cast<u16>(src_x);
-  cmd->src_y = static_cast<u16>(src_y);
-  cmd->dst_x = static_cast<u16>(dst_x);
-  cmd->dst_y = static_cast<u16>(dst_y);
-  cmd->width = static_cast<u16>(width);
-  cmd->height = static_cast<u16>(height);
+  cmd->src_x = static_cast<uint16_t>(src_x);
+  cmd->src_y = static_cast<uint16_t>(src_y);
+  cmd->dst_x = static_cast<uint16_t>(dst_x);
+  cmd->dst_y = static_cast<uint16_t>(dst_y);
+  cmd->width = static_cast<uint16_t>(width);
+  cmd->height = static_cast<uint16_t>(height);
   m_backend.PushCommand(cmd);
 }
 

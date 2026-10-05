@@ -5,6 +5,7 @@
 #include "host_interface.h"
 #include "system.h"
 #include <array>
+#include <limits>
 
 PlayStationMouse::PlayStationMouse()
 {
@@ -29,9 +30,9 @@ bool PlayStationMouse::DoState(StateWrapper& sw, bool apply_input_state)
   if (!Controller::DoState(sw, apply_input_state))
     return false;
 
-  u16 button_state = m_button_state;
-  u8 delta_x = m_delta_x;
-  u8 delta_y = m_delta_y;
+  uint16_t button_state = m_button_state;
+  uint8_t delta_x = m_delta_x;
+  uint8_t delta_y = m_delta_y;
   sw.Do(&button_state);
   sw.Do(&delta_x);
   sw.Do(&delta_y);
@@ -48,16 +49,21 @@ bool PlayStationMouse::DoState(StateWrapper& sw, bool apply_input_state)
 
 void PlayStationMouse::SetButtonState(Button button, bool pressed)
 {
-  static constexpr std::array<u8, static_cast<size_t>(Button::Count)> indices = {{11, 10}};
-  if (pressed)
-    m_button_state &= ~(u16(1) << indices[static_cast<u8>(button)]);
-  else
-    m_button_state |= u16(1) << indices[static_cast<u8>(button)];
+  static constexpr std::array<uint8_t, static_cast<size_t>(Button::Count)> indices = {{11, 10}};
+  const uint16_t bit = uint16_t(1) << indices[static_cast<uint8_t>(button)];
+  const uint16_t new_state = pressed ? (m_button_state & ~bit) : (m_button_state | bit);
+  if (new_state != m_button_state)
+  {
+    // The runahead simulation needs to re-run any frame where input changed
+    // between the original poll and now; signalling here lets it detect that.
+    System::SetRunaheadReplayFlag();
+    m_button_state = new_state;
+  }
 }
 
-void PlayStationMouse::SetButtonState(s32 button_code, bool pressed)
+void PlayStationMouse::SetButtonState(int32_t button_code, bool pressed)
 {
-  if (button_code < 0 || button_code >= static_cast<s32>(Button::Count))
+  if (button_code < 0 || button_code >= static_cast<int32_t>(Button::Count))
     return;
 
   SetButtonState(static_cast<Button>(button_code), pressed);
@@ -68,9 +74,9 @@ void PlayStationMouse::ResetTransferState()
   m_transfer_state = TransferState::Idle;
 }
 
-bool PlayStationMouse::Transfer(const u8 data_in, u8* data_out)
+bool PlayStationMouse::Transfer(const uint8_t data_in, uint8_t* data_out)
 {
-  static constexpr u16 ID = 0x5A12;
+  static constexpr uint16_t ID = 0x5A12;
 
   switch (m_transfer_state)
   {
@@ -90,7 +96,7 @@ bool PlayStationMouse::Transfer(const u8 data_in, u8* data_out)
     {
       if (data_in == 0x42)
       {
-        *data_out = Truncate8(ID);
+        *data_out = static_cast<uint8_t>(ID);
         m_transfer_state = TransferState::IDMSB;
         return true;
       }
@@ -101,21 +107,21 @@ bool PlayStationMouse::Transfer(const u8 data_in, u8* data_out)
 
     case TransferState::IDMSB:
     {
-      *data_out = Truncate8(ID >> 8);
+      *data_out = static_cast<uint8_t>(ID >> 8);
       m_transfer_state = TransferState::ButtonsLSB;
       return true;
     }
 
     case TransferState::ButtonsLSB:
     {
-      *data_out = Truncate8(m_button_state);
+      *data_out = static_cast<uint8_t>(m_button_state);
       m_transfer_state = TransferState::ButtonsMSB;
       return true;
     }
 
     case TransferState::ButtonsMSB:
     {
-      *data_out = Truncate8(m_button_state >> 8);
+      *data_out = static_cast<uint8_t>(m_button_state >> 8);
       m_transfer_state = TransferState::DeltaX;
       return true;
     }
@@ -123,14 +129,14 @@ bool PlayStationMouse::Transfer(const u8 data_in, u8* data_out)
     case TransferState::DeltaX:
     {
       UpdatePosition();
-      *data_out = static_cast<u8>(m_delta_x);
+      *data_out = static_cast<uint8_t>(m_delta_x);
       m_transfer_state = TransferState::DeltaY;
       return true;
     }
 
     case TransferState::DeltaY:
     {
-      *data_out = static_cast<u8>(m_delta_y);
+      *data_out = static_cast<uint8_t>(m_delta_y);
       m_transfer_state = TransferState::Idle;
       break;
     }
@@ -146,15 +152,15 @@ void PlayStationMouse::UpdatePosition()
 {
   // get screen coordinates
   const HostDisplay* display = g_host_interface->GetDisplay();
-  const s32 mouse_x = display->GetMousePositionX();
-  const s32 mouse_y = display->GetMousePositionY();
-  const s32 delta_x = mouse_x - m_last_host_position_x;
-  const s32 delta_y = mouse_y - m_last_host_position_y;
+  const int32_t mouse_x = display->GetMousePositionX();
+  const int32_t mouse_y = display->GetMousePositionY();
+  const int32_t delta_x = mouse_x - m_last_host_position_x;
+  const int32_t delta_y = mouse_y - m_last_host_position_y;
   m_last_host_position_x = mouse_x;
   m_last_host_position_y = mouse_y;
 
-  m_delta_x = static_cast<s8>(std::clamp<s32>(delta_x, std::numeric_limits<s8>::min(), std::numeric_limits<s8>::max()));
-  m_delta_y = static_cast<s8>(std::clamp<s32>(delta_y, std::numeric_limits<s8>::min(), std::numeric_limits<s8>::max()));
+  m_delta_x = static_cast<int8_t>(std::clamp<int32_t>(delta_x, std::numeric_limits<int8_t>::min(), std::numeric_limits<int8_t>::max()));
+  m_delta_y = static_cast<int8_t>(std::clamp<int32_t>(delta_y, std::numeric_limits<int8_t>::min(), std::numeric_limits<int8_t>::max()));
 }
 
 std::unique_ptr<PlayStationMouse> PlayStationMouse::Create()
@@ -162,7 +168,3 @@ std::unique_ptr<PlayStationMouse> PlayStationMouse::Create()
   return std::make_unique<PlayStationMouse>();
 }
 
-u32 PlayStationMouse::StaticGetVibrationMotorCount()
-{
-  return 0;
-}

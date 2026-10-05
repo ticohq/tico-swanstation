@@ -1,6 +1,6 @@
 #include "libretro_settings_interface.h"
 #include "common/string_util.h"
-#include "libretro_host_interface.h"
+#include "core/host_interface.h"
 #include <type_traits>
 
 template<typename T, typename DefaultValueType>
@@ -55,13 +55,4 @@ std::string LibretroSettingsInterface::GetStringValue(const char* section, const
                                                       const char* default_value /*= ""*/)
 {
   return GetVariable<std::string>(section, key, default_value);
-}
-
-std::vector<std::string> LibretroSettingsInterface::GetStringList(const char* section, const char* key)
-{
-  std::string value = GetVariable<std::string>(section, key, "");
-  if (value.empty())
-    return {};
-
-  return std::vector<std::string>({std::move(value)});
 }

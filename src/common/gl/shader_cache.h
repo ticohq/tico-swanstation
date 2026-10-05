@@ -21,28 +21,38 @@ public:
   ShaderCache();
   ~ShaderCache();
 
-  void Open(bool is_gles, std::string_view base_path, u32 version);
+  void Open(bool is_gles, std::string_view base_path, uint32_t version);
+
+  // Returns whether Open() has already been called successfully on
+  // this instance. Used by the lazy-compile path in GPU_HW_OpenGL
+  // to avoid re-reading the same on-disk index on UpdateSettings
+  // round-trips through CompilePrograms, which would both leak
+  // file handles and double-count m_index entries. Mirrors the
+  // equivalent accessor on D3D11::ShaderCache and D3D12::ShaderCache.
+  bool IsOpen() const { return m_index_file != nullptr; }
 
   std::optional<Program> GetProgram(const std::string_view vertex_shader, const std::string_view geometry_shader,
                                     const std::string_view fragment_shader, const PreLinkCallback& callback = {});
 
 private:
-  static constexpr u32 FILE_VERSION = 3;
+  // Bumped 4 -> 5 when the cache key hash moved from MD5 to XXH3_128bits;
+  // the change alters every key, so an old (v4) gl_programs cache is
+  // discarded and rebuilt once on first run with this build.
+  static constexpr uint32_t FILE_VERSION = 5;
 
   struct CacheIndexKey
   {
-    u64 vertex_source_hash_low;
-    u64 vertex_source_hash_high;
-    u32 vertex_source_length;
-    u64 geometry_source_hash_low;
-    u64 geometry_source_hash_high;
-    u32 geometry_source_length;
-    u64 fragment_source_hash_low;
-    u64 fragment_source_hash_high;
-    u32 fragment_source_length;
+    uint64_t vertex_source_hash_low;
+    uint64_t vertex_source_hash_high;
+    uint32_t vertex_source_length;
+    uint64_t geometry_source_hash_low;
+    uint64_t geometry_source_hash_high;
+    uint32_t geometry_source_length;
+    uint64_t fragment_source_hash_low;
+    uint64_t fragment_source_hash_high;
+    uint32_t fragment_source_length;
 
     bool operator==(const CacheIndexKey& key) const;
-    bool operator!=(const CacheIndexKey& key) const;
   };
 
   struct CacheIndexEntryHasher
@@ -59,9 +69,9 @@ private:
 
   struct CacheIndexData
   {
-    u32 file_offset;
-    u32 blob_size;
-    u32 blob_format;
+    uint32_t file_offset;
+    uint32_t blob_size;
+    uint32_t blob_format;
   };
 
   using CacheIndex = std::unordered_map<CacheIndexKey, CacheIndexData, CacheIndexEntryHasher>;
@@ -89,7 +99,7 @@ private:
   RFILE* m_blob_file = nullptr;
 
   CacheIndex m_index;
-  u32 m_version = 0;
+  uint32_t m_version = 0;
   bool m_program_binary_supported = false;
 };
 

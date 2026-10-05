@@ -1,37 +1,34 @@
 #include "gpu_hw_d3d11.h"
 #include "common/d3d11/shader_compiler.h"
+#include "common/d3d_common/embedded_shaders.h"
 #include "common/display.hlsl.h"
 #include "common/log.h"
 #include "common/state_wrapper.h"
+#include "common/thread_priority.h"
 #include "common/timer.h"
-#include "gpu_hw_shadergen.h"
 #include "gpu_sw_backend.h"
 #include "host_display.h"
 #include "host_interface.h"
-#include "libretro/libretro_host_interface.h"
-#include "shader_cache_version.h"
+#include "core/host_interface.h"
 #include "system.h"
 Log_SetChannel(GPU_HW_D3D11);
 
 #define HAVE_D3D11
+#include <cstring>
 #include <libretro_d3d.h>
-
 class LibretroD3D11HostDisplayTexture : public HostDisplayTexture
 {
 public:
-  LibretroD3D11HostDisplayTexture(D3D11::Texture texture, HostDisplayPixelFormat format, bool dynamic)
-    : m_texture(std::move(texture)), m_format(format), m_dynamic(dynamic)
+  LibretroD3D11HostDisplayTexture(D3D11::Texture texture)
+    : m_texture(std::move(texture))
   {
   }
   ~LibretroD3D11HostDisplayTexture() override = default;
 
   void* GetHandle() const override { return m_texture.GetD3DSRV(); }
-  u32 GetWidth() const override { return m_texture.GetWidth(); }
-  u32 GetHeight() const override { return m_texture.GetHeight(); }
-  u32 GetLayers() const override { return 1; }
-  u32 GetLevels() const override { return m_texture.GetLevels(); }
-  u32 GetSamples() const override { return m_texture.GetSamples(); }
-  HostDisplayPixelFormat GetFormat() const override { return m_format; }
+  uint32_t GetWidth() const override { return m_texture.GetWidth(); }
+  uint32_t GetHeight() const override { return m_texture.GetHeight(); }
+  uint32_t GetSamples() const override { return m_texture.GetSamples(); }
 
   ALWAYS_INLINE ID3D11Texture2D* GetD3DTexture() const { return m_texture.GetD3DTexture(); }
   ALWAYS_INLINE ID3D11ShaderResourceView* GetD3DSRV() const { return m_texture.GetD3DSRV(); }
@@ -39,8 +36,6 @@ public:
 
 private:
   D3D11::Texture m_texture;
-  HostDisplayPixelFormat m_format;
-  bool m_dynamic;
 };
 
 LibretroD3D11HostDisplay::LibretroD3D11HostDisplay() = default;
@@ -62,14 +57,14 @@ void* LibretroD3D11HostDisplay::GetRenderContext() const
   return m_context.Get();
 }
 
-static constexpr std::array<DXGI_FORMAT, static_cast<u32>(HostDisplayPixelFormat::Count)>
+static constexpr std::array<DXGI_FORMAT, static_cast<uint32_t>(HostDisplayPixelFormat::Count)>
   s_display_pixel_format_mapping = {{DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_B8G8R8A8_UNORM,
                                      DXGI_FORMAT_B5G6R5_UNORM, DXGI_FORMAT_B5G5R5A1_UNORM}};
 
-std::unique_ptr<HostDisplayTexture> LibretroD3D11HostDisplay::CreateTexture(u32 width, u32 height, u32 layers,
-                                                                            u32 levels, u32 samples,
+std::unique_ptr<HostDisplayTexture> LibretroD3D11HostDisplay::CreateTexture(uint32_t width, uint32_t height, uint32_t layers,
+                                                                            uint32_t levels, uint32_t samples,
                                                                             HostDisplayPixelFormat format,
-                                                                            const void* data, u32 data_stride,
+                                                                            const void* data, uint32_t data_stride,
                                                                             bool dynamic /* = false */)
 {
   if (layers != 1)
@@ -77,18 +72,18 @@ std::unique_ptr<HostDisplayTexture> LibretroD3D11HostDisplay::CreateTexture(u32 
 
   D3D11::Texture tex;
   if (!tex.Create(m_device.Get(), width, height, levels, samples,
-                  s_display_pixel_format_mapping[static_cast<u32>(format)], D3D11_BIND_SHADER_RESOURCE, data,
+                  s_display_pixel_format_mapping[static_cast<uint32_t>(format)], D3D11_BIND_SHADER_RESOURCE, data,
                   data_stride, dynamic))
   {
     return {};
   }
 
-  return std::make_unique<LibretroD3D11HostDisplayTexture>(std::move(tex), format, dynamic);
+  return std::make_unique<LibretroD3D11HostDisplayTexture>(std::move(tex));
 }
 
 bool LibretroD3D11HostDisplay::SupportsDisplayPixelFormat(HostDisplayPixelFormat format) const
 {
-  const DXGI_FORMAT dfmt = s_display_pixel_format_mapping[static_cast<u32>(format)];
+  const DXGI_FORMAT dfmt = s_display_pixel_format_mapping[static_cast<uint32_t>(format)];
   if (dfmt == DXGI_FORMAT_UNKNOWN)
     return false;
 
@@ -97,12 +92,12 @@ bool LibretroD3D11HostDisplay::SupportsDisplayPixelFormat(HostDisplayPixelFormat
   return (SUCCEEDED(m_device->CheckFormatSupport(dfmt, &support)) && ((support & required) == required));
 }
 
-bool LibretroD3D11HostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, u32 width, u32 height,
-                                                     void** out_buffer, u32* out_pitch)
+bool LibretroD3D11HostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, uint32_t width, uint32_t height,
+                                                     void** out_buffer, uint32_t* out_pitch)
 {
   ClearDisplayTexture();
 
-  const DXGI_FORMAT dxgi_format = s_display_pixel_format_mapping[static_cast<u32>(format)];
+  const DXGI_FORMAT dxgi_format = s_display_pixel_format_mapping[static_cast<uint32_t>(format)];
   if (m_display_pixels_texture.GetWidth() < width || m_display_pixels_texture.GetHeight() < height ||
       m_display_pixels_texture.GetFormat() != dxgi_format)
   {
@@ -125,7 +120,7 @@ bool LibretroD3D11HostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat form
   *out_pitch = sr.RowPitch;
 
   SetDisplayTexture(m_display_pixels_texture.GetD3DSRV(), format, m_display_pixels_texture.GetWidth(),
-                    m_display_pixels_texture.GetHeight(), 0, 0, static_cast<u32>(width), static_cast<u32>(height));
+                    m_display_pixels_texture.GetHeight(), 0, 0, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
   return true;
 }
 
@@ -188,10 +183,10 @@ void LibretroD3D11HostDisplay::DestroyRenderDevice()
   m_device.Reset();
 }
 
-void LibretroD3D11HostDisplay::ResizeRenderWindow(s32 new_window_width, s32 new_window_height)
+void LibretroD3D11HostDisplay::ResizeRenderWindow(int32_t new_window_width, int32_t new_window_height)
 {
-  m_window_info.surface_width = static_cast<u32>(new_window_width);
-  m_window_info.surface_height = static_cast<u32>(new_window_height);
+  m_window_info.surface_width = static_cast<uint32_t>(new_window_width);
+  m_window_info.surface_height = static_cast<uint32_t>(new_window_height);
 }
 
 bool LibretroD3D11HostDisplay::ChangeRenderWindow(const WindowInfo& new_wi)
@@ -296,9 +291,7 @@ void LibretroD3D11HostDisplay::DestroyResources()
   m_display_rasterizer_state.Reset();
 }
 
-void LibretroD3D11HostDisplay::RenderSoftwareCursor() {}
-
-void LibretroD3D11HostDisplay::RenderSoftwareCursor(s32 left, s32 top, s32 width, s32 height,
+void LibretroD3D11HostDisplay::RenderSoftwareCursor(int32_t left, int32_t top, int32_t width, int32_t height,
                                             HostDisplayTexture* texture_handle)
 {
   m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -330,13 +323,27 @@ void LibretroD3D11HostDisplay::RenderSoftwareCursor(s32 left, s32 top, s32 width
 
 bool LibretroD3D11HostDisplay::Render()
 {
-  const u32 resolution_scale = g_libretro_host_interface.GetResolutionScale();
-  const u32 display_width = static_cast<u32>(m_display_width) * resolution_scale;
-  const u32 display_height = static_cast<u32>(m_display_height) * resolution_scale;
-  const int16_t gun_x = g_retro_input_state_callback(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
-  const int16_t gun_y = g_retro_input_state_callback(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
-  const s32 pos_x = (g_retro_input_state_callback(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN) ? 0 : (((static_cast<s32>(gun_x) + 0x7FFF) * display_width) / 0xFFFF));
-  const s32 pos_y = (g_retro_input_state_callback(0, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN) ? 0 : (((static_cast<s32>(gun_y) + 0x7FFF) * display_height) / 0xFFFF));
+  // No display texture this frame -> send the libretro frame-dupe
+  // signal (NULL frame), matching the SW path in
+  // LibretroHostDisplay::Render(). See the equivalent comment in
+  // gpu_hw_opengl.cpp::Render().
+  if (!HasDisplayTexture())
+  {
+    g_retro_video_refresh_callback(nullptr, 0, 0, 0);
+    return true;
+  }
+
+  const uint32_t resolution_scale = g_host_interface_storage.GetResolutionScale();
+  const uint32_t display_width = static_cast<uint32_t>(m_display_width) * resolution_scale;
+  const uint32_t display_height = static_cast<uint32_t>(m_display_height) * resolution_scale;
+  // Lightgun state was cached at controller-update time; do NOT call
+  // g_retro_input_state_callback() from the renderer - see the matching
+  // comment in gpu_hw_opengl.cpp::Render().
+  const int16_t  gun_x     = GetLightgunRawX();
+  const int16_t  gun_y     = GetLightgunRawY();
+  const bool offscreen = IsLightgunOffscreen();
+  const int32_t pos_x = offscreen ? 0 : (((static_cast<int32_t>(gun_x) + 0x7FFF) * display_width)  / 0xFFFF);
+  const int32_t pos_y = offscreen ? 0 : (((static_cast<int32_t>(gun_y) + 0x7FFF) * display_height) / 0xFFFF);
   if (!CheckFramebufferSize(display_width, display_height))
     return false;
 
@@ -345,7 +352,6 @@ bool LibretroD3D11HostDisplay::Render()
   m_context->PSSetShaderResources(0, 1, &null_srv);
   m_context->OMSetRenderTargets(1u, m_framebuffer.GetD3DRTVArray(), nullptr);
 
-  if (HasDisplayTexture())
   {
     const auto [left, top, width, height] = CalculateDrawRect(display_width, display_height, 0, false);
     RenderDisplay(left, top, width, height, m_display_texture_handle, m_display_texture_width, m_display_texture_height,
@@ -353,17 +359,17 @@ bool LibretroD3D11HostDisplay::Render()
                   m_display_texture_view_height);
   }
 
-  if (g_settings.controller_show_crosshair && HasSoftwareCursor() && HasDisplayTexture() && (pos_x > 0 || pos_y > 0))
+  if (g_settings.controller_show_crosshair && HasSoftwareCursor() && (pos_x > 0 || pos_y > 0))
   {
     const float width_scale = (display_width / 2400.0f);
     const float height_scale = (display_height / 1920.0f);
-    const u32 cursor_extents_x = static_cast<u32>(static_cast<float>(m_cursor_texture->GetWidth()) * width_scale);
-    const u32 cursor_extents_y = static_cast<u32>(static_cast<float>(m_cursor_texture->GetHeight()) * height_scale);
+    const uint32_t cursor_extents_x = static_cast<uint32_t>(static_cast<float>(m_cursor_texture->GetWidth()) * width_scale);
+    const uint32_t cursor_extents_y = static_cast<uint32_t>(static_cast<float>(m_cursor_texture->GetHeight()) * height_scale);
 
-    const s32 out_left = pos_x - cursor_extents_x;
-    const s32 out_top = pos_y - cursor_extents_y;
-    const s32 out_width = cursor_extents_x * 2u;
-    const s32 out_height = cursor_extents_y * 2u;
+    const int32_t out_left = pos_x - cursor_extents_x;
+    const int32_t out_top = pos_y - cursor_extents_y;
+    const int32_t out_width = cursor_extents_x * 2u;
+    const int32_t out_height = cursor_extents_y * 2u;
 
     RenderSoftwareCursor(out_left, out_top, out_width, out_height, m_cursor_texture.get());
   }
@@ -375,9 +381,9 @@ bool LibretroD3D11HostDisplay::Render()
   return true;
 }
 
-void LibretroD3D11HostDisplay::RenderDisplay(s32 left, s32 top, s32 width, s32 height, void* texture_handle,
-                                             u32 texture_width, s32 texture_height, s32 texture_view_x,
-                                             s32 texture_view_y, s32 texture_view_width, s32 texture_view_height)
+void LibretroD3D11HostDisplay::RenderDisplay(int32_t left, int32_t top, int32_t width, int32_t height, void* texture_handle,
+                                             uint32_t texture_width, int32_t texture_height, int32_t texture_view_x,
+                                             int32_t texture_view_y, int32_t texture_view_width, int32_t texture_view_height)
 {
   m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   m_context->VSSetShader(m_display_vertex_shader.Get(), nullptr, 0);
@@ -410,7 +416,7 @@ void LibretroD3D11HostDisplay::RenderDisplay(s32 left, s32 top, s32 width, s32 h
   m_context->Draw(3, 0);
 }
 
-bool LibretroD3D11HostDisplay::CheckFramebufferSize(u32 width, u32 height)
+bool LibretroD3D11HostDisplay::CheckFramebufferSize(uint32_t width, uint32_t height)
 {
   if (m_framebuffer.GetWidth() == width && m_framebuffer.GetHeight() == height)
     return true;
@@ -431,11 +437,6 @@ GPU_HW_D3D11::~GPU_HW_D3D11()
 
   DestroyShaders();
   DestroyStateObjects();
-}
-
-GPURenderer GPU_HW_D3D11::GetRendererType() const
-{
-  return GPURenderer::HardwareD3D11;
 }
 
 bool GPU_HW_D3D11::Initialize(HostDisplay* host_display)
@@ -577,8 +578,60 @@ void GPU_HW_D3D11::UpdateSettings()
 {
   GPU_HW::UpdateSettings();
 
-  bool framebuffer_changed, shaders_changed;
-  UpdateHWSettings(&framebuffer_changed, &shaders_changed);
+  // Stop the background batch-compile worker BEFORE UpdateHWSettings
+  // writes m_texture_filtering. The worker captures m_texture_filtering
+  // at launch and uses it for every GetBatchPixelShader call - if
+  // the runloop thread flips it mid-iteration the worker would split
+  // its filter-index read across old / new values, installing a
+  // pixel shader for one filter into a sub-cube indexed by another.
+  // Joining first eliminates the race; the next
+  // CompileShaders below restarts a worker for the new filter as
+  // appropriate. StopShaderCompileThread is idempotent, so the
+  // matching call inside DestroyShaders just becomes a no-op on
+  // this path. Mirrors the D3D12 ordering in 10c53b8.
+  StopShaderCompileThread();
+
+  // See GPU_HW_D3D12::UpdateSettings for the rationale on
+  // shader_source_changed vs shaders_changed: the cbuffer-refactor
+  // patch made true_color / scaled_dithering / resolution_scale
+  // invariant under HLSL source, so toggling them no longer requires
+  // DestroyShaders + CompileShaders. The DXBC blobs, state objects,
+  // and Direct3D11 shader handles all stay valid; the new values
+  // ride the per-batch UBO upload on the next FlushRender. State
+  // objects also stay valid through those toggles because their
+  // descriptions key on MSAA / dual-source / depth-test / blend
+  // mode - none of which are in the cbuffer-only set.
+  //
+  // only_dim_changed: dim-cube setting (filter / true_color /
+  // scaled_dithering) changed and nothing in non_dim_diff. With the
+  // dim cache (filter outermost) this means "filter sub-cube can
+  // be lazy-populated, other filters' sub-cubes stay valid". When
+  // set alongside shader_source_changed it picks out the
+  // filter-only-changed case.
+  //
+  // display_only_source_changed: chroma_smoothing flipped and
+  // nothing else affecting shader source changed. The batch pixel
+  // shader matrix, VRAM ops pixel shaders, and state objects all
+  // stay valid; only the 6-slot display pixel shader cache needs
+  // to go. Mirrors the D3D12 partial-clear from 57ac62e.
+  bool framebuffer_changed, shaders_changed, only_dim_changed, downsample_changed, shader_source_changed,
+    display_only_source_changed;
+  UpdateHWSettings(&framebuffer_changed, &shaders_changed, &only_dim_changed, &downsample_changed,
+                   &shader_source_changed, &display_only_source_changed);
+
+  // A downsample-mode change that UpdateHWSettings did not already fold
+  // into framebuffer_changed (Disabled <-> Box - it only sets
+  // framebuffer_changed when Adaptive is involved) still needs the
+  // downsample texture created or freed for the new mode. D3D11's
+  // CreateFramebuffer is monolithic (it rebuilds the VRAM/display
+  // textures too, unlike the Vulkan backend's separate
+  // CreateDownsampleResources), so route it through the normal
+  // ReadVRAM -> CreateFramebuffer -> UpdateVRAM framebuffer round-trip
+  // rather than recreating just the downsample texture in isolation.
+  // Downsample toggling is a rare user action, so the extra round-trip
+  // is not a concern.
+  if (downsample_changed && !framebuffer_changed)
+    framebuffer_changed = true;
 
   if (framebuffer_changed)
   {
@@ -589,13 +642,95 @@ void GPU_HW_D3D11::UpdateSettings()
     CreateFramebuffer();
   }
 
-  if (shaders_changed)
+  if (shader_source_changed)
   {
-    DestroyShaders();
-    DestroyStateObjects();
-    CreateStateObjects();
-    CompileShaders();
+    if (display_only_source_changed)
+    {
+      // chroma_smoothing flipped and nothing else - rebuild the six
+      // display pixel shaders against the new m_chroma_smoothing
+      // value (which UpdateHWSettings has already written into the
+      // member). The 144-cell batch pixel shader matrix, the VRAM
+      // ops pixel shaders, and the blend / depth-stencil / input
+      // layout state objects all stay valid. Cost is 6 D3DCompile
+      // + 6 CreatePixelShader calls, a fraction of a second
+      // instead of the full CompileShaders pass.
+      (void)RebuildDisplayPixelShaders();
+
+      // Relaunch the Lazy worker StopShaderCompileThread joined at
+      // the top of UpdateSettings; this branch doesn't go through
+      // CompileShaders so the launch site there isn't hit. Mirrors
+      // the D3D12 chroma partial-clear path.
+      if (g_settings.gpu_shader_precompile_mode == GPUShaderPrecompileMode::Lazy)
+      {
+        m_shader_compile_thread_quit.store(false, std::memory_order_relaxed);
+        m_shader_compile_thread = std::thread(&GPU_HW_D3D11::ShaderCompileThreadEntryPoint, this);
+      }
+    }
+    else if (only_dim_changed)
+    {
+      // Filter changed but nothing in non_dim_diff (and the cbuffer-
+      // only members in dim_diff don't move HLSL, so this is
+      // effectively "only filter changed"). m_batch_pixel_shaders is
+      // filter-dimensioned: the previous filter's sub-cube remains
+      // populated and reachable, so DestroyShaders would just throw
+      // away valid pixel shaders.
+      //
+      // Cycling back to a previously-visited filter is instant -
+      // no D3DCompile, no CreatePixelShader, just an atomic load of
+      // an already-filled slot. State objects (blend / depth /
+      // input layout) are filter-independent and also stay valid;
+      // CreateStateObjects is skipped on this branch.
+      //
+      // The non-batch pixel shaders (copy / VRAM ops / display /
+      // downsample), the vertex shaders, and the input layout are
+      // all filter-independent - the texture filter is an axis of the
+      // batch FS only. They keep working with the handles they
+      // already have, so a full CompileShaders pass here would just
+      // re-wrap the same pre-baked DXBC blobs into identical ComPtrs
+      // for no functional benefit. Instead, build a progress tracker
+      // sized for the batch matrix only and call PrecompileBatchShaders
+      // directly. PrecompileBatchShaders walks the new filter sub-
+      // cube via GetBatchPixelShader (which is dim-cache aware -
+      // already-populated cells from a previous visit short-circuit on
+      // the lock-free atomic load, and unvisited cells wrap their
+      // pre-baked DXBC via the EmbeddedShaders pickers) and relaunches
+      // the Lazy worker for the new filter.
+      const uint32_t batch_progress_units =
+        (g_settings.gpu_shader_precompile_mode == GPUShaderPrecompileMode::Enabled)
+          ? CountReachableBatchShaders(m_supports_dual_source_blend)
+          : 0u;
+      ShaderCompileProgressTracker progress("Compiling Shaders", batch_progress_units);
+      (void)PrecompileBatchShaders(progress);
+    }
+    else
+    {
+      // Full flush: a non-dim shader-affecting change
+      // (multisamples / per-sample shading / UV limits / PGXP depth
+      // / colour perspective / precompile mode) invalidates EVERY
+      // sub-cube because those settings bake into the HLSL
+      // identically for every filter slot.
+      DestroyShaders();
+      DestroyStateObjects();
+      CreateStateObjects();
+      CompileShaders();
+    }
   }
+
+  // Downsample-mode transition. GPU_HW::UpdateHWSettings deliberately
+  // keeps downsample mode out of shaders_changed entirely (it does not
+  // touch the batch matrix) and out of framebuffer_changed unless
+  // Adaptive is on one side, surfacing it via downsample_changed for the
+  // backend to service. shader_source_changed was therefore false for a
+  // downsample-only change, so CompileShaders did not run and the new
+  // mode's downsample pixel shaders are still null - Adaptive would
+  // composite a black mip pyramid (black screen) and Box would draw with
+  // a null pixel shader. The texture side is handled by the
+  // downsample_changed -> framebuffer_changed promotion above (which
+  // routes Box/Disabled transitions through the same ReadVRAM ->
+  // CreateFramebuffer -> UpdateVRAM round-trip that keys the downsample
+  // texture on the new mode); here we just rebuild the shaders.
+  if (downsample_changed)
+    CompileDownsampleShaders();
 
   if (framebuffer_changed)
   {
@@ -607,7 +742,7 @@ void GPU_HW_D3D11::UpdateSettings()
   }
 }
 
-void GPU_HW_D3D11::MapBatchVertexPointer(u32 required_vertices)
+void GPU_HW_D3D11::MapBatchVertexPointer(uint32_t required_vertices)
 {
   const D3D11::StreamBuffer::MappingResult res =
     m_vertex_stream_buffer.Map(m_context.Get(), sizeof(BatchVertex), required_vertices * sizeof(BatchVertex));
@@ -618,7 +753,7 @@ void GPU_HW_D3D11::MapBatchVertexPointer(u32 required_vertices)
   m_batch_base_vertex = res.index_aligned;
 }
 
-void GPU_HW_D3D11::UnmapBatchVertexPointer(u32 used_vertices)
+void GPU_HW_D3D11::UnmapBatchVertexPointer(uint32_t used_vertices)
 {
   m_vertex_stream_buffer.Unmap(m_context.Get(), used_vertices * sizeof(BatchVertex));
   m_batch_start_vertex_ptr = nullptr;
@@ -628,8 +763,8 @@ void GPU_HW_D3D11::UnmapBatchVertexPointer(u32 used_vertices)
 
 void GPU_HW_D3D11::SetCapabilities()
 {
-  const u32 max_texture_size = D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
-  const u32 max_texture_scale = max_texture_size / VRAM_WIDTH;
+  const uint32_t max_texture_size = D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+  const uint32_t max_texture_scale = max_texture_size / VRAM_WIDTH;
 
   m_max_resolution_scale = max_texture_scale;
   m_supports_dual_source_blend = true;
@@ -638,7 +773,7 @@ void GPU_HW_D3D11::SetCapabilities()
   m_supports_disable_color_perspective = true;
 
   m_max_multisamples = 1;
-  for (u32 multisamples = 2; multisamples < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; multisamples++)
+  for (uint32_t multisamples = 2; multisamples < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; multisamples++)
   {
     UINT num_quality_levels;
     if (SUCCEEDED(
@@ -655,11 +790,20 @@ bool GPU_HW_D3D11::CreateFramebuffer()
   DestroyFramebuffer();
 
   // scale vram size to internal resolution
-  const u32 texture_width = VRAM_WIDTH * m_resolution_scale;
-  const u32 texture_height = VRAM_HEIGHT * m_resolution_scale;
-  const u16 samples = static_cast<u16>(m_multisamples);
+  const uint32_t texture_width = VRAM_WIDTH * m_resolution_scale;
+  const uint32_t texture_height = VRAM_HEIGHT * m_resolution_scale;
+  const uint16_t samples = static_cast<uint16_t>(m_multisamples);
   const DXGI_FORMAT texture_format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  const DXGI_FORMAT depth_format = DXGI_FORMAT_D16_UNORM;
+  /* D32_FLOAT rather than D16_UNORM: in PGXP depth-buffer mode the value
+   * written to this attachment is the reconstructed perspective W, carried at
+   * full float32 through the vertex path (a_pos is R32G32B32A32_FLOAT) - a
+   * 16-bit UNORM depth quantizes exactly the precision PGXP exists to recover.
+   * D32_FLOAT is lossless for the legacy ordered-depth path too (the 16-bit
+   * counter's 0..1 range is trivially representable and ordering is preserved),
+   * so the format is made unconditional: a format conditional on the PGXP-depth
+   * setting would go stale on a mid-session toggle, since that toggle recompiles
+   * shaders but does not set framebuffer_changed / recreate this texture. */
+  const DXGI_FORMAT depth_format = DXGI_FORMAT_D32_FLOAT;
 
   if (!m_vram_texture.Create(m_device.Get(), texture_width, texture_height, 1, samples, texture_format,
                              D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET) ||
@@ -692,9 +836,9 @@ bool GPU_HW_D3D11::CreateFramebuffer()
 
   if (m_downsample_mode == GPUDownsampleMode::Adaptive)
   {
-    const u32 levels = GetAdaptiveDownsamplingMipLevels();
+    const uint32_t levels = GetAdaptiveDownsamplingMipLevels();
 
-    if (!m_downsample_texture.Create(m_device.Get(), texture_width, texture_height, static_cast<u16>(levels), 1,
+    if (!m_downsample_texture.Create(m_device.Get(), texture_width, texture_height, static_cast<uint16_t>(levels), 1,
                                      texture_format, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET) ||
         !m_downsample_weight_texture.Create(m_device.Get(), texture_width >> (levels - 1),
                                             texture_height >> (levels - 1), 1, 1, DXGI_FORMAT_R8_UNORM,
@@ -704,7 +848,7 @@ bool GPU_HW_D3D11::CreateFramebuffer()
     }
 
     m_downsample_mip_views.resize(levels);
-    for (u32 i = 0; i < levels; i++)
+    for (uint32_t i = 0; i < levels; i++)
     {
       D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc;
       srv_desc.Format = texture_format;
@@ -783,7 +927,7 @@ bool GPU_HW_D3D11::CreateTextureBuffer()
     return false;
 
   const CD3D11_SHADER_RESOURCE_VIEW_DESC srv_desc(D3D11_SRV_DIMENSION_BUFFER, DXGI_FORMAT_R16_UINT, 0,
-                                                  VRAM_UPDATE_TEXTURE_BUFFER_SIZE / sizeof(u16));
+                                                  VRAM_UPDATE_TEXTURE_BUFFER_SIZE / sizeof(uint16_t));
   const HRESULT hr = m_device->CreateShaderResourceView(m_texture_stream_buffer.GetD3DBuffer(), &srv_desc,
                                                         m_texture_stream_buffer_srv_r16ui.ReleaseAndGetAddressOf());
   if (FAILED(hr))
@@ -871,10 +1015,10 @@ bool GPU_HW_D3D11::CreateStateObjects()
   if (FAILED(hr))
     return false;
 
-  for (u8 transparency_mode = 0; transparency_mode < 5; transparency_mode++)
+  for (uint8_t transparency_mode = 0; transparency_mode < 5; transparency_mode++)
   {
     bl_desc = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
-    if (transparency_mode != static_cast<u8>(GPUTransparencyMode::Disabled) ||
+    if (transparency_mode != static_cast<uint8_t>(GPUTransparencyMode::Disabled) ||
         m_texture_filtering != GPUTextureFilter::Nearest)
     {
       bl_desc.RenderTarget[0].BlendEnable = TRUE;
@@ -883,7 +1027,7 @@ bool GPU_HW_D3D11::CreateStateObjects()
       bl_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
       bl_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
       bl_desc.RenderTarget[0].BlendOp =
-        (transparency_mode == static_cast<u8>(GPUTransparencyMode::BackgroundMinusForeground)) ?
+        (transparency_mode == static_cast<uint8_t>(GPUTransparencyMode::BackgroundMinusForeground)) ?
           D3D11_BLEND_OP_REV_SUBTRACT :
           D3D11_BLEND_OP_ADD;
       bl_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
@@ -915,16 +1059,29 @@ void GPU_HW_D3D11::DestroyStateObjects()
 
 bool GPU_HW_D3D11::CompileShaders()
 {
-  D3D11::ShaderCache shader_cache;
-  shader_cache.Open(g_host_interface->GetShaderCacheBasePath(), m_device->GetFeatureLevel(), SHADER_CACHE_VERSION,
-                    false);
+  // Make sure no previous background-compile worker is still alive
+  // from a prior CompileShaders call (UpdateSettings triggers
+  // DestroyShaders -> CompileShaders, and the worker from the
+  // previous incarnation has to be joined before we start a new one
+  // so it doesn't keep writing into the matrix the new run is about
+  // to fill in).
+  StopShaderCompileThread();
 
-  GPU_HW_ShaderGen shadergen(m_host_display->GetRenderAPI(), m_resolution_scale, m_multisamples, m_per_sample_shading,
-                             m_true_color, m_scaled_dithering, m_texture_filtering, m_using_uv_limits,
-                             m_pgxp_depth_buffer, m_disable_color_perspective, m_supports_dual_source_blend);
+  // Whether to walk the full batch-fragment-shader matrix
+  // synchronously from this thread, hand it to a background thread,
+  // or skip it entirely. See the comment on GPUShaderPrecompileMode
+  // in core/types.h.
+  const GPUShaderPrecompileMode precompile_mode = g_settings.gpu_shader_precompile_mode;
+  const bool precompile_sync = (precompile_mode == GPUShaderPrecompileMode::Enabled);
+  // batch_progress_units counts only reachable cells in the (render,
+  // texture, dither, interlace) matrix - see IsBatchShaderReachable in
+  // gpu_hw.h. This lets the progress bar end at exactly the number of
+  // compiles the precompile loop will perform.
+  const uint32_t batch_progress_units =
+    precompile_sync ? CountReachableBatchShaders(m_supports_dual_source_blend) : 0u;
 
   ShaderCompileProgressTracker progress("Compiling Shaders",
-                                        1 + 1 + 2 + (4 * 9 * 2 * 2) + 1 + (2 * 2) + 4 + (2 * 3) + 1);
+                                        1 + 1 + 2 + batch_progress_units + 1 + (2 * 2) + 4 + (2 * 3) + 1);
 
   // input layout
   {
@@ -935,16 +1092,25 @@ bool GPU_HW_D3D11::CompileShaders()
        {"ATTR", 3, DXGI_FORMAT_R32_UINT, 0, offsetof(BatchVertex, texpage), D3D11_INPUT_PER_VERTEX_DATA, 0},
        {"ATTR", 4, DXGI_FORMAT_R8G8B8A8_UNORM, 0, offsetof(BatchVertex, uv_limits), D3D11_INPUT_PER_VERTEX_DATA, 0}}};
 
-    // we need a vertex shader...
-    ComPtr<ID3DBlob> vs_bytecode =
-      shader_cache.GetShaderBlob(D3D11::ShaderCompiler::Type::Vertex, shadergen.GenerateBatchVertexShader(true));
-    if (!vs_bytecode)
-      return false;
+    // we need a vertex shader's bytecode for the input layout. Use the
+    // pre-baked textured batch VS DXBC directly - the input layout only
+    // needs the bytecode's input signature, and the textured variant
+    // carries the full ATTR0..ATTR4 set.
+    const auto vs_bc = D3DCommon::EmbeddedShaders::PickBatchVertexShader(true);
 
-    const UINT num_attributes = static_cast<UINT>(attributes.size()) - (m_using_uv_limits ? 0 : 1);
+    // num_attributes is now unconditionally attributes.size(). Before
+    // the UV_LIMITS-to-cbuffer routing commit, this used to drop the
+    // ATTR4 / a_uv_limits binding when m_using_uv_limits was false
+    // (matching the shadergen's conditional emission of the input).
+    // Post-routing, the shadergen always emits a_uv_limits as a VS
+    // input when textured, and BatchVertex always carries the
+    // uv_limits field, so the input layout always binds ATTR4. The
+    // FS gates whether to actually consume the value via the
+    // u_uv_limits cbuffer scalar.
+    const UINT num_attributes = static_cast<UINT>(attributes.size());
     const HRESULT hr =
-      m_device->CreateInputLayout(attributes.data(), num_attributes, vs_bytecode->GetBufferPointer(),
-                                  vs_bytecode->GetBufferSize(), m_batch_input_layout.ReleaseAndGetAddressOf());
+      m_device->CreateInputLayout(attributes.data(), num_attributes, vs_bc.data,
+                                  vs_bc.size, m_batch_input_layout.ReleaseAndGetAddressOf());
     if (FAILED(hr))
     {
       Log_ErrorPrintf("CreateInputLayout failed: 0x%08X", hr);
@@ -954,60 +1120,66 @@ bool GPU_HW_D3D11::CompileShaders()
 
   progress.Increment();
 
-  m_screen_quad_vertex_shader =
-    shader_cache.GetVertexShader(m_device.Get(), shadergen.GenerateScreenQuadVertexShader());
-  m_uv_quad_vertex_shader = shader_cache.GetVertexShader(m_device.Get(), shadergen.GenerateUVQuadVertexShader());
+  {
+    // screen-quad VS: byte-equivalent to the fullscreen-quad VS on D3D
+    // (identical SV_VertexID triangle; the shadergen's GL-only y-flip
+    // is dead here), so reuse the pre-baked k_fullscreen_quad_vs blob.
+    m_screen_quad_vertex_shader = D3D11::ShaderCompiler::CreateVertexShader(
+      m_device.Get(), D3DCommon::EmbeddedShaders::k_fullscreen_quad_vs,
+      D3DCommon::EmbeddedShaders::k_fullscreen_quad_vs_size_bytes);
+    // uv-quad VS: dedicated pre-baked blob (cbuffer-driven UV sub-rect).
+    m_uv_quad_vertex_shader = D3D11::ShaderCompiler::CreateVertexShader(
+      m_device.Get(), D3DCommon::EmbeddedShaders::k_uv_quad_vs,
+      D3DCommon::EmbeddedShaders::k_uv_quad_vs_size_bytes);
+  }
   if (!m_screen_quad_vertex_shader || !m_uv_quad_vertex_shader)
     return false;
 
   progress.Increment();
 
-  for (u8 textured = 0; textured < 2; textured++)
+  for (uint8_t textured = 0; textured < 2; textured++)
   {
-    const std::string vs = shadergen.GenerateBatchVertexShader(ConvertToBoolUnchecked(textured));
-    m_batch_vertex_shaders[textured] = shader_cache.GetVertexShader(m_device.Get(), vs);
+    // Pre-baked batch VS DXBC (PickBatchVertexShader); wrap into an
+    // ID3D11VertexShader via CreateVertexShader instead of compiling
+    // GenerateBatchVertexShader through shader_cache.
+    const auto bc = D3DCommon::EmbeddedShaders::PickBatchVertexShader(static_cast<bool>(textured));
+    m_batch_vertex_shaders[textured] =
+      D3D11::ShaderCompiler::CreateVertexShader(m_device.Get(), bc.data, bc.size);
     if (!m_batch_vertex_shaders[textured])
       return false;
 
     progress.Increment();
   }
 
-  for (u8 render_mode = 0; render_mode < 4; render_mode++)
+  // Batch fragment shader matrix - see PrecompileBatchShaders for
+  // the Enabled / Lazy / Disabled behaviour, the
+  // Reserved_*Direct16Bit dedup, the IsBatchShaderReachable filter,
+  // and the dim cache's "walk current m_texture_filtering sub-cube
+  // only" rule. progress is sized so the bar lands at 100% across
+  // the reachable cell count (CountReachableBatchShaders).
+  if (!PrecompileBatchShaders(progress))
+    return false;
+  // Lazy worker launch lives inside PrecompileBatchShaders now -
+  // safe to start before the non-batch builds below because the
+  // worker only walks m_batch_pixel_shaders.
+
   {
-    for (u8 texture_mode = 0; texture_mode < 9; texture_mode++)
-    {
-      for (u8 dithering = 0; dithering < 2; dithering++)
-      {
-        for (u8 interlacing = 0; interlacing < 2; interlacing++)
-        {
-          const std::string ps = shadergen.GenerateBatchFragmentShader(
-            static_cast<BatchRenderMode>(render_mode), static_cast<GPUTextureMode>(texture_mode),
-            ConvertToBoolUnchecked(dithering), ConvertToBoolUnchecked(interlacing));
-
-          m_batch_pixel_shaders[render_mode][texture_mode][dithering][interlacing] =
-            shader_cache.GetPixelShader(m_device.Get(), ps);
-          if (!m_batch_pixel_shaders[render_mode][texture_mode][dithering][interlacing])
-            return false;
-
-          progress.Increment();
-        }
-      }
-    }
+    const auto bc = D3DCommon::EmbeddedShaders::PickCopyFS();
+    m_copy_pixel_shader = D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
   }
-
-  m_copy_pixel_shader = shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateCopyFragmentShader());
   if (!m_copy_pixel_shader)
     return false;
 
   progress.Increment();
 
-  for (u8 wrapped = 0; wrapped < 2; wrapped++)
+  for (uint8_t wrapped = 0; wrapped < 2; wrapped++)
   {
-    for (u8 interlaced = 0; interlaced < 2; interlaced++)
+    for (uint8_t interlaced = 0; interlaced < 2; interlaced++)
     {
-      const std::string ps =
-        shadergen.GenerateVRAMFillFragmentShader(ConvertToBoolUnchecked(wrapped), ConvertToBoolUnchecked(interlaced));
-      m_vram_fill_pixel_shaders[wrapped][interlaced] = shader_cache.GetPixelShader(m_device.Get(), ps);
+      const auto bc = D3DCommon::EmbeddedShaders::PickVRAMFillFS(
+        m_pgxp_depth_buffer, static_cast<bool>(wrapped), static_cast<bool>(interlaced));
+      m_vram_fill_pixel_shaders[wrapped][interlaced] =
+        D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
       if (!m_vram_fill_pixel_shaders[wrapped][interlaced])
         return false;
 
@@ -1015,57 +1187,106 @@ bool GPU_HW_D3D11::CompileShaders()
     }
   }
 
-  m_vram_read_pixel_shader = shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateVRAMReadFragmentShader());
+  {
+    const auto bc = D3DCommon::EmbeddedShaders::PickVRAMReadFS(m_multisamples);
+    m_vram_read_pixel_shader =
+      D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
   if (!m_vram_read_pixel_shader)
     return false;
 
   progress.Increment();
 
-  m_vram_write_pixel_shader =
-    shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateVRAMWriteFragmentShader(false));
+  {
+    const auto bc = D3DCommon::EmbeddedShaders::PickVRAMWriteFS(m_pgxp_depth_buffer);
+    m_vram_write_pixel_shader =
+      D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
   if (!m_vram_write_pixel_shader)
     return false;
 
   progress.Increment();
 
-  m_vram_copy_pixel_shader = shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateVRAMCopyFragmentShader());
+  {
+    const auto bc = D3DCommon::EmbeddedShaders::PickVRAMCopyFS(m_pgxp_depth_buffer);
+    m_vram_copy_pixel_shader =
+      D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
   if (!m_vram_copy_pixel_shader)
     return false;
 
   progress.Increment();
 
-  m_vram_update_depth_pixel_shader =
-    shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateVRAMUpdateDepthFragmentShader());
+  {
+    const auto bc = D3DCommon::EmbeddedShaders::PickVRAMUpdateDepthFS(m_multisamples > 1);
+    m_vram_update_depth_pixel_shader =
+      D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
   if (!m_vram_update_depth_pixel_shader)
     return false;
 
   progress.Increment();
 
-  for (u8 depth_24bit = 0; depth_24bit < 2; depth_24bit++)
-  {
-    for (u8 interlacing = 0; interlacing < 3; interlacing++)
-    {
-      const std::string ps = shadergen.GenerateDisplayFragmentShader(
-        ConvertToBoolUnchecked(depth_24bit), static_cast<InterlacedRenderMode>(interlacing),
-        ConvertToBoolUnchecked(depth_24bit) && m_chroma_smoothing);
-      m_display_pixel_shaders[depth_24bit][interlacing] = shader_cache.GetPixelShader(m_device.Get(), ps);
-      if (!m_display_pixel_shaders[depth_24bit][interlacing])
-        return false;
+  if (!RebuildDisplayPixelShaders())
+    return false;
+  for (uint8_t i = 0; i < 6; i++)
+    progress.Increment();
 
-      progress.Increment();
-    }
-  }
+  if (!CompileDownsampleShaders())
+    return false;
 
+  progress.Increment();
+
+#undef UPDATE_PROGRESS
+
+  return true;
+}
+
+bool GPU_HW_D3D11::CompileDownsampleShaders()
+{
+  // (Re)create the downsample-pass pixel shaders for the current
+  // m_downsample_mode / m_resolution_scale. Split out of CompileShaders
+  // so UpdateSettings can rebuild just these on a downsample-mode change:
+  // GPU_HW::UpdateHWSettings deliberately keeps downsample mode out of
+  // its shaders_changed diff (it does not touch the batch matrix) and
+  // surfaces it via downsample_changed instead, so without this the
+  // shaders stay null after a runtime Disabled/Box/Adaptive switch -
+  // Adaptive then composites a black pyramid (black screen) and Box
+  // draws with a null shader. Disabled is a no-op (the existing handles,
+  // if any, are simply unused).
   if (m_downsample_mode == GPUDownsampleMode::Adaptive)
   {
-    m_downsample_first_pass_pixel_shader =
-      shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateAdaptiveDownsampleMipFragmentShader(true));
-    m_downsample_mid_pass_pixel_shader =
-      shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateAdaptiveDownsampleMipFragmentShader(false));
-    m_downsample_blur_pass_pixel_shader =
-      shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateAdaptiveDownsampleBlurFragmentShader());
-    m_downsample_composite_pixel_shader =
-      shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateAdaptiveDownsampleCompositeFragmentShader());
+    // Pre-baked path. 4 picker calls + 4 CreatePixelShader calls
+    // replace the shadergen + D3DCompile + shader_cache lookup
+    // pattern used pre-this-commit. The pickers consult the .inc
+    // blobs at src/common/d3d_common/embedded_dxbc/ via
+    // D3DCommon::EmbeddedShaders. No on-disk shader-cache entry
+    // is produced for these passes - the bytecode is statically
+    // linked and the device-object refcount is cheap to acquire
+    // per session. The Adaptive composite picker takes
+    // m_resolution_scale as input; the Adaptive mip picker takes
+    // the FIRST_PASS bool (one true, one false to populate the
+    // first / mid slots). The blur picker has no inputs.
+    {
+      const auto bc = D3DCommon::EmbeddedShaders::PickAdaptiveDownsampleMipFS(true);
+      m_downsample_first_pass_pixel_shader =
+        D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+    }
+    {
+      const auto bc = D3DCommon::EmbeddedShaders::PickAdaptiveDownsampleMipFS(false);
+      m_downsample_mid_pass_pixel_shader =
+        D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+    }
+    {
+      const auto bc = D3DCommon::EmbeddedShaders::PickAdaptiveDownsampleBlurFS();
+      m_downsample_blur_pass_pixel_shader =
+        D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+    }
+    {
+      const auto bc = D3DCommon::EmbeddedShaders::PickAdaptiveDownsampleCompositeFS(m_resolution_scale);
+      m_downsample_composite_pixel_shader =
+        D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+    }
 
     if (!m_downsample_first_pass_pixel_shader || !m_downsample_mid_pass_pixel_shader ||
         !m_downsample_blur_pass_pixel_shader || !m_downsample_composite_pixel_shader)
@@ -1075,21 +1296,291 @@ bool GPU_HW_D3D11::CompileShaders()
   }
   else if (m_downsample_mode == GPUDownsampleMode::Box)
   {
+    // Pre-baked Box-filter downsample. resolution_scale is the
+    // only variant axis; the picker returns the matching .inc
+    // blob from the 15-entry [scale=2..16] table.
+    const auto bc = D3DCommon::EmbeddedShaders::PickBoxSampleDownsampleFS(m_resolution_scale);
     m_downsample_first_pass_pixel_shader =
-      shader_cache.GetPixelShader(m_device.Get(), shadergen.GenerateBoxSampleDownsampleFragmentShader());
+      D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
     if (!m_downsample_first_pass_pixel_shader)
       return false;
   }
 
-  progress.Increment();
-
-#undef UPDATE_PROGRESS
-
   return true;
+}
+
+void GPU_HW_D3D11::StopShaderCompileThread()
+{
+  if (!m_shader_compile_thread.joinable())
+    return;
+
+  m_shader_compile_thread_quit.store(true, std::memory_order_relaxed);
+  m_shader_compile_thread.join();
+  m_shader_compile_thread_quit.store(false, std::memory_order_relaxed);
+}
+
+void GPU_HW_D3D11::ShaderCompileThreadEntryPoint()
+{
+  // Lower this worker's scheduling priority to "below normal" so
+  // it doesn't compete with the runloop / CPU emulation / audio
+  // threads on CPU-contended systems. Best-effort: if the platform
+  // refuses we just keep going at default priority. See
+  // common/thread_priority.h for the per-platform mechanics.
+  ThreadPriority::LowerCurrentThreadPriority();
+
+  // Walk the matrix in (render, texture, dither, interlace) order
+  // and call GetBatchPixelShader on each cell. Each call wraps the
+  // pre-baked DXBC blob into an ID3D11PixelShader via
+  // CreatePixelShader lock-free and takes m_batch_shader_mutex only
+  // for the publish step (microsecond window). No D3DCompile runs -
+  // the batch FS set is fully pre-baked (f2620c1), so per-cell cost
+  // is just the CreatePixelShader wrap. The main thread can race
+  // ahead and pre-fill any slot it actually needs at draw time
+  // without waiting for the worker to reach them, and the worker's
+  // race-loser detection picks up any slot the main thread filled
+  // first. The quit flag is checked between cells so DestroyShaders
+  // can bring the worker down within at most one CreatePixelShader
+  // worth of latency.
+  //
+  // Structurally unreachable cells are skipped via
+  // IsBatchShaderReachable - see the comment on that helper in
+  // gpu_hw.h. Reserved texture modes alias the canonical slot
+  // through the dedup logic in GetBatchPixelShader, so first-fault
+  // on the alias only does a ComPtr copy, not a compile. The
+  // two-pass-fallback render modes with no texture are never
+  // selected by FlushRender. TransparentAndOpaque with a texture
+  // mode is never selected on hardware without dual-source blend.
+  //
+  // The worker captures the runtime-current m_texture_filtering at
+  // launch time and walks only that filter's sub-cube. Mirrors what
+  // CompileShaders does in precompile_sync mode - both paths fill
+  // the active filter's sub-cube and leave the other six sub-cubes
+  // empty, to be lazy-faulted in via GetBatchPixelShader on the
+  // main thread if a filter toggle later brings them into use.
+  // UpdateSettings calls StopShaderCompileThread BEFORE
+  // UpdateHWSettings writes m_texture_filtering, so the snapshot
+  // here matches the filter the worker is supposed to be warming -
+  // the next CompileShaders starts a fresh worker for the new
+  // filter.
+  const bool dual_source = m_supports_dual_source_blend;
+  const GPUTextureFilter cur_filter = m_texture_filtering;
+  for (uint8_t render_mode = 0; render_mode < 4; render_mode++)
+  {
+    for (uint8_t texture_mode = 0; texture_mode < 9; texture_mode++)
+    {
+      if (!IsBatchShaderReachable(static_cast<BatchRenderMode>(render_mode), texture_mode, dual_source))
+        continue;
+
+      for (uint8_t dithering = 0; dithering < 2; dithering++)
+      {
+        for (uint8_t interlacing = 0; interlacing < 2; interlacing++)
+        {
+          if (m_shader_compile_thread_quit.load(std::memory_order_relaxed))
+            return;
+
+          GetBatchPixelShader(cur_filter, render_mode, texture_mode, static_cast<bool>(dithering),
+                              static_cast<bool>(interlacing));
+        }
+      }
+    }
+  }
+}
+
+ID3D11PixelShader* GPU_HW_D3D11::GetBatchPixelShader(GPUTextureFilter filter, uint8_t render_mode, uint8_t texture_mode, bool dithering, bool interlacing)
+{
+  // Apply the Reserved_*Direct16Bit dedup at the matrix level. The
+  // shader source for texture_mode 3 / 7 is byte-for-byte identical
+  // to 2 / 6 after macro expansion; storing the same ComPtr in both
+  // slots is safe (refcounted), and storing the same raw pointer in
+  // both atomic fast-path slots is safe because the ComPtr keeps the
+  // shader alive for the lifetime of the GPU backend.
+  const uint8_t lookup_mode = (texture_mode == static_cast<uint8_t>(GPUTextureMode::Reserved_Direct16Bit))    ? 2u :
+                         (texture_mode == static_cast<uint8_t>(GPUTextureMode::Reserved_RawDirect16Bit)) ? 6u :
+                                                                                                      texture_mode;
+  const uint8_t filter_idx = static_cast<uint8_t>(filter);
+
+  // Fast path: lock-free atomic acquire-load of the caller's slot.
+  // If it's filled (the worker reached it first, or an earlier
+  // main-thread fault-in did), we're done with no mutex / kernel
+  // call / contention against the worker.
+  std::atomic<ID3D11PixelShader*>& fast_slot =
+    m_batch_pixel_shader_fastpath[filter_idx][render_mode][texture_mode][static_cast<uint8_t>(dithering)][static_cast<uint8_t>(interlacing)];
+  ID3D11PixelShader* existing = fast_slot.load(std::memory_order_acquire);
+  if (existing)
+    return existing;
+
+  // Slow path. Build the ID3D11PixelShader WITHOUT
+  // m_batch_shader_mutex held - that mutex was the head-of-line
+  // blocking culprit in the pre-fix design.
+  // ID3D11Device::CreatePixelShader is documented free-threaded by
+  // Microsoft, so multiple threads can wrap different pre-baked DXBC
+  // blobs into ID3D11PixelShader objects here in parallel. Two
+  // threads racing to wrap the SAME slot both produce equivalent
+  // objects; the loser's ComPtr is released when it falls out of
+  // scope below.
+  //
+  // Every batch FS variant is pre-baked (the batch FS pre-bake arc
+  // completed at f2620c1). The shared pickers in
+  // D3DCommon::EmbeddedShaders return the matching .inc-supplied
+  // DXBC blob, which we hand straight to
+  // D3D11::ShaderCompiler::CreatePixelShader (a thin wrapper over
+  // ID3D11Device::CreatePixelShader with the byte / size pair):
+  //   - Untextured (texture_mode == Disabled): PickBatchUntexturedFS
+  //   - Textured + Nearest:   PickBatchTexturedNearestFS
+  //   - Textured + Bilinear:  PickBatchTexturedBilinearFS
+  //   - Textured + JINC2:     PickBatchTexturedJINC2FS
+  //   - Textured + xBR:       PickBatchTexturedXBRFS
+  // These are the same blobs the D3D12 backend consumes; fxc emits
+  // ps_5_0 that both APIs honour identically. No shadergen, no
+  // D3DCompile, no shader cache - every D3D11 shader (batch FS / VS,
+  // screen / UV quad VS, copy / vram / display PS) is pre-baked and
+  // wrapped straight into a shader object, so the runtime HLSL
+  // compiler and the disk bytecode cache have both been removed.
+  //
+  // The use_dual_source bit is the same shadergen formula the
+  // pickers consume on D3D12 (m_supports_dual_source_blend AND
+  // (transparent render_mode OR non-Nearest filter)). Computed
+  // once at the call site so the pre-baked picker and any future
+  // PSO blend-state branching see the same value.
+  const bool use_dual_source =
+    m_supports_dual_source_blend &&
+    ((render_mode != static_cast<uint8_t>(BatchRenderMode::TransparencyDisabled) &&
+      render_mode != static_cast<uint8_t>(BatchRenderMode::OnlyOpaque)) ||
+     filter != GPUTextureFilter::Nearest);
+  const bool untextured =
+    (static_cast<GPUTextureMode>(lookup_mode) == GPUTextureMode::Disabled);
+  const bool textured_nearest =
+    !untextured && (filter == GPUTextureFilter::Nearest);
+  const bool textured_bilinear =
+    !untextured && (filter == GPUTextureFilter::Bilinear ||
+                    filter == GPUTextureFilter::BilinearBinAlpha);
+  const bool textured_jinc2 =
+    !untextured && (filter == GPUTextureFilter::JINC2 ||
+                    filter == GPUTextureFilter::JINC2BinAlpha);
+
+  ComPtr<ID3D11PixelShader> fresh;
+  if (untextured)
+  {
+    const auto bc = D3DCommon::EmbeddedShaders::PickBatchUntexturedFS(
+      use_dual_source, m_multisamples, m_per_sample_shading,
+      m_disable_color_perspective);
+    fresh = D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
+  else if (textured_nearest)
+  {
+    const auto bc = D3DCommon::EmbeddedShaders::PickBatchTexturedNearestFS(
+      lookup_mode, use_dual_source, m_multisamples, m_per_sample_shading,
+      m_disable_color_perspective);
+    fresh = D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
+  else if (textured_bilinear)
+  {
+    // Third pre-baked batch FS slice. Mirror of the D3D12 branch
+    // at GetBatchPipeline (gpu_hw_d3d12.cpp; same picker, same
+    // input set). binalpha drives the BINALPHA -D macro arm of
+    // the Bilinear template: BilinearBinAlpha => true (b1 suffix),
+    // Bilinear => false (b0 suffix).
+    const bool binalpha = (filter == GPUTextureFilter::BilinearBinAlpha);
+    const auto bc = D3DCommon::EmbeddedShaders::PickBatchTexturedBilinearFS(
+      lookup_mode, binalpha, use_dual_source, m_multisamples,
+      m_per_sample_shading, m_disable_color_perspective);
+    fresh = D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
+  else if (textured_jinc2)
+  {
+    // Fourth pre-baked batch FS slice. Picker structure identical
+    // to Bilinear's; the BINALPHA -D arm distinguishes JINC2 vs
+    // JINC2BinAlpha. The HLSL body's 16-tap sinc-windowed
+    // resampler with anti-ringing is what differentiates the
+    // runtime behaviour from Bilinear's 4-tap weighted average.
+    const bool binalpha = (filter == GPUTextureFilter::JINC2BinAlpha);
+    const auto bc = D3DCommon::EmbeddedShaders::PickBatchTexturedJINC2FS(
+      lookup_mode, binalpha, use_dual_source, m_multisamples,
+      m_per_sample_shading, m_disable_color_perspective);
+    fresh = D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
+  else
+  {
+    // Fifth and final pre-baked batch FS slice (e07ce04 foundation
+    // + this commit's activation). The remaining filter values are
+    // xBR / xBRBinAlpha by elimination. Picker structure identical
+    // to Bilinear / JINC2; the body of the picked DXBC is xBR's
+    // 5x5 neighbourhood + 4-quadrant blend decision tree + per-
+    // quadrant line-blend special cases. binalpha drives the
+    // BINALPHA -D arm: xBRBinAlpha quantises the blend-weighted
+    // alpha to {0, 1} before the `ialpha < 0.5 ? discard : ...`
+    // test.
+    //
+    // GPUTextureFilter::Count is unreachable here (the filter enum
+    // is set from settings and validated at parse time), so this
+    // arm covers exactly {xBR, xBRBinAlpha}. The shadergen +
+    // tmp_shadergen + m_shader_cache.GetPixelShader fallback path
+    // that used to live here is deleted - all batch FS variants
+    // now consume pre-baked DXBC via D3DCommon::EmbeddedShaders
+    // pickers.
+    const bool binalpha = (filter == GPUTextureFilter::xBRBinAlpha);
+    const auto bc = D3DCommon::EmbeddedShaders::PickBatchTexturedXBRFS(
+      lookup_mode, binalpha, use_dual_source, m_multisamples,
+      m_per_sample_shading, m_disable_color_perspective);
+    fresh = D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+  }
+
+  if (!fresh)
+  {
+    Log_ErrorPrintf("Lazy batch pixel shader compile failed for (f=%u, rm=%u, tm=%u, d=%u, i=%u)",
+                    static_cast<uint8_t>(filter), render_mode, texture_mode,
+                    static_cast<uint8_t>(dithering), static_cast<uint8_t>(interlacing));
+    return nullptr;
+  }
+
+  // Publish step. Take the mutex briefly to coordinate writes into
+  // m_batch_pixel_shaders (ComPtr ownership) and the fastpath
+  // raw-pointer mirror. Double-check the fast slot under the lock
+  // so a race winner doesn't get displaced.
+  std::lock_guard<std::mutex> lock(m_batch_shader_mutex);
+
+  existing = fast_slot.load(std::memory_order_relaxed);
+  if (existing)
+    return existing;
+
+  ComPtr<ID3D11PixelShader>& canonical_slot =
+    m_batch_pixel_shaders[filter_idx][render_mode][lookup_mode][static_cast<uint8_t>(dithering)][static_cast<uint8_t>(interlacing)];
+
+  if (!canonical_slot)
+  {
+    // We won the race on the canonical slot - take ownership of
+    // our freshly-compiled shader.
+    canonical_slot = fresh;
+    m_batch_pixel_shader_fastpath[filter_idx][render_mode][lookup_mode][static_cast<uint8_t>(dithering)][static_cast<uint8_t>(interlacing)].store(
+      canonical_slot.Get(), std::memory_order_release);
+  }
+  // Else: canonical_slot was already filled by another racing
+  // thread. Our `fresh` ComPtr releases its ID3D11PixelShader when
+  // it falls out of scope below, and we use the already-published
+  // canonical_slot.
+
+  if (lookup_mode != texture_mode)
+  {
+    ComPtr<ID3D11PixelShader>& dup_slot =
+      m_batch_pixel_shaders[filter_idx][render_mode][texture_mode][static_cast<uint8_t>(dithering)][static_cast<uint8_t>(interlacing)];
+    if (!dup_slot)
+      dup_slot = canonical_slot;
+  }
+
+  // Publish the caller's slot. For the canonical case this is a
+  // redundant store relative to the one above; for the dup case
+  // this is what makes the dup slot fast-path-reachable.
+  fast_slot.store(canonical_slot.Get(), std::memory_order_release);
+  return canonical_slot.Get();
 }
 
 void GPU_HW_D3D11::DestroyShaders()
 {
+  // Tear the background compile thread down before clearing the
+  // matrix - otherwise the worker would be writing into ComPtrs we're
+  // about to default-construct.
+  StopShaderCompileThread();
+
   m_downsample_composite_pixel_shader.Reset();
   m_downsample_blur_pass_pixel_shader.Reset();
   m_downsample_mid_pass_pixel_shader.Reset();
@@ -1103,12 +1594,151 @@ void GPU_HW_D3D11::DestroyShaders()
   m_copy_pixel_shader.Reset();
   m_uv_quad_vertex_shader.Reset();
   m_screen_quad_vertex_shader.Reset();
+
+  // Clear the atomic fast-path array BEFORE dropping the ComPtr
+  // ownership so a hypothetical concurrent reader couldn't see a
+  // raw pointer pointing to a just-freed shader. By this point the
+  // worker is stopped (StopShaderCompileThread above) and the
+  // runloop isn't drawing (UpdateSettings is the only call site that
+  // goes through DestroyShaders, and it's on the runloop thread
+  // itself), so memory_order_relaxed is sufficient.
+  //
+  // 5-level nesting matches the [filter][render][texture][dither][interlace]
+  // shape of m_batch_pixel_shader_fastpath added in the dim cache port.
+  for (auto& a : m_batch_pixel_shader_fastpath)
+    for (auto& b : a)
+      for (auto& c : b)
+        for (auto& d : c)
+          for (auto& slot : d)
+            slot.store(nullptr, std::memory_order_relaxed);
+
   m_batch_pixel_shaders = {};
   m_batch_vertex_shaders = {};
   m_batch_input_layout.Reset();
 }
 
-void GPU_HW_D3D11::UploadUniformBuffer(const void* data, u32 data_size)
+bool GPU_HW_D3D11::RebuildDisplayPixelShaders()
+{
+  // (Re)select the 2x3 display pixel shader matrix
+  // (m_display_pixel_shaders[depth_24bit][interlacing]) from the
+  // pre-baked DXBC via D3DCommon::EmbeddedShaders::PickDisplayFS.
+  // Called from CompileShaders during the initial build and from
+  // UpdateSettings on a chroma_smoothing-only flip - smooth_chroma is
+  // an axis of the display FS only, so the batch pixel shader matrix
+  // and the VRAM ops pixel shaders stay valid through a chroma toggle
+  // and don't need rebuilding. Cost is 6 CreatePixelShader calls
+  // wrapping pre-baked blobs (no D3DCompile) instead of a full
+  // CompileShaders pass walking the entire batch matrix.
+  //
+  // smooth_chroma only takes effect on the depth_24bit paths, so the
+  // three depth_24bit=false cells pass smooth_chroma=false (PickDisplayFS
+  // ignores the axis there - the picker's d0 table has no chroma
+  // dimension), and the three depth_24bit=true cells pick up the
+  // current m_chroma_smoothing. The session m_multisamples is the
+  // fourth picker axis. No m_shadergen dependency - the display FS is
+  // fully pre-baked.
+  for (uint8_t depth_24bit = 0; depth_24bit < 2; depth_24bit++)
+  {
+    for (uint8_t interlacing = 0; interlacing < 3; interlacing++)
+    {
+      const bool smooth_chroma = static_cast<bool>(depth_24bit) && m_chroma_smoothing;
+      const auto bc = D3DCommon::EmbeddedShaders::PickDisplayFS(
+        static_cast<bool>(depth_24bit), interlacing, smooth_chroma, m_multisamples);
+      m_display_pixel_shaders[depth_24bit][interlacing] =
+        D3D11::ShaderCompiler::CreatePixelShader(m_device.Get(), bc.data, bc.size);
+      if (!m_display_pixel_shaders[depth_24bit][interlacing])
+        return false;
+    }
+  }
+  return true;
+}
+
+bool GPU_HW_D3D11::PrecompileBatchShaders(ShaderCompileProgressTracker& progress)
+{
+  // Walk the current m_texture_filtering sub-cube of
+  // m_batch_pixel_shaders synchronously in Enabled mode; launch the
+  // background-thread batch-fragment-shader fill in Lazy mode; do
+  // nothing in Disabled. Caller is responsible for joining any
+  // previous worker (StopShaderCompileThread). There is no shader
+  // cache to open or shadergen to construct any more - every batch FS
+  // cell is wrapped from pre-baked DXBC.
+  //
+  // Extracted from CompileShaders so the only_dim_changed fast path
+  // in UpdateSettings can call just this helper without paying the
+  // ~10-50ms of cache-hit-but-still-wasted ComPtr churn that
+  // CompileShaders' non-batch shader rebuild block incurs on every
+  // filter flip. None of the non-batch pixel shaders (copy / VRAM
+  // ops / display / downsample) or vertex shaders depend on filter,
+  // so the existing ID3D11PixelShader / ID3D11VertexShader handles
+  // in those slots stay valid across a filter toggle - dropping
+  // them just to rebuild equivalent ones via the shader cache's
+  // disk-backed DXBC blob path is pure overhead. See gpu_hw_
+  // shadergen.cpp - GenerateBatchFragmentShader and
+  // WriteBatchTextureFilter (lines ~706, ~728, ~839) are the only
+  // callers that read m_texture_filter from the shadergen state.
+  //
+  // Structurally unreachable cells (reserved texture modes, two-pass
+  // fallback modes for untextured polys, single-pass dual-source
+  // on hardware that lacks it) are skipped via IsBatchShaderReachable.
+  // Progress is ticked once per reachable cell so the bar lands at
+  // batch_progress_units = CountReachableBatchShaders(dual_source).
+  const GPUShaderPrecompileMode precompile_mode = g_settings.gpu_shader_precompile_mode;
+  const bool precompile_sync = (precompile_mode == GPUShaderPrecompileMode::Enabled);
+
+  if (precompile_sync)
+  {
+    const bool dual_source = m_supports_dual_source_blend;
+    // The dim cache makes m_batch_pixel_shaders filter-dimensioned.
+    // precompile_sync walks ONLY the current m_texture_filtering
+    // sub-cube, not the full 7-filter matrix - pre-filling six
+    // unused sub-cubes would multiply the cold-cache D3DCompile
+    // pass by 7x for no gain (the game can only be running under
+    // one filter at a time, and the other sub-cubes get faulted in
+    // on demand if the user later flips the filter setting and
+    // UpdateSettings calls into this helper again).
+    const GPUTextureFilter cur_filter = m_texture_filtering;
+    for (uint8_t render_mode = 0; render_mode < 4; render_mode++)
+    {
+      for (uint8_t texture_mode = 0; texture_mode < 9; texture_mode++)
+      {
+        if (!IsBatchShaderReachable(static_cast<BatchRenderMode>(render_mode), texture_mode, dual_source))
+          continue;
+
+        for (uint8_t dithering = 0; dithering < 2; dithering++)
+        {
+          for (uint8_t interlacing = 0; interlacing < 2; interlacing++)
+          {
+            ID3D11PixelShader* shader = GetBatchPixelShader(cur_filter, render_mode, texture_mode,
+                                                            static_cast<bool>(dithering),
+                                                            static_cast<bool>(interlacing));
+            if (!shader)
+              return false;
+
+            progress.Increment();
+          }
+        }
+      }
+    }
+  }
+
+  if (precompile_mode == GPUShaderPrecompileMode::Lazy)
+  {
+    // Kick off the background-thread batch-fragment-shader fill so
+    // gameplay can start while the rest of the matrix compiles. The
+    // worker just walks the (render, texture, dither, interlace)
+    // matrix in order, calling the same GetBatchPixelShader helper
+    // the draw path uses, so any slot the game touches in the
+    // meantime is just skipped here (the recheck under the mutex
+    // sees it's already filled). DestroyShaders signals
+    // m_shader_compile_thread_quit and joins.
+    m_shader_compile_thread_quit.store(false, std::memory_order_relaxed);
+    m_shader_compile_thread = std::thread(&GPU_HW_D3D11::ShaderCompileThreadEntryPoint, this);
+  }
+
+  return true;
+}
+
+void GPU_HW_D3D11::UploadUniformBuffer(const void* data, uint32_t data_size)
 {
   const auto res = m_uniform_stream_buffer.Map(m_context.Get(), MAX_UNIFORM_BUFFER_SIZE, data_size);
   std::memcpy(res.pointer, data, data_size);
@@ -1118,7 +1748,7 @@ void GPU_HW_D3D11::UploadUniformBuffer(const void* data, u32 data_size)
   m_context->PSSetConstantBuffers(0, 1, m_uniform_stream_buffer.GetD3DBufferArray());
 }
 
-void GPU_HW_D3D11::SetViewport(u32 x, u32 y, u32 width, u32 height)
+void GPU_HW_D3D11::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
   D3D11_VIEWPORT vp;
   vp.TopLeftX = static_cast<float>(x);
@@ -1130,7 +1760,7 @@ void GPU_HW_D3D11::SetViewport(u32 x, u32 y, u32 width, u32 height)
   m_context->RSSetViewports(1, &vp);
 }
 
-void GPU_HW_D3D11::SetScissor(u32 x, u32 y, u32 width, u32 height)
+void GPU_HW_D3D11::SetScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
   D3D11_RECT rc;
   rc.left = x;
@@ -1140,13 +1770,13 @@ void GPU_HW_D3D11::SetScissor(u32 x, u32 y, u32 width, u32 height)
   m_context->RSSetScissorRects(1, &rc);
 }
 
-void GPU_HW_D3D11::SetViewportAndScissor(u32 x, u32 y, u32 width, u32 height)
+void GPU_HW_D3D11::SetViewportAndScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
   SetViewport(x, y, width, height);
   SetScissor(x, y, width, height);
 }
 
-void GPU_HW_D3D11::DrawUtilityShader(ID3D11PixelShader* shader, const void* uniforms, u32 uniforms_size)
+void GPU_HW_D3D11::DrawUtilityShader(ID3D11PixelShader* shader, const void* uniforms, uint32_t uniforms_size)
 {
   if (uniforms)
   {
@@ -1162,8 +1792,8 @@ void GPU_HW_D3D11::DrawUtilityShader(ID3D11PixelShader* shader, const void* unif
   m_context->Draw(3, 0);
 }
 
-bool GPU_HW_D3D11::BlitVRAMReplacementTexture(const TextureReplacementTexture* tex, u32 dst_x, u32 dst_y, u32 width,
-                                              u32 height)
+bool GPU_HW_D3D11::BlitVRAMReplacementTexture(const TextureReplacementTexture* tex, uint32_t dst_x, uint32_t dst_y, uint32_t width,
+                                              uint32_t height)
 {
   if (m_vram_replacement_texture.GetWidth() < tex->GetWidth() ||
       m_vram_replacement_texture.GetHeight() < tex->GetHeight())
@@ -1185,10 +1815,10 @@ bool GPU_HW_D3D11::BlitVRAMReplacementTexture(const TextureReplacementTexture* t
       return false;
     }
 
-    const u32 copy_size = std::min(tex->GetByteStride(), sr.RowPitch);
-    const u8* src_ptr = reinterpret_cast<const u8*>(tex->GetPixels());
-    u8* dst_ptr = static_cast<u8*>(sr.pData);
-    for (u32 i = 0; i < tex->GetHeight(); i++)
+    const uint32_t copy_size = std::min(tex->GetByteStride(), sr.RowPitch);
+    const uint8_t* src_ptr = reinterpret_cast<const uint8_t*>(tex->GetPixels());
+    uint8_t* dst_ptr = static_cast<uint8_t*>(sr.pData);
+    for (uint32_t i = 0; i < tex->GetHeight(); i++)
     {
       std::memcpy(dst_ptr, src_ptr, copy_size);
       src_ptr += tex->GetByteStride();
@@ -1209,20 +1839,34 @@ bool GPU_HW_D3D11::BlitVRAMReplacementTexture(const TextureReplacementTexture* t
   return true;
 }
 
-void GPU_HW_D3D11::DrawBatchVertices(BatchRenderMode render_mode, u32 base_vertex, u32 num_vertices)
+void GPU_HW_D3D11::DrawBatchVertices(BatchRenderMode render_mode, uint32_t base_vertex, uint32_t num_vertices)
 {
   const bool textured = (m_batch.texture_mode != GPUTextureMode::Disabled);
 
-  m_context->VSSetShader(m_batch_vertex_shaders[BoolToUInt8(textured)].Get(), nullptr, 0);
+  m_context->VSSetShader(m_batch_vertex_shaders[static_cast<uint8_t>(textured)].Get(), nullptr, 0);
 
-  m_context->PSSetShader(m_batch_pixel_shaders[static_cast<u8>(render_mode)][static_cast<u8>(m_batch.texture_mode)]
-                                              [BoolToUInt8(m_batch.dithering)][BoolToUInt8(m_batch.interlacing)]
-                                                .Get(),
-                         nullptr, 0);
+  // Fetch the batch pixel shader via the lazy helper. In 'Enabled'
+  // precompile mode every slot was already filled at CompileShaders
+  // time so this is a fast mutex-protected pointer load. In 'Lazy'
+  // mode this either gets the already-compiled shader (background
+  // thread reached it first) or compiles it now on the main thread
+  // (game raced ahead of the worker). In 'Disabled' mode it always
+  // compiles on miss. The mutex guards both the cache and the
+  // matrix; cost is ~20 ns uncontended per modern std::mutex impl.
+  //
+  // m_texture_filtering selects the active filter's sub-cube. Filter
+  // is the outermost dim so a filter toggle in UpdateSettings can
+  // skip DestroyShaders - the other filters' sub-cubes remain valid
+  // and reachable, switching back to a previously-visited filter is
+  // an atomic load on an already-filled slot.
+  ID3D11PixelShader* batch_pixel_shader =
+    GetBatchPixelShader(m_texture_filtering, static_cast<uint8_t>(render_mode), static_cast<uint8_t>(m_batch.texture_mode), m_batch.dithering,
+                        m_batch.interlacing);
+  m_context->PSSetShader(batch_pixel_shader, nullptr, 0);
 
   const GPUTransparencyMode transparency_mode =
     (render_mode == BatchRenderMode::OnlyOpaque) ? GPUTransparencyMode::Disabled : m_batch.transparency_mode;
-  m_context->OMSetBlendState(m_batch_blend_states[static_cast<u8>(transparency_mode)].Get(), nullptr, 0xFFFFFFFFu);
+  m_context->OMSetBlendState(m_batch_blend_states[static_cast<uint8_t>(transparency_mode)].Get(), nullptr, 0xFFFFFFFFu);
 
   m_context->OMSetDepthStencilState(
     (m_batch.use_depth_buffer ?
@@ -1266,15 +1910,15 @@ void GPU_HW_D3D11::UpdateDisplay()
                                          m_crtc_state.display_vram_width, m_crtc_state.display_vram_height,
                                          GetDisplayAspectRatio());
 
-    const u32 resolution_scale = m_GPUSTAT.display_area_color_depth_24 ? 1 : m_resolution_scale;
-    const u32 vram_offset_x = m_crtc_state.display_vram_left;
-    const u32 vram_offset_y = m_crtc_state.display_vram_top;
-    const u32 scaled_vram_offset_x = vram_offset_x * resolution_scale;
-    const u32 scaled_vram_offset_y = vram_offset_y * resolution_scale;
-    const u32 display_width = m_crtc_state.display_vram_width;
-    const u32 display_height = m_crtc_state.display_vram_height;
-    const u32 scaled_display_width = display_width * resolution_scale;
-    const u32 scaled_display_height = display_height * resolution_scale;
+    const uint32_t resolution_scale = m_GPUSTAT.display_area_color_depth_24 ? 1 : m_resolution_scale;
+    const uint32_t vram_offset_x = m_crtc_state.display_vram_left;
+    const uint32_t vram_offset_y = m_crtc_state.display_vram_top;
+    const uint32_t scaled_vram_offset_x = vram_offset_x * resolution_scale;
+    const uint32_t scaled_vram_offset_y = vram_offset_y * resolution_scale;
+    const uint32_t display_width = m_crtc_state.display_vram_width;
+    const uint32_t display_height = m_crtc_state.display_vram_height;
+    const uint32_t scaled_display_width = display_width * resolution_scale;
+    const uint32_t scaled_display_height = display_height * resolution_scale;
     const InterlacedRenderMode interlaced = GetInterlacedRenderMode();
 
     if (IsDisplayDisabled())
@@ -1305,13 +1949,20 @@ void GPU_HW_D3D11::UpdateDisplay()
       m_context->OMSetDepthStencilState(m_depth_disabled_state.Get(), 0);
       m_context->PSSetShaderResources(0, 1, m_vram_texture.GetD3DSRVArray());
 
-      const u32 reinterpret_field_offset = (interlaced != InterlacedRenderMode::None) ? GetInterlacedDisplayField() : 0;
-      const u32 reinterpret_start_x = m_crtc_state.regs.X * resolution_scale;
-      const u32 reinterpret_crop_left = (m_crtc_state.display_vram_left - m_crtc_state.regs.X) * resolution_scale;
-      const u32 uniforms[4] = {reinterpret_start_x, scaled_vram_offset_y + reinterpret_field_offset,
-                               reinterpret_crop_left, reinterpret_field_offset};
+      const uint32_t reinterpret_field_offset = (interlaced != InterlacedRenderMode::None) ? GetInterlacedDisplayField() : 0;
+      const uint32_t reinterpret_start_x = m_crtc_state.regs.X * resolution_scale;
+      const uint32_t reinterpret_crop_left = (m_crtc_state.display_vram_left - m_crtc_state.regs.X) * resolution_scale;
+      // 6 DWORDs to match the post-RESOLUTION_SCALE-refactor display_ps
+      // cbuffer (u_vram_offset.xy, u_crop_left, u_field_offset,
+      // u_resolution_scale, u_pad0). m_resolution_scale is pushed,
+      // NOT the local resolution_scale (which is forced to 1 in
+      // 24-bit mode for coord scaling) - the shader's RESOLUTION_SCALE
+      // macro has always been the session m_resolution_scale.
+      const uint32_t uniforms[6] = {reinterpret_start_x, scaled_vram_offset_y + reinterpret_field_offset,
+                               reinterpret_crop_left, reinterpret_field_offset,
+                               m_resolution_scale, 0u /* u_pad0 */};
       ID3D11PixelShader* display_pixel_shader =
-        m_display_pixel_shaders[BoolToUInt8(m_GPUSTAT.display_area_color_depth_24)][static_cast<u8>(interlaced)].Get();
+        m_display_pixel_shaders[static_cast<uint8_t>(m_GPUSTAT.display_area_color_depth_24)][static_cast<uint8_t>(interlaced)].Get();
 
       SetViewportAndScissor(0, 0, scaled_display_width, scaled_display_height);
       DrawUtilityShader(display_pixel_shader, uniforms, sizeof(uniforms));
@@ -1332,7 +1983,7 @@ void GPU_HW_D3D11::UpdateDisplay()
   }
 }
 
-void GPU_HW_D3D11::ReadVRAM(u32 x, u32 y, u32 width, u32 height)
+void GPU_HW_D3D11::ReadVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
   if (IsUsingSoftwareRendererForReadbacks())
   {
@@ -1341,12 +1992,15 @@ void GPU_HW_D3D11::ReadVRAM(u32 x, u32 y, u32 width, u32 height)
   }
 
   // Get bounds with wrap-around handled.
-  const Common::Rectangle<u32> copy_rect = GetVRAMTransferBounds(x, y, width, height);
-  const u32 encoded_width = (copy_rect.GetWidth() + 1) / 2;
-  const u32 encoded_height = copy_rect.GetHeight();
+  const Common::Rectangle<uint32_t> copy_rect = GetVRAMTransferBounds(x, y, width, height);
+  const uint32_t encoded_width = (copy_rect.GetWidth() + 1) / 2;
+  const uint32_t encoded_height = copy_rect.GetHeight();
 
   // Encode the 24-bit texture as 16-bit.
-  const u32 uniforms[4] = {copy_rect.left, copy_rect.top, copy_rect.GetWidth(), copy_rect.GetHeight()};
+  // 6 DWORDs to match the post-RESOLUTION_SCALE-refactor vram_read_ps
+  // cbuffer (u_base_coords.xy, u_size.xy, u_resolution_scale, u_pad0).
+  const uint32_t uniforms[6] = {copy_rect.left, copy_rect.top, copy_rect.GetWidth(), copy_rect.GetHeight(),
+                                m_resolution_scale, 0u /* u_pad0 */};
   m_context->RSSetState(m_cull_none_rasterizer_state_no_msaa.Get());
   m_context->OMSetRenderTargets(1, m_vram_encoding_texture.GetD3DRTVArray(), nullptr);
   m_context->OMSetDepthStencilState(m_depth_disabled_state.Get(), 0);
@@ -1360,9 +2014,9 @@ void GPU_HW_D3D11::ReadVRAM(u32 x, u32 y, u32 width, u32 height)
   // And copy it into our shadow buffer.
   if (m_vram_readback_texture.Map(m_context.Get(), false))
   {
-    m_vram_readback_texture.ReadPixels<u32>(
-      0, 0, encoded_width, encoded_height, VRAM_WIDTH * sizeof(u16),
-      reinterpret_cast<u32*>(&m_vram_shadow[copy_rect.top * VRAM_WIDTH + copy_rect.left]));
+    m_vram_readback_texture.ReadPixels<uint32_t>(
+      0, 0, encoded_width, encoded_height, VRAM_WIDTH * sizeof(uint16_t),
+      reinterpret_cast<uint32_t*>(&m_vram_shadow[copy_rect.top * VRAM_WIDTH + copy_rect.left]));
     m_vram_readback_texture.Unmap(m_context.Get());
   }
   else
@@ -1373,7 +2027,7 @@ void GPU_HW_D3D11::ReadVRAM(u32 x, u32 y, u32 width, u32 height)
   RestoreGraphicsAPIState();
 }
 
-void GPU_HW_D3D11::FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color)
+void GPU_HW_D3D11::FillVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color)
 {
   if (IsUsingSoftwareRendererForReadbacks())
     FillSoftwareRendererVRAM(x, y, width, height, color);
@@ -1382,25 +2036,25 @@ void GPU_HW_D3D11::FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color)
 
   m_context->OMSetDepthStencilState(m_depth_test_always_state.Get(), 0);
 
-  const Common::Rectangle<u32> bounds(GetVRAMTransferBounds(x, y, width, height));
+  const Common::Rectangle<uint32_t> bounds(GetVRAMTransferBounds(x, y, width, height));
   SetViewportAndScissor(bounds.left * m_resolution_scale, bounds.top * m_resolution_scale,
                         bounds.GetWidth() * m_resolution_scale, bounds.GetHeight() * m_resolution_scale);
 
   const VRAMFillUBOData uniforms = GetVRAMFillUBOData(x, y, width, height, color);
-  DrawUtilityShader(m_vram_fill_pixel_shaders[BoolToUInt8(IsVRAMFillOversized(x, y, width, height))]
-                                             [BoolToUInt8(IsInterlacedRenderingEnabled())]
+  DrawUtilityShader(m_vram_fill_pixel_shaders[static_cast<uint8_t>(IsVRAMFillOversized(x, y, width, height))]
+                                             [static_cast<uint8_t>(IsInterlacedRenderingEnabled())]
                                                .Get(),
                     &uniforms, sizeof(uniforms));
 
   RestoreGraphicsAPIState();
 }
 
-void GPU_HW_D3D11::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data, bool set_mask, bool check_mask)
+void GPU_HW_D3D11::UpdateVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, bool set_mask, bool check_mask)
 {
   if (IsUsingSoftwareRendererForReadbacks())
     UpdateSoftwareRendererVRAM(x, y, width, height, data, set_mask, check_mask);
 
-  const Common::Rectangle<u32> bounds = GetVRAMTransferBounds(x, y, width, height);
+  const Common::Rectangle<uint32_t> bounds = GetVRAMTransferBounds(x, y, width, height);
   GPU_HW::UpdateVRAM(bounds.left, bounds.top, bounds.GetWidth(), bounds.GetHeight(), data, set_mask, check_mask);
 
   if (!check_mask)
@@ -1413,10 +2067,10 @@ void GPU_HW_D3D11::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* d
     }
   }
 
-  const u32 num_pixels = width * height;
-  const auto map_result = m_texture_stream_buffer.Map(m_context.Get(), sizeof(u16), num_pixels * sizeof(u16));
-  std::memcpy(map_result.pointer, data, num_pixels * sizeof(u16));
-  m_texture_stream_buffer.Unmap(m_context.Get(), num_pixels * sizeof(u16));
+  const uint32_t num_pixels = width * height;
+  const auto map_result = m_texture_stream_buffer.Map(m_context.Get(), sizeof(uint16_t), num_pixels * sizeof(uint16_t));
+  std::memcpy(map_result.pointer, data, num_pixels * sizeof(uint16_t));
+  m_texture_stream_buffer.Unmap(m_context.Get(), num_pixels * sizeof(uint16_t));
 
   const VRAMWriteUBOData uniforms =
     GetVRAMWriteUBOData(x, y, width, height, map_result.index_aligned, set_mask, check_mask);
@@ -1425,7 +2079,7 @@ void GPU_HW_D3D11::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* d
   m_context->PSSetShaderResources(0, 1, m_texture_stream_buffer_srv_r16ui.GetAddressOf());
 
   // the viewport should already be set to the full vram, so just adjust the scissor
-  const Common::Rectangle<u32> scaled_bounds = bounds * m_resolution_scale;
+  const Common::Rectangle<uint32_t> scaled_bounds = bounds * m_resolution_scale;
   SetScissor(scaled_bounds.left, scaled_bounds.top, scaled_bounds.GetWidth(), scaled_bounds.GetHeight());
 
   DrawUtilityShader(m_vram_write_pixel_shader.Get(), &uniforms, sizeof(uniforms));
@@ -1433,22 +2087,22 @@ void GPU_HW_D3D11::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* d
   RestoreGraphicsAPIState();
 }
 
-void GPU_HW_D3D11::CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height)
+void GPU_HW_D3D11::CopyVRAM(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   if (IsUsingSoftwareRendererForReadbacks())
     CopySoftwareRendererVRAM(src_x, src_y, dst_x, dst_y, width, height);
 
   if (UseVRAMCopyShader(src_x, src_y, dst_x, dst_y, width, height) || IsUsingMultisampling())
   {
-    const Common::Rectangle<u32> src_bounds = GetVRAMTransferBounds(src_x, src_y, width, height);
-    const Common::Rectangle<u32> dst_bounds = GetVRAMTransferBounds(dst_x, dst_y, width, height);
+    const Common::Rectangle<uint32_t> src_bounds = GetVRAMTransferBounds(src_x, src_y, width, height);
+    const Common::Rectangle<uint32_t> dst_bounds = GetVRAMTransferBounds(dst_x, dst_y, width, height);
     if (m_vram_dirty_rect.Intersects(src_bounds))
       UpdateVRAMReadTexture();
     IncludeVRAMDirtyRectangle(dst_bounds);
 
     const VRAMCopyUBOData uniforms = GetVRAMCopyUBOData(src_x, src_y, dst_x, dst_y, width, height);
 
-    const Common::Rectangle<u32> dst_bounds_scaled(dst_bounds * m_resolution_scale);
+    const Common::Rectangle<uint32_t> dst_bounds_scaled(dst_bounds * m_resolution_scale);
     SetViewportAndScissor(dst_bounds_scaled.left, dst_bounds_scaled.top, dst_bounds_scaled.GetWidth(),
                           dst_bounds_scaled.GetHeight());
     m_context->OMSetDepthStencilState((m_GPUSTAT.check_mask_before_draw && !m_pgxp_depth_buffer) ?
@@ -1468,7 +2122,7 @@ void GPU_HW_D3D11::CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 widt
   // We can't CopySubresourceRegion to the same resource. So use the shadow texture if we can, but that may need to be
   // updated first. Copying to the same resource seemed to work on Windows 10, but breaks on Windows 7. But, it's
   // against the API spec, so better to be safe than sorry.
-  if (m_vram_dirty_rect.Intersects(Common::Rectangle<u32>::FromExtents(src_x, src_y, width, height)))
+  if (m_vram_dirty_rect.Intersects(Common::Rectangle<uint32_t>::FromExtents(src_x, src_y, width, height)))
     UpdateVRAMReadTexture();
 
   GPU_HW::CopyVRAM(src_x, src_y, dst_x, dst_y, width, height);
@@ -1539,7 +2193,7 @@ void GPU_HW_D3D11::ClearDepthBuffer()
   m_last_depth_z = 1.0f;
 }
 
-void GPU_HW_D3D11::DownsampleFramebuffer(D3D11::Texture& source, u32 left, u32 top, u32 width, u32 height)
+void GPU_HW_D3D11::DownsampleFramebuffer(D3D11::Texture& source, uint32_t left, uint32_t top, uint32_t width, uint32_t height)
 {
   if (m_downsample_mode == GPUDownsampleMode::Adaptive)
     DownsampleFramebufferAdaptive(source, left, top, width, height);
@@ -1547,7 +2201,7 @@ void GPU_HW_D3D11::DownsampleFramebuffer(D3D11::Texture& source, u32 left, u32 t
     DownsampleFramebufferBoxFilter(source, left, top, width, height);
 }
 
-void GPU_HW_D3D11::DownsampleFramebufferAdaptive(D3D11::Texture& source, u32 left, u32 top, u32 width, u32 height)
+void GPU_HW_D3D11::DownsampleFramebufferAdaptive(D3D11::Texture& source, uint32_t left, uint32_t top, uint32_t width, uint32_t height)
 {
   D3D11_BOX src_box;
   src_box.left = left;
@@ -1563,8 +2217,8 @@ void GPU_HW_D3D11::DownsampleFramebufferAdaptive(D3D11::Texture& source, u32 lef
   m_context->VSSetShader(m_uv_quad_vertex_shader.Get(), nullptr, 0);
 
   // create mip chain
-  const u32 levels = m_downsample_texture.GetLevels();
-  for (u32 level = 1; level < levels; level++)
+  const uint32_t levels = m_downsample_texture.GetLevels();
+  for (uint32_t level = 1; level < levels; level++)
   {
     static constexpr float clear_color[4] = {};
 
@@ -1583,7 +2237,7 @@ void GPU_HW_D3D11::DownsampleFramebufferAdaptive(D3D11::Texture& source, u32 lef
 
   // blur pass at lowest level
   {
-    const u32 last_level = levels - 1;
+    const uint32_t last_level = levels - 1;
     static constexpr float clear_color[4] = {};
 
     SetViewportAndScissor(left >> last_level, top >> last_level, width >> last_level, height >> last_level);
@@ -1624,12 +2278,12 @@ void GPU_HW_D3D11::DownsampleFramebufferAdaptive(D3D11::Texture& source, u32 lef
                                     height);
 }
 
-void GPU_HW_D3D11::DownsampleFramebufferBoxFilter(D3D11::Texture& source, u32 left, u32 top, u32 width, u32 height)
+void GPU_HW_D3D11::DownsampleFramebufferBoxFilter(D3D11::Texture& source, uint32_t left, uint32_t top, uint32_t width, uint32_t height)
 {
-  const u32 ds_left = left / m_resolution_scale;
-  const u32 ds_top = top / m_resolution_scale;
-  const u32 ds_width = width / m_resolution_scale;
-  const u32 ds_height = height / m_resolution_scale;
+  const uint32_t ds_left = left / m_resolution_scale;
+  const uint32_t ds_top = top / m_resolution_scale;
+  const uint32_t ds_width = width / m_resolution_scale;
+  const uint32_t ds_height = height / m_resolution_scale;
   static constexpr float clear_color[4] = {};
 
   m_context->ClearRenderTargetView(m_downsample_texture.GetD3DRTV(), clear_color);

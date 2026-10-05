@@ -3,26 +3,17 @@
 
 namespace Common {
 
+// Minimal monotonic timer used only for host-side throttling/sleep decisions
+// (never for emulation state - that would break determinism). Time is kept in
+// integer Value units; thresholds are produced with ConvertSecondsToValue and
+// compared directly, so no time is ever stored in floating point.
 class Timer
 {
 public:
   using Value = std::uint64_t;
 
-  Timer();
-
   static Value GetValue(void);
-  static double ConvertValueToSeconds(Value value);
-  static double ConvertValueToMilliseconds(Value value);
-  static double ConvertValueToNanoseconds(Value value);
   static Value ConvertSecondsToValue(double s);
-
-  void Reset(void);
-
-  double GetTimeSeconds(void) const;
-  double GetTimeMilliseconds(void) const;
-
-private:
-  Value m_tvStartValue;
 };
 
 } // namespace Common

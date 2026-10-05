@@ -2,22 +2,22 @@
 #include "common/types.h"
 
 // Physical memory addresses are 32-bits wide
-using PhysicalMemoryAddress = u32;
-using VirtualMemoryAddress = u32;
+using PhysicalMemoryAddress = uint32_t;
+using VirtualMemoryAddress = uint32_t;
 
-enum class MemoryAccessType : u32
+enum class MemoryAccessType : uint32_t
 {
   Read,
   Write
 };
-enum class MemoryAccessSize : u32
+enum class MemoryAccessSize : uint32_t
 {
   Byte,
   HalfWord,
   Word
 };
 
-using TickCount = s32;
+using TickCount = int32_t;
 
 enum class ConsoleRegion
 {
@@ -28,7 +28,7 @@ enum class ConsoleRegion
   Count
 };
 
-enum class DiscRegion : u8
+enum class DiscRegion : uint8_t
 {
   NTSC_J, // SCEI
   NTSC_U, // SCEA
@@ -37,7 +37,7 @@ enum class DiscRegion : u8
   Count
 };
 
-enum class CPUExecutionMode : u8
+enum class CPUExecutionMode : uint8_t
 {
   Interpreter,
   CachedInterpreter,
@@ -45,14 +45,14 @@ enum class CPUExecutionMode : u8
   Count
 };
 
-enum class PGXPMode : u8
+enum class PGXPMode : uint8_t
 {
   Disabled,
   Memory,
   CPU
 };
 
-enum class GPURenderer : u8
+enum class GPURenderer : uint8_t
 {
 #ifdef _WIN32
   HardwareD3D11,
@@ -64,7 +64,7 @@ enum class GPURenderer : u8
   Count
 };
 
-enum class GPUTextureFilter : u8
+enum class GPUTextureFilter : uint8_t
 {
   Nearest,
   Bilinear,
@@ -76,7 +76,7 @@ enum class GPUTextureFilter : u8
   Count
 };
 
-enum class GPUDownsampleMode : u8
+enum class GPUDownsampleMode : uint8_t
 {
   Disabled,
   Box,
@@ -84,7 +84,41 @@ enum class GPUDownsampleMode : u8
   Count
 };
 
-enum class DisplayCropMode : u8
+// Controls when batch fragment shaders / PSOs are built. There are
+// 144 batch fragment shader permutations on D3D11 / OpenGL and up to
+// 2160 PSO permutations on Vulkan, but most games only ever dispatch a
+// small subset of them at runtime. The historical behaviour was to
+// compile the entire matrix at GPU init - which is what 'Enabled' does
+// - and that's where the multi-second 'libretro looks hung' stall on
+// texture-filter changes comes from.
+//
+//   - Disabled: no precompile at GPU init. Each batch shader / PSO is
+//     compiled on the main thread the first time the game actually
+//     dispatches a draw using that combination, then cached. The user
+//     trades the single multi-second stall for a series of small
+//     first-use hitches spread across early gameplay. Lowest startup
+//     latency; useful on low-end hardware and for users who don't use
+//     the heavier filters (JINC2/xBR/Bilinear).
+//   - Enabled: the historical behaviour. CompileShaders walks the full
+//     matrix synchronously at GPU init. RetroArch is blocked the whole
+//     time. After that there are no per-draw hitches at all. Useful
+//     for benchmarking and for users who want a single up-front cost.
+//   - Lazy: compile on a background thread while gameplay starts
+//     immediately. Each combo the game actually needs is faulted in
+//     on the main thread if the background thread hasn't reached it
+//     yet (worst case: same hitch as Disabled for that one combo),
+//     otherwise the entry is just picked up. After the background
+//     thread finishes, behaviour is identical to Enabled.
+//     This is the default.
+enum class GPUShaderPrecompileMode : uint8_t
+{
+  Disabled,
+  Enabled,
+  Lazy,
+  Count
+};
+
+enum class DisplayCropMode : uint8_t
 {
   None,
   Overscan,
@@ -92,7 +126,7 @@ enum class DisplayCropMode : u8
   Count
 };
 
-enum class DisplayAspectRatio : u8
+enum class DisplayAspectRatio : uint8_t
 {
   Auto,
   MatchWindow,
@@ -140,7 +174,7 @@ enum class MultitapMode
   Count
 };
 
-inline constexpr u32 NUM_CONTROLLER_AND_CARD_PORTS = 8, NUM_MULTITAPS = 2;
+inline constexpr uint32_t NUM_CONTROLLER_AND_CARD_PORTS = 8, NUM_MULTITAPS = 2;
 
 enum class CPUFastmemMode
 {

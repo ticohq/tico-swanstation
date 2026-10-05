@@ -26,7 +26,7 @@ void Pad::Shutdown()
 {
   m_transfer_event.reset();
 
-  for (u32 i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
+  for (uint32_t i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
   {
     m_controllers[i].reset();
     m_memory_cards[i].reset();
@@ -37,7 +37,7 @@ void Pad::Reset()
 {
   SoftReset();
 
-  for (u32 i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
+  for (uint32_t i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
   {
     if (m_controllers[i])
       m_controllers[i]->Reset();
@@ -46,11 +46,11 @@ void Pad::Reset()
       m_memory_cards[i]->Reset();
   }
 
-  for (u32 i = 0; i < NUM_MULTITAPS; i++)
+  for (uint32_t i = 0; i < NUM_MULTITAPS; i++)
     m_multitaps[i].Reset();
 }
 
-bool Pad::DoStateController(StateWrapper& sw, u32 i)
+bool Pad::DoStateController(StateWrapper& sw, uint32_t i)
 {
   ControllerType controller_type = m_controllers[i] ? m_controllers[i]->GetType() : ControllerType::None;
   ControllerType state_controller_type = controller_type;
@@ -85,7 +85,7 @@ bool Pad::DoStateController(StateWrapper& sw, u32 i)
   return true;
 }
 
-bool Pad::DoStateMemcard(StateWrapper& sw, u32 i)
+bool Pad::DoStateMemcard(StateWrapper& sw, uint32_t i)
 {
   bool card_present_in_state = static_cast<bool>(m_memory_cards[i]);
 
@@ -141,7 +141,7 @@ bool Pad::DoStateMemcard(StateWrapper& sw, u32 i)
 
 bool Pad::DoState(StateWrapper& sw)
 {
-  for (u32 i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
+  for (uint32_t i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
   {
     if ((sw.GetVersion() < 50) && (i >= 2))
     {
@@ -168,7 +168,7 @@ bool Pad::DoState(StateWrapper& sw)
 
   if (sw.GetVersion() >= 50)
   {
-    for (u32 i = 0; i < NUM_MULTITAPS; i++)
+    for (uint32_t i = 0; i < NUM_MULTITAPS; i++)
     {
       if (!m_multitaps[i].DoState(sw))
         return false;
@@ -191,25 +191,17 @@ bool Pad::DoState(StateWrapper& sw)
   return !sw.HasError();
 }
 
-void Pad::SetController(u32 slot, std::unique_ptr<Controller> dev)
+void Pad::SetController(uint32_t slot, std::unique_ptr<Controller> dev)
 {
   m_controllers[slot] = std::move(dev);
 }
 
-void Pad::SetMemoryCard(u32 slot, std::unique_ptr<MemoryCard> dev)
+void Pad::SetMemoryCard(uint32_t slot, std::unique_ptr<MemoryCard> dev)
 {
   m_memory_cards[slot] = std::move(dev);
 }
 
-std::unique_ptr<MemoryCard> Pad::RemoveMemoryCard(u32 slot)
-{
-  std::unique_ptr<MemoryCard> ret = std::move(m_memory_cards[slot]);
-  if (ret)
-    ret->Reset();
-  return ret;
-}
-
-u32 Pad::ReadRegister(u32 offset)
+uint32_t Pad::ReadRegister(uint32_t offset)
 {
   switch (offset)
   {
@@ -218,12 +210,12 @@ u32 Pad::ReadRegister(u32 offset)
       if (IsTransmitting())
         m_transfer_event->InvokeEarly();
 
-      const u8 value = m_receive_buffer_full ? m_receive_buffer : 0xFF;
+      const uint8_t value = m_receive_buffer_full ? m_receive_buffer : 0xFF;
       m_receive_buffer_full = false;
       UpdateJoyStat();
 
-      return (ZeroExtend32(value) | (ZeroExtend32(value) << 8) | (ZeroExtend32(value) << 16) |
-              (ZeroExtend32(value) << 24));
+      return (static_cast<uint32_t>(value) | (static_cast<uint32_t>(value) << 8) | (static_cast<uint32_t>(value) << 16) |
+              (static_cast<uint32_t>(value) << 24));
     }
 
     case 0x04: // JOY_STAT
@@ -231,19 +223,19 @@ u32 Pad::ReadRegister(u32 offset)
       if (IsTransmitting())
         m_transfer_event->InvokeEarly();
 
-      const u32 bits = m_JOY_STAT.bits;
+      const uint32_t bits = m_JOY_STAT.bits;
       m_JOY_STAT.ACKINPUT = false;
       return bits;
     }
 
     case 0x08: // JOY_MODE
-      return ZeroExtend32(m_JOY_MODE.bits);
+      return static_cast<uint32_t>(m_JOY_MODE.bits);
 
     case 0x0A: // JOY_CTRL
-      return ZeroExtend32(m_JOY_CTRL.bits);
+      return static_cast<uint32_t>(m_JOY_CTRL.bits);
 
     case 0x0E: // JOY_BAUD
-      return ZeroExtend32(m_JOY_BAUD);
+      return static_cast<uint32_t>(m_JOY_BAUD);
 
     default:
       break;
@@ -251,13 +243,13 @@ u32 Pad::ReadRegister(u32 offset)
   return UINT32_C(0xFFFFFFFF);
 }
 
-void Pad::WriteRegister(u32 offset, u32 value)
+void Pad::WriteRegister(uint32_t offset, uint32_t value)
 {
   switch (offset)
   {
     case 0x00: // JOY_DATA
     {
-      m_transmit_buffer = Truncate8(value);
+      m_transmit_buffer = static_cast<uint8_t>(value);
       m_transmit_buffer_full = true;
 
       if (!IsTransmitting() && CanTransfer())
@@ -268,7 +260,7 @@ void Pad::WriteRegister(u32 offset, u32 value)
 
     case 0x0A: // JOY_CTRL
     {
-      m_JOY_CTRL.bits = Truncate16(value);
+      m_JOY_CTRL.bits = static_cast<uint16_t>(value);
       if (m_JOY_CTRL.RESET)
         SoftReset();
 
@@ -298,13 +290,13 @@ void Pad::WriteRegister(u32 offset, u32 value)
 
     case 0x08: // JOY_MODE
     {
-      m_JOY_MODE.bits = Truncate16(value);
+      m_JOY_MODE.bits = static_cast<uint16_t>(value);
       return;
     }
 
     case 0x0E:
     {
-      m_JOY_BAUD = Truncate16(value);
+      m_JOY_BAUD = static_cast<uint16_t>(value);
       return;
     }
 
@@ -371,16 +363,16 @@ void Pad::BeginTransfer()
 
 void Pad::DoTransfer(TickCount ticks_late)
 {
-  const u8 device_index = m_multitaps[0].IsEnabled() ? 4u : m_JOY_CTRL.SLOT;
+  const uint8_t device_index = m_multitaps[0].IsEnabled() ? 4u : m_JOY_CTRL.SLOT;
   Controller* const controller = m_controllers[device_index].get();
   MemoryCard* const memory_card = m_memory_cards[device_index].get();
 
   // set rx?
   m_JOY_CTRL.RXEN = true;
 
-  const u8 data_out = m_transmit_value;
+  const uint8_t data_out = m_transmit_value;
 
-  u8 data_in = 0xFF;
+  uint8_t data_in = 0xFF;
   bool ack = false;
 
   switch (m_active_device)
@@ -485,7 +477,7 @@ void Pad::EndTransfer()
 
 void Pad::ResetDeviceTransferState()
 {
-  for (u32 i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
+  for (uint32_t i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
   {
     if (m_controllers[i])
       m_controllers[i]->ResetTransferState();
@@ -493,7 +485,7 @@ void Pad::ResetDeviceTransferState()
       m_memory_cards[i]->ResetTransferState();
   }
 
-  for (u32 i = 0; i < NUM_MULTITAPS; i++)
+  for (uint32_t i = 0; i < NUM_MULTITAPS; i++)
     m_multitaps[i].ResetTransferState();
 
   m_active_device = ActiveDevice::None;

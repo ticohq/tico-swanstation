@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <optional>
@@ -40,6 +41,104 @@ static std::optional<CDImage::TrackMode> ParseTrackModeString(const char* str)
     return std::nullopt;
 }
 
+// Lightweight parser for CHD track-metadata strings; avoids sscanf, which on
+// glibc walks strlen() over the entire input before each call and may also
+// allocate scratch buffers inside vsscanf. The formats we care about are:
+//   CDROM_TRACK_METADATA_FORMAT  = "TRACK:%d TYPE:%s SUBTYPE:%s FRAMES:%d"
+//   CDROM_TRACK_METADATA2_FORMAT = "TRACK:%d TYPE:%s SUBTYPE:%s FRAMES:%d "
+//                                  "PREGAP:%d PGTYPE:%s PGSUB:%s POSTGAP:%d"
+// In scanf terms, a literal space matches "any run of whitespace, possibly
+// empty"; %s matches a non-empty run of non-whitespace; %d matches an optional
+// sign followed by decimal digits, with leading whitespace skipped. The helpers
+// below mirror that.
+
+static const char* SkipWS(const char* p)
+{
+  while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+    p++;
+  return p;
+}
+
+static const char* MatchLiteral(const char* p, const char* lit)
+{
+  p = SkipWS(p);
+  const std::size_t n = std::strlen(lit);
+  return (std::strncmp(p, lit, n) == 0) ? (p + n) : nullptr;
+}
+
+static const char* ParseDecInt(const char* p, int* out)
+{
+  p = SkipWS(p);
+  char* endp = nullptr;
+  const long v = std::strtol(p, &endp, 10);
+  if (endp == p)
+    return nullptr;
+  *out = static_cast<int>(v);
+  return endp;
+}
+
+static const char* ParseToken(const char* p, char* dst, std::size_t dst_size)
+{
+  if (dst_size == 0)
+    return nullptr;
+  p = SkipWS(p);
+  const char* const start = p;
+  while (*p != '\0' && *p != ' ' && *p != '\t' && *p != '\n' && *p != '\r')
+    p++;
+  const std::size_t len = static_cast<std::size_t>(p - start);
+  if (len == 0)
+    return nullptr;
+  const std::size_t copy = (len < dst_size - 1) ? len : (dst_size - 1);
+  std::memcpy(dst, start, copy);
+  dst[copy] = '\0';
+  return p;
+}
+
+static bool ParseChdTrackMetadataV1(const char* s, int* track_num,
+                                    char* type_str, std::size_t type_size,
+                                    char* subtype_str, std::size_t subtype_size,
+                                    int* frames)
+{
+  const char* p = s;
+  if (!(p = MatchLiteral(p, "TRACK:")))   return false;
+  if (!(p = ParseDecInt(p, track_num)))   return false;
+  if (!(p = MatchLiteral(p, "TYPE:")))    return false;
+  if (!(p = ParseToken(p, type_str, type_size)))       return false;
+  if (!(p = MatchLiteral(p, "SUBTYPE:"))) return false;
+  if (!(p = ParseToken(p, subtype_str, subtype_size))) return false;
+  if (!(p = MatchLiteral(p, "FRAMES:")))  return false;
+  if (!(p = ParseDecInt(p, frames)))      return false;
+  return true;
+}
+
+static bool ParseChdTrackMetadataV2(const char* s, int* track_num,
+                                    char* type_str, std::size_t type_size,
+                                    char* subtype_str, std::size_t subtype_size,
+                                    int* frames, int* pregap_frames,
+                                    char* pgtype_str, std::size_t pgtype_size,
+                                    char* pgsub_str, std::size_t pgsub_size,
+                                    int* postgap_frames)
+{
+  const char* p = s;
+  if (!(p = MatchLiteral(p, "TRACK:")))    return false;
+  if (!(p = ParseDecInt(p, track_num)))    return false;
+  if (!(p = MatchLiteral(p, "TYPE:")))     return false;
+  if (!(p = ParseToken(p, type_str, type_size)))       return false;
+  if (!(p = MatchLiteral(p, "SUBTYPE:")))  return false;
+  if (!(p = ParseToken(p, subtype_str, subtype_size))) return false;
+  if (!(p = MatchLiteral(p, "FRAMES:")))   return false;
+  if (!(p = ParseDecInt(p, frames)))       return false;
+  if (!(p = MatchLiteral(p, "PREGAP:")))   return false;
+  if (!(p = ParseDecInt(p, pregap_frames))) return false;
+  if (!(p = MatchLiteral(p, "PGTYPE:")))   return false;
+  if (!(p = ParseToken(p, pgtype_str, pgtype_size)))   return false;
+  if (!(p = MatchLiteral(p, "PGSUB:")))    return false;
+  if (!(p = ParseToken(p, pgsub_str, pgsub_size)))     return false;
+  if (!(p = MatchLiteral(p, "POSTGAP:")))  return false;
+  if (!(p = ParseDecInt(p, postgap_frames))) return false;
+  return true;
+}
+
 class CDImageCHD : public CDImage
 {
 public:
@@ -55,17 +154,17 @@ protected:
   bool ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index) override;
 
 private:
-  static constexpr u32 CHD_CD_SECTOR_DATA_SIZE = 2352 + 96, CHD_CD_TRACK_ALIGNMENT = 4;
+  static constexpr uint32_t CHD_CD_SECTOR_DATA_SIZE = 2352 + 96, CHD_CD_TRACK_ALIGNMENT = 4;
 
-  bool ReadHunk(u32 hunk_index);
+  bool ReadHunk(uint32_t hunk_index);
 
   RFILE* m_fp = nullptr;
   chd_file* m_chd = nullptr;
-  u32 m_hunk_size = 0;
-  u32 m_sectors_per_hunk = 0;
+  uint32_t m_hunk_size = 0;
+  uint32_t m_sectors_per_hunk = 0;
 
-  std::vector<u8> m_hunk_buffer;
-  u32 m_current_hunk_index = static_cast<u32>(-1);
+  std::vector<uint8_t> m_hunk_buffer;
+  uint32_t m_current_hunk_index = static_cast<uint32_t>(-1);
 
   CDSubChannelReplacement m_sbi;
 };
@@ -125,8 +224,8 @@ bool CDImageCHD::Open(const char* filename, Common::Error* error)
   m_hunk_buffer.resize(m_hunk_size);
   m_filename = filename;
 
-  u32 disc_lba = 0;
-  u64 file_lba = 0;
+  uint32_t disc_lba = 0;
+  uint64_t file_lba = 0;
 
   // for each track..
   int num_tracks = 0;
@@ -137,15 +236,17 @@ bool CDImageCHD::Open(const char* filename, Common::Error* error)
     char subtype_str[256];
     char pgtype_str[256];
     char pgsub_str[256];
-    u32 metadata_length;
+    uint32_t metadata_length;
 
     int track_num = 0, frames = 0, pregap_frames = 0, postgap_frames = 0;
     err = chd_get_metadata(m_chd, CDROM_TRACK_METADATA2_TAG, num_tracks, metadata_str, sizeof(metadata_str),
                            &metadata_length, nullptr, nullptr);
     if (err == CHDERR_NONE)
     {
-      if (std::sscanf(metadata_str, CDROM_TRACK_METADATA2_FORMAT, &track_num, type_str, subtype_str, &frames,
-                      &pregap_frames, pgtype_str, pgsub_str, &postgap_frames) != 8)
+      if (!ParseChdTrackMetadataV2(metadata_str, &track_num, type_str, sizeof(type_str),
+                                   subtype_str, sizeof(subtype_str), &frames, &pregap_frames,
+                                   pgtype_str, sizeof(pgtype_str), pgsub_str, sizeof(pgsub_str),
+                                   &postgap_frames))
       {
         Log_ErrorPrintf("Invalid track v2 metadata: '%s'", metadata_str);
         if (error)
@@ -165,7 +266,8 @@ bool CDImageCHD::Open(const char* filename, Common::Error* error)
         break;
       }
 
-      if (std::sscanf(metadata_str, CDROM_TRACK_METADATA_FORMAT, &track_num, type_str, subtype_str, &frames) != 4)
+      if (!ParseChdTrackMetadataV1(metadata_str, &track_num, type_str, sizeof(type_str),
+                                   subtype_str, sizeof(subtype_str), &frames))
       {
         Log_ErrorPrintf("Invalid track metadata: '%s'", metadata_str);
         if (error)
@@ -243,8 +345,8 @@ bool CDImageCHD::Open(const char* filename, Common::Error* error)
     }
 
     // add the track itself
-    m_tracks.push_back(Track{static_cast<u32>(track_num), disc_lba, static_cast<u32>(m_indices.size()),
-                             static_cast<u32>(frames + pregap_frames), mode.value(), control});
+    m_tracks.push_back(Track{static_cast<uint32_t>(track_num), disc_lba, static_cast<uint32_t>(m_indices.size()),
+                             static_cast<uint32_t>(frames + pregap_frames), mode.value(), control});
 
     // how many indices in this track?
     Index index = {};
@@ -258,7 +360,7 @@ bool CDImageCHD::Open(const char* filename, Common::Error* error)
     index.mode = mode.value();
     index.control.bits = control.bits;
     index.is_pregap = false;
-    index.length = static_cast<u32>(frames);
+    index.length = static_cast<uint32_t>(frames);
     m_indices.push_back(index);
 
     disc_lba += index.length;
@@ -301,15 +403,30 @@ bool CDImageCHD::HasNonStandardSubchannel() const
   return (m_sbi.GetReplacementSectorCount() > 0);
 }
 
-// There's probably a more efficient way of doing this with vectorization...
-ALWAYS_INLINE static void CopyAndSwap(void* dst_ptr, const u8* src_ptr, u32 data_size)
+// CHD stores CD audio sectors in big-endian byte order, so on
+// little-endian hosts every read of an audio sector needs a 16-bit
+// byte swap. The architecture-specific branches below are width
+// optimisations that all do the same job. On a big-endian host the
+// data is already in host order and no swap is needed - just
+// std::memcpy.
+//
+// (Selecting width here off the architecture macros, not off
+// MSB_FIRST, is intentional: x86_64 and AArch64 can swap eight
+// bytes per iteration, x86 and ARM are limited to four, and the
+// fallback handles the byte swap two bytes at a time. All three
+// LE branches produce the same result; only the LE/BE split is
+// guarded by MSB_FIRST.)
+ALWAYS_INLINE static void CopyAndSwap(void* dst_ptr, const uint8_t* src_ptr, uint32_t data_size)
 {
-  u8* dst_ptr_byte = static_cast<u8*>(dst_ptr);
+#if defined(MSB_FIRST)
+  std::memcpy(dst_ptr, src_ptr, data_size);
+#else
+  uint8_t* dst_ptr_byte = static_cast<uint8_t*>(dst_ptr);
 #if defined(CPU_X64) || defined(CPU_AARCH64)
-  const u32 num_values = data_size / 8;
-  for (u32 i = 0; i < num_values; i++)
+  const uint32_t num_values = data_size / 8;
+  for (uint32_t i = 0; i < num_values; i++)
   {
-    u64 value;
+    uint64_t value;
     std::memcpy(&value, src_ptr, sizeof(value));
     value = ((value >> 8) & UINT64_C(0x00FF00FF00FF00FF)) | ((value << 8) & UINT64_C(0xFF00FF00FF00FF00));
     std::memcpy(dst_ptr_byte, &value, sizeof(value));
@@ -317,10 +434,10 @@ ALWAYS_INLINE static void CopyAndSwap(void* dst_ptr, const u8* src_ptr, u32 data
     dst_ptr_byte += sizeof(value);
   }
 #elif defined(CPU_X86) || defined(CPU_ARM)
-  const u32 num_values = data_size / 4;
-  for (u32 i = 0; i < num_values; i++)
+  const uint32_t num_values = data_size / 4;
+  for (uint32_t i = 0; i < num_values; i++)
   {
-    u32 value;
+    uint32_t value;
     std::memcpy(&value, src_ptr, sizeof(value));
     value = ((value >> 8) & UINT32_C(0x00FF00FF)) | ((value << 8) & UINT32_C(0xFF00FF00));
     std::memcpy(dst_ptr_byte, &value, sizeof(value));
@@ -328,10 +445,10 @@ ALWAYS_INLINE static void CopyAndSwap(void* dst_ptr, const u8* src_ptr, u32 data
     dst_ptr_byte += sizeof(value);
   }
 #else
-  const u32 num_values = data_size / sizeof(u16);
-  for (u32 i = 0; i < num_values; i++)
+  const uint32_t num_values = data_size / sizeof(uint16_t);
+  for (uint32_t i = 0; i < num_values; i++)
   {
-    u16 value;
+    uint16_t value;
     std::memcpy(&value, src_ptr, sizeof(value));
     value = (value << 8) | (value >> 8);
     std::memcpy(dst_ptr_byte, &value, sizeof(value));
@@ -339,13 +456,14 @@ ALWAYS_INLINE static void CopyAndSwap(void* dst_ptr, const u8* src_ptr, u32 data
     dst_ptr_byte += sizeof(value);
   }
 #endif
+#endif
 }
 
 bool CDImageCHD::ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index)
 {
-  const u32 disc_frame = static_cast<LBA>(index.file_offset) + lba_in_index;
-  const u32 hunk_index = static_cast<u32>(disc_frame / m_sectors_per_hunk);
-  const u32 hunk_offset = static_cast<u32>((disc_frame % m_sectors_per_hunk) * CHD_CD_SECTOR_DATA_SIZE);
+  const uint32_t disc_frame = static_cast<LBA>(index.file_offset) + lba_in_index;
+  const uint32_t hunk_index = static_cast<uint32_t>(disc_frame / m_sectors_per_hunk);
+  const uint32_t hunk_offset = static_cast<uint32_t>((disc_frame % m_sectors_per_hunk) * CHD_CD_SECTOR_DATA_SIZE);
 
   if (m_current_hunk_index != hunk_index && !ReadHunk(hunk_index))
     return false;
@@ -359,7 +477,7 @@ bool CDImageCHD::ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_i
   return true;
 }
 
-bool CDImageCHD::ReadHunk(u32 hunk_index)
+bool CDImageCHD::ReadHunk(uint32_t hunk_index)
 {
   const chd_error err = chd_read(m_chd, hunk_index, m_hunk_buffer.data());
   if (err != CHDERR_NONE)
@@ -367,7 +485,7 @@ bool CDImageCHD::ReadHunk(u32 hunk_index)
     Log_ErrorPrintf("chd_read(%u) failed: %s", hunk_index, chd_error_string(err));
 
     // data might have been partially written
-    m_current_hunk_index = static_cast<u32>(-1);
+    m_current_hunk_index = static_cast<uint32_t>(-1);
     return false;
   }
 

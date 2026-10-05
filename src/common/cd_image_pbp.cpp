@@ -6,9 +6,10 @@
 #include "pbp_types.h"
 #include "string.h"
 #include "string_util.h"
-#include "zlib.h"
+#include "miniz.h"
+#include <algorithm>
 #include <array>
-#include <cstdio>
+#include <cstring>
 #include <vector>
 Log_SetChannel(CDImagePBP);
 
@@ -26,11 +27,11 @@ public:
   bool HasNonStandardSubchannel() const override;
 
   bool HasSubImages() const override;
-  u32 GetSubImageCount() const override;
-  u32 GetCurrentSubImage() const override;
-  bool SwitchSubImage(u32 index, Common::Error* error) override;
+  uint32_t GetSubImageCount() const override;
+  uint32_t GetCurrentSubImage() const override;
+  bool SwitchSubImage(uint32_t index, Common::Error* error) override;
   std::string GetMetadata(const std::string_view& type) const override;
-  std::string GetSubImageMetadata(u32 index, const std::string_view& type) const override;
+  std::string GetSubImageMetadata(uint32_t index, const std::string_view& type) const override;
 
 protected:
   bool ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index) override;
@@ -38,8 +39,8 @@ protected:
 private:
   struct BlockInfo
   {
-    u32 offset; // Absolute offset from start of file
-    u16 size;
+    uint32_t offset; // Absolute offset from start of file
+    uint16_t size;
   };
 
   bool LoadPBPHeader();
@@ -52,7 +53,7 @@ private:
   bool InitDecompressionStream();
   bool DecompressBlock(const BlockInfo& block_info);
 
-  bool OpenDisc(u32 index, Common::Error* error);
+  bool OpenDisc(uint32_t index, Common::Error* error);
 
   static const std::string* LookupStringSFOTableEntry(const char* key, const SFOTable& table);
 
@@ -64,17 +65,17 @@ private:
   SFOIndexTable m_sfo_index_table;
 
   // Absolute offsets to ISO headers, size is the number of discs in the file
-  std::vector<u32> m_disc_offsets;
-  u32 m_current_disc = 0;
+  std::vector<uint32_t> m_disc_offsets;
+  uint32_t m_current_disc = 0;
 
   // Absolute offsets and sizes of blocks in m_file
   std::array<BlockInfo, BLOCK_TABLE_NUM_ENTRIES> m_blockinfo_table;
 
   std::array<TOCEntry, TOC_NUM_ENTRIES> m_toc;
 
-  u32 m_current_block = static_cast<u32>(-1);
-  std::array<u8, DECOMPRESSED_BLOCK_SIZE> m_decompressed_block;
-  std::vector<u8> m_compressed_block;
+  uint32_t m_current_block = static_cast<uint32_t>(-1);
+  std::array<uint8_t, DECOMPRESSED_BLOCK_SIZE> m_decompressed_block;
+  std::vector<uint8_t> m_compressed_block;
 
   z_stream m_inflate_stream;
 
@@ -86,8 +87,8 @@ static constexpr bool HostIsLittleEndian()
 {
   constexpr union
   {
-    u8 a[4];
-    u32 b;
+    uint8_t a[4];
+    uint32_t b;
   } test_val = {{1}};
 
   return test_val.a[0] == 1;
@@ -99,7 +100,7 @@ static void SwapByteOrder(T& val)
   union
   {
     T t;
-    std::array<u8, sizeof(T)> arr;
+    std::array<uint8_t, sizeof(T)> arr;
   } swap_val;
 
   swap_val.t = val;
@@ -183,9 +184,9 @@ bool CDImagePBP::LoadSFOTable()
 
   for (size_t i = 0; i < static_cast<size_t>(m_sfo_header.num_table_entries); ++i)
   {
-    u32 abs_key_offset =
+    uint32_t abs_key_offset =
       m_pbp_header.param_sfo_offset + m_sfo_header.key_table_offset + m_sfo_index_table[i].key_offset;
-    u32 abs_data_offset =
+    uint32_t abs_data_offset =
       m_pbp_header.param_sfo_offset + m_sfo_header.data_table_offset + m_sfo_index_table[i].data_offset;
 
     if (FileSystem::FSeek64(m_file, abs_key_offset, SEEK_SET) != 0)
@@ -226,8 +227,8 @@ bool CDImagePBP::LoadSFOTable()
     }
     else if (m_sfo_index_table[i].data_type == 0x0404) // uint32_t
     {
-      u32 val;
-      if (rfread(&val, sizeof(u32), 1, m_file) != 1)
+      uint32_t val;
+      if (rfread(&val, sizeof(uint32_t), 1, m_file) != 1)
       {
         Log_ErrorPrintf("Failed to read unsigned data value for SFO table entry %zu", i);
         return false;
@@ -254,7 +255,7 @@ bool CDImagePBP::IsValidEboot(Common::Error* error)
   if (a_it != m_sfo_table.end())
   {
     SFOTableDataValue data_value = a_it->second;
-    if (!std::holds_alternative<u32>(data_value) || std::get<u32>(data_value) != 1)
+    if (!std::holds_alternative<uint32_t>(data_value) || std::get<uint32_t>(data_value) != 1)
     {
       Log_ErrorPrint("Invalid BOOTABLE value");
       if (error)
@@ -368,8 +369,8 @@ bool CDImagePBP::Open(const char* filename, Common::Error* error)
     if (FileSystem::FSeek64(m_file, m_pbp_header.data_psar_offset + 0x200, SEEK_SET) != 0)
       return false;
 
-    u32 disc_table[DISC_TABLE_NUM_ENTRIES] = {};
-    if (rfread(disc_table, sizeof(u32), DISC_TABLE_NUM_ENTRIES, m_file) != DISC_TABLE_NUM_ENTRIES)
+    uint32_t disc_table[DISC_TABLE_NUM_ENTRIES] = {};
+    if (rfread(disc_table, sizeof(uint32_t), DISC_TABLE_NUM_ENTRIES, m_file) != DISC_TABLE_NUM_ENTRIES)
       return false;
 
     // Ignore encrypted files
@@ -383,7 +384,7 @@ bool CDImagePBP::Open(const char* filename, Common::Error* error)
     }
 
     // Convert relative offsets to absolute offsets for available discs
-    for (u32 i = 0; i < DISC_TABLE_NUM_ENTRIES; i++)
+    for (uint32_t i = 0; i < DISC_TABLE_NUM_ENTRIES; i++)
     {
       if (disc_table[i] != 0)
         m_disc_offsets.push_back(m_pbp_header.data_psar_offset + disc_table[i]);
@@ -422,7 +423,7 @@ bool CDImagePBP::Open(const char* filename, Common::Error* error)
     // Ronnie Sahlberg <ronniesahlberg@gmail.com>, author of pop-fe.
     if (m_disc_offsets.size() < 1)
     {
-      Log_ErrorPrintf("Invalid number of discs (%u) in multi-disc PBP file", static_cast<u32>(m_disc_offsets.size()));
+      Log_ErrorPrintf("Invalid number of discs (%u) in multi-disc PBP file", static_cast<uint32_t>(m_disc_offsets.size()));
       return false;
     }
   }
@@ -435,7 +436,7 @@ bool CDImagePBP::Open(const char* filename, Common::Error* error)
   return OpenDisc(0, error);
 }
 
-bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
+bool CDImagePBP::OpenDisc(uint32_t index, Common::Error* error)
 {
   if (index >= m_disc_offsets.size())
   {
@@ -445,14 +446,14 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
     return false;
   }
 
-  m_current_block = static_cast<u32>(-1);
+  m_current_block = static_cast<uint32_t>(-1);
   m_blockinfo_table.fill({});
   m_toc.fill({});
   m_decompressed_block.fill(0x00);
   m_compressed_block.clear();
 
   // Go to ISO header
-  const u32 iso_header_start = m_disc_offsets[index];
+  const uint32_t iso_header_start = m_disc_offsets[index];
   if (FileSystem::FSeek64(m_file, iso_header_start, SEEK_SET) != 0)
     return false;
 
@@ -467,7 +468,7 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
   }
 
   // Ignore encrypted files
-  u32 pgd_magic;
+  uint32_t pgd_magic;
   if (FileSystem::FSeek64(m_file, iso_header_start + 0x400, SEEK_SET) != 0)
     return false;
 
@@ -487,7 +488,7 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
   if (FileSystem::FSeek64(m_file, iso_header_start + 0x800, SEEK_SET) != 0)
     return false;
 
-  for (u32 i = 0; i < TOC_NUM_ENTRIES; i++)
+  for (uint32_t i = 0; i < TOC_NUM_ENTRIES; i++)
   {
     if (rfread(&m_toc[i], sizeof(m_toc[i]), 1, m_file) != 1)
       return false;
@@ -500,7 +501,7 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
   if (FileSystem::FSeek64(m_file, iso_header_start + 0xBFC, SEEK_SET) != 0)
     return false;
 
-  u32 iso_offset;
+  uint32_t iso_offset;
   if (rfread(&iso_offset, sizeof(iso_offset), 1, m_file) != 1)
     return false;
 
@@ -508,7 +509,7 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
   if (FileSystem::FSeek64(m_file, iso_header_start + 0x4000, SEEK_SET) != 0)
     return false;
 
-  for (u32 i = 0; i < BLOCK_TABLE_NUM_ENTRIES; i++)
+  for (uint32_t i = 0; i < BLOCK_TABLE_NUM_ENTRIES; i++)
   {
     BlockTableEntry bte;
     if (rfread(&bte, sizeof(bte), 1, m_file) != 1)
@@ -531,8 +532,8 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
     return false;
   }
 
-  const u8 first_track = PackedBCDToBinary(m_toc[0].userdata_start.m);
-  const u8 last_track = PackedBCDToBinary(m_toc[1].userdata_start.m);
+  const uint8_t first_track = PackedBCDToBinary(m_toc[0].userdata_start.m);
+  const uint8_t last_track = PackedBCDToBinary(m_toc[1].userdata_start.m);
   const LBA sectors_on_file =
     Position::FromBCD(m_toc[2].userdata_start.m, m_toc[2].userdata_start.s, m_toc[2].userdata_start.f).ToLBA();
 
@@ -550,19 +551,19 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
   ClearTOC();
   m_lba_count = sectors_on_file;
   LBA track1_pregap_frames = 0;
-  for (u32 curr_track = 1; curr_track <= last_track; curr_track++)
+  for (uint32_t curr_track = 1; curr_track <= last_track; curr_track++)
   {
     // Load in all the user stuff to m_tracks and m_indices
     const TOCEntry& t = m_toc[static_cast<size_t>(curr_track) + 2];
-    const u8 track_num = PackedBCDToBinary(t.point);
+    const uint8_t track_num = PackedBCDToBinary(t.point);
     if (track_num != curr_track)
-      Log_WarningPrintf("Mismatched TOC track number, expected %u but got %u", static_cast<u32>(curr_track), track_num);
+      Log_WarningPrintf("Mismatched TOC track number, expected %u but got %u", static_cast<uint32_t>(curr_track), track_num);
 
     const bool is_audio_track = t.type == 0x01;
     const bool is_first_track = curr_track == 1;
     const bool is_last_track = curr_track == last_track;
     const TrackMode track_mode = is_audio_track ? TrackMode::Audio : TrackMode::Mode2Raw;
-    const u32 track_sector_size = GetBytesPerSector(track_mode);
+    const uint32_t track_sector_size = GetBytesPerSector(track_mode);
 
     SubChannelQ::Control track_control = {};
     track_control.data = !is_audio_track;
@@ -570,20 +571,20 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
     LBA pregap_start = Position::FromBCD(t.pregap_start.m, t.pregap_start.s, t.pregap_start.f).ToLBA();
     LBA userdata_start = Position::FromBCD(t.userdata_start.m, t.userdata_start.s, t.userdata_start.f).ToLBA();
     LBA pregap_frames;
-    u32 pregap_sector_size;
+    uint32_t pregap_sector_size;
 
     if (userdata_start < pregap_start)
     {
       if (!is_first_track || is_audio_track)
       {
         Log_ErrorPrintf("Invalid TOC entry at index %u, user data (%u) should not start before pregap (%u)",
-                        static_cast<u32>(curr_track), userdata_start, pregap_start);
+                        static_cast<uint32_t>(curr_track), userdata_start, pregap_start);
         return false;
       }
 
       Log_WarningPrintf(
         "Invalid TOC entry at index %u, user data (%u) should not start before pregap (%u), assuming not in file.",
-        static_cast<u32>(curr_track), userdata_start, pregap_start);
+        static_cast<uint32_t>(curr_track), userdata_start, pregap_start);
       pregap_start = 0;
       pregap_frames = userdata_start;
       pregap_sector_size = 0;
@@ -602,13 +603,13 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
 
     Index pregap_index = {};
     pregap_index.file_offset =
-      is_first_track ? 0 : (static_cast<u64>(pregap_start - track1_pregap_frames) * pregap_sector_size);
+      is_first_track ? 0 : (static_cast<uint64_t>(pregap_start - track1_pregap_frames) * pregap_sector_size);
     pregap_index.file_index = 0;
     pregap_index.file_sector_size = pregap_sector_size;
     pregap_index.start_lba_on_disc = pregap_start;
     pregap_index.track_number = curr_track;
     pregap_index.index_number = 0;
-    pregap_index.start_lba_in_track = static_cast<LBA>(-static_cast<s32>(pregap_frames));
+    pregap_index.start_lba_in_track = static_cast<LBA>(-static_cast<int32_t>(pregap_frames));
     pregap_index.length = pregap_frames;
     pregap_index.mode = track_mode;
     pregap_index.control.bits = track_control.bits;
@@ -617,7 +618,7 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
     m_indices.push_back(pregap_index);
 
     Index userdata_index = {};
-    userdata_index.file_offset = static_cast<u64>(userdata_start - track1_pregap_frames) * track_sector_size;
+    userdata_index.file_offset = static_cast<uint64_t>(userdata_start - track1_pregap_frames) * track_sector_size;
     userdata_index.file_index = 0;
     userdata_index.file_sector_size = track_sector_size;
     userdata_index.start_lba_on_disc = userdata_start;
@@ -633,7 +634,7 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
       if (userdata_start >= m_lba_count)
       {
         Log_ErrorPrintf("Last user data index on disc for TOC entry %u should not be 0 or less in length",
-                        static_cast<u32>(curr_track));
+                        static_cast<uint32_t>(curr_track));
         return false;
       }
       userdata_index.length = m_lba_count - userdata_start;
@@ -643,11 +644,11 @@ bool CDImagePBP::OpenDisc(u32 index, Common::Error* error)
       const TOCEntry& next_track = m_toc[static_cast<size_t>(curr_track) + 3];
       const LBA next_track_start =
         Position::FromBCD(next_track.pregap_start.m, next_track.pregap_start.s, next_track.pregap_start.f).ToLBA();
-      const u8 next_track_num = PackedBCDToBinary(next_track.point);
+      const uint8_t next_track_num = PackedBCDToBinary(next_track.point);
 
       if (next_track_num != curr_track + 1 || next_track_start < userdata_start)
       {
-        Log_ErrorPrintf("Unable to calculate user data index length for TOC entry %u", static_cast<u32>(curr_track));
+        Log_ErrorPrintf("Unable to calculate user data index length for TOC entry %u", static_cast<uint32_t>(curr_track));
         return false;
       }
 
@@ -716,13 +717,13 @@ bool CDImagePBP::DecompressBlock(const BlockInfo& block_info)
   // Compression level 0 has compressed size == decompressed size.
   if (block_info.size == m_decompressed_block.size())
   {
-    return (rfread(m_decompressed_block.data(), sizeof(u8), m_decompressed_block.size(), m_file) == static_cast<int64_t>(
+    return (rfread(m_decompressed_block.data(), sizeof(uint8_t), m_decompressed_block.size(), m_file) == static_cast<int64_t>(
             m_decompressed_block.size()));
   }
 
   m_compressed_block.resize(block_info.size);
 
-  if (rfread(m_compressed_block.data(), sizeof(u8), m_compressed_block.size(), m_file) != static_cast<int64_t>(m_compressed_block.size()))
+  if (rfread(m_compressed_block.data(), sizeof(uint8_t), m_compressed_block.size(), m_file) != static_cast<int64_t>(m_compressed_block.size()))
     return false;
 
   m_inflate_stream.next_in = m_compressed_block.data();
@@ -758,9 +759,9 @@ bool CDImagePBP::HasNonStandardSubchannel() const
 
 bool CDImagePBP::ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index)
 {
-  const u32 offset_in_file = static_cast<u32>(index.file_offset) + (lba_in_index * index.file_sector_size);
-  const u32 offset_in_block = offset_in_file % DECOMPRESSED_BLOCK_SIZE;
-  const u32 requested_block = offset_in_file / DECOMPRESSED_BLOCK_SIZE;
+  const uint32_t offset_in_file = static_cast<uint32_t>(index.file_offset) + (lba_in_index * index.file_sector_size);
+  const uint32_t offset_in_block = offset_in_file % DECOMPRESSED_BLOCK_SIZE;
+  const uint32_t requested_block = offset_in_file / DECOMPRESSED_BLOCK_SIZE;
 
   BlockInfo& bi = m_blockinfo_table[requested_block];
 
@@ -797,22 +798,22 @@ std::string CDImagePBP::GetMetadata(const std::string_view& type) const
   return CDImage::GetMetadata(type);
 }
 
-u32 CDImagePBP::GetSubImageCount() const
+uint32_t CDImagePBP::GetSubImageCount() const
 {
-  return static_cast<u32>(m_disc_offsets.size());
+  return static_cast<uint32_t>(m_disc_offsets.size());
 }
 
-u32 CDImagePBP::GetCurrentSubImage() const
+uint32_t CDImagePBP::GetCurrentSubImage() const
 {
   return m_current_disc;
 }
 
-bool CDImagePBP::SwitchSubImage(u32 index, Common::Error* error)
+bool CDImagePBP::SwitchSubImage(uint32_t index, Common::Error* error)
 {
   if (index >= m_disc_offsets.size())
     return false;
 
-  const u32 old_disc = m_current_disc;
+  const uint32_t old_disc = m_current_disc;
   // return to old disc, this should never fail... in theory.
   if (!OpenDisc(index, error))
     OpenDisc(old_disc, nullptr);
@@ -820,7 +821,7 @@ bool CDImagePBP::SwitchSubImage(u32 index, Common::Error* error)
   return true;
 }
 
-std::string CDImagePBP::GetSubImageMetadata(u32 index, const std::string_view& type) const
+std::string CDImagePBP::GetSubImageMetadata(uint32_t index, const std::string_view& type) const
 {
   if (type == "title")
   {

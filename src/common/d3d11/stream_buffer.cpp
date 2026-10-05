@@ -19,7 +19,7 @@ StreamBuffer::~StreamBuffer()
   Release();
 }
 
-bool StreamBuffer::Create(ID3D11Device* device, D3D11_BIND_FLAG bind_flags, u32 size)
+bool StreamBuffer::Create(ID3D11Device* device, D3D11_BIND_FLAG bind_flags, uint32_t size)
 {
   CD3D11_BUFFER_DESC desc(size, bind_flags, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE, 0, 0);
   ComPtr<ID3D11Buffer> buffer;
@@ -66,7 +66,7 @@ void StreamBuffer::Release()
   m_buffer.Reset();
 }
 
-StreamBuffer::MappingResult StreamBuffer::Map(ID3D11DeviceContext* context, u32 alignment, u32 min_size)
+StreamBuffer::MappingResult StreamBuffer::Map(ID3D11DeviceContext* context, uint32_t alignment, uint32_t min_size)
 {
   m_position = Common::AlignUp(m_position, alignment);
   if ((m_position + min_size) >= m_size || !m_use_map_no_overwrite)
@@ -81,7 +81,7 @@ StreamBuffer::MappingResult StreamBuffer::Map(ID3D11DeviceContext* context, u32 
   if (FAILED(hr))
   {
     Log_ErrorPrintf("Map failed: 0x%08X (alignment %u, minsize %u, size %u, position %u, map type %u)", hr, alignment,
-                    min_size, m_size, m_position, static_cast<u32>(map_type));
+                    min_size, m_size, m_position, static_cast<uint32_t>(map_type));
     return {};
   }
 
@@ -89,7 +89,7 @@ StreamBuffer::MappingResult StreamBuffer::Map(ID3D11DeviceContext* context, u32 
                        (m_size - m_position) / alignment};
 }
 
-void StreamBuffer::Unmap(ID3D11DeviceContext* context, u32 used_size)
+void StreamBuffer::Unmap(ID3D11DeviceContext* context, uint32_t used_size)
 {
   context->Unmap(m_buffer.Get(), 0);
   m_position += used_size;

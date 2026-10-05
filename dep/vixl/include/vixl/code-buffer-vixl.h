@@ -24,15 +24,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SWANSTATION_VIXL_CODE_BUFFER_H
-#define SWANSTATION_VIXL_CODE_BUFFER_H
+#ifndef VIXL_CODE_BUFFER_H
+#define VIXL_CODE_BUFFER_H
 
 #include <cstring>
 
 #include "globals-vixl.h"
 #include "utils-vixl.h"
 
-namespace swanstation_vixl {
+namespace vixl {
 
 class CodeBuffer {
  public:
@@ -44,66 +44,66 @@ class CodeBuffer {
 
   void Reset();
 
-#ifdef SWANSTATION_VIXL_CODE_BUFFER_MMAP
+#ifdef VIXL_CODE_BUFFER_MMAP
   void SetExecutable();
   void SetWritable();
 #else
   // These require page-aligned memory blocks, which we can only guarantee with
   // mmap.
-  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE void SetExecutable() { SWANSTATION_VIXL_UNIMPLEMENTED(); }
-  SWANSTATION_VIXL_NO_RETURN_IN_DEBUG_MODE void SetWritable() { SWANSTATION_VIXL_UNIMPLEMENTED(); }
+  VIXL_NO_RETURN_IN_DEBUG_MODE void SetExecutable() { VIXL_UNIMPLEMENTED(); }
+  VIXL_NO_RETURN_IN_DEBUG_MODE void SetWritable() { VIXL_UNIMPLEMENTED(); }
 #endif
 
   ptrdiff_t GetOffsetFrom(ptrdiff_t offset) const {
     ptrdiff_t cursor_offset = cursor_ - buffer_;
-    SWANSTATION_VIXL_ASSERT((offset >= 0) && (offset <= cursor_offset));
+    VIXL_ASSERT((offset >= 0) && (offset <= cursor_offset));
     return cursor_offset - offset;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetOffsetFrom",
+  VIXL_DEPRECATED("GetOffsetFrom",
                   ptrdiff_t OffsetFrom(ptrdiff_t offset) const) {
     return GetOffsetFrom(offset);
   }
 
   ptrdiff_t GetCursorOffset() const { return GetOffsetFrom(0); }
-  SWANSTATION_VIXL_DEPRECATED("GetCursorOffset", ptrdiff_t CursorOffset() const) {
+  VIXL_DEPRECATED("GetCursorOffset", ptrdiff_t CursorOffset() const) {
     return GetCursorOffset();
   }
 
   void Rewind(ptrdiff_t offset) {
     byte* rewound_cursor = buffer_ + offset;
-    SWANSTATION_VIXL_ASSERT((buffer_ <= rewound_cursor) && (rewound_cursor <= cursor_));
+    VIXL_ASSERT((buffer_ <= rewound_cursor) && (rewound_cursor <= cursor_));
     cursor_ = rewound_cursor;
   }
 
   template <typename T>
   T GetOffsetAddress(ptrdiff_t offset) const {
-    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
-    SWANSTATION_VIXL_ASSERT((offset >= 0) && (offset <= (cursor_ - buffer_)));
+    VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
+    VIXL_ASSERT((offset >= 0) && (offset <= (cursor_ - buffer_)));
     return reinterpret_cast<T>(buffer_ + offset);
   }
 
   // Return the address of the start or end of the emitted code.
   template <typename T>
   T GetStartAddress() const {
-    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
+    VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
     return GetOffsetAddress<T>(0);
   }
   template <typename T>
   T GetEndAddress() const {
-    SWANSTATION_VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
+    VIXL_STATIC_ASSERT(sizeof(T) >= sizeof(uintptr_t));
     return GetOffsetAddress<T>(GetSizeInBytes());
   }
 
   size_t GetRemainingBytes() const {
-    SWANSTATION_VIXL_ASSERT((cursor_ >= buffer_) && (cursor_ <= (buffer_ + capacity_)));
+    VIXL_ASSERT((cursor_ >= buffer_) && (cursor_ <= (buffer_ + capacity_)));
     return (buffer_ + capacity_) - cursor_;
   }
-  SWANSTATION_VIXL_DEPRECATED("GetRemainingBytes", size_t RemainingBytes() const) {
+  VIXL_DEPRECATED("GetRemainingBytes", size_t RemainingBytes() const) {
     return GetRemainingBytes();
   }
 
   size_t GetSizeInBytes() const {
-    SWANSTATION_VIXL_ASSERT((cursor_ >= buffer_) && (cursor_ <= (buffer_ + capacity_)));
+    VIXL_ASSERT((cursor_ >= buffer_) && (cursor_ <= (buffer_ + capacity_)));
     return cursor_ - buffer_;
   }
 
@@ -125,7 +125,7 @@ class CodeBuffer {
 
   template <typename T>
   void Emit(T value) {
-    SWANSTATION_VIXL_ASSERT(HasSpaceFor(sizeof(value)));
+    VIXL_ASSERT(HasSpaceFor(sizeof(value)));
     dirty_ = true;
     memcpy(cursor_, &value, sizeof(value));
     cursor_ += sizeof(value);
@@ -144,7 +144,7 @@ class CodeBuffer {
   bool Is32bitAligned() const { return IsAligned<4>(cursor_); }
 
   size_t GetCapacity() const { return capacity_; }
-  SWANSTATION_VIXL_DEPRECATED("GetCapacity", size_t capacity() const) {
+  VIXL_DEPRECATED("GetCapacity", size_t capacity() const) {
     return GetCapacity();
   }
 
@@ -163,7 +163,7 @@ class CodeBuffer {
   void EnsureSpaceFor(size_t amount, bool* has_grown) {
     bool is_full = !HasSpaceFor(amount);
     if (is_full) Grow(capacity_ * 2 + amount);
-    SWANSTATION_VIXL_ASSERT(has_grown != NULL);
+    VIXL_ASSERT(has_grown != NULL);
     *has_grown = is_full;
   }
   void EnsureSpaceFor(size_t amount) {
@@ -186,6 +186,6 @@ class CodeBuffer {
   size_t capacity_;
 };
 
-}  // namespace swanstation_vixl
+}  // namespace vixl
 
-#endif  // SWANSTATION_VIXL_CODE_BUFFER_H
+#endif  // VIXL_CODE_BUFFER_H

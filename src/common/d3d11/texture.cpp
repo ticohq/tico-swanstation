@@ -13,7 +13,7 @@ Texture::Texture(ComPtr<ID3D11Texture2D> texture, ComPtr<ID3D11ShaderResourceVie
   const D3D11_TEXTURE2D_DESC desc = GetDesc();
   m_width = desc.Width;
   m_height = desc.Height;
-  m_samples = static_cast<u16>(desc.SampleDesc.Count);
+  m_samples = static_cast<uint16_t>(desc.SampleDesc.Count);
 }
 
 Texture::~Texture()
@@ -28,8 +28,8 @@ D3D11_TEXTURE2D_DESC Texture::GetDesc() const
   return desc;
 }
 
-bool Texture::Create(ID3D11Device* device, u32 width, u32 height, u32 levels, u32 samples, DXGI_FORMAT format,
-                     u32 bind_flags, const void* initial_data /* = nullptr */, u32 initial_data_stride /* = 0 */,
+bool Texture::Create(ID3D11Device* device, uint32_t width, uint32_t height, uint32_t levels, uint32_t samples, DXGI_FORMAT format,
+                     uint32_t bind_flags, const void* initial_data /* = nullptr */, uint32_t initial_data_stride /* = 0 */,
                      bool dynamic)
 {
   CD3D11_TEXTURE2D_DESC desc(format, width, height, 1, levels, bind_flags,
@@ -84,8 +84,8 @@ bool Texture::Create(ID3D11Device* device, u32 width, u32 height, u32 levels, u3
   m_rtv = std::move(rtv);
   m_width = width;
   m_height = height;
-  m_levels = static_cast<u16>(levels);
-  m_samples = static_cast<u16>(samples);
+  m_levels = static_cast<uint16_t>(levels);
+  m_samples = static_cast<uint16_t>(samples);
   return true;
 }
 

@@ -7,6 +7,7 @@
 #include "context.h"
 #include "util.h"
 
+#include <cstring>
 namespace Vulkan {
 
 StagingTexture::StagingTexture() = default;
@@ -42,11 +43,11 @@ StagingTexture::~StagingTexture()
     Destroy(true);
 }
 
-bool StagingTexture::Create(StagingBuffer::Type type, VkFormat format, u32 width, u32 height)
+bool StagingTexture::Create(StagingBuffer::Type type, VkFormat format, uint32_t width, uint32_t height)
 {
-  const u32 texel_size = Util::GetTexelSize(format);
-  const u32 map_stride = texel_size * width;
-  const u32 buffer_size = map_stride * height;
+  const uint32_t texel_size = Util::GetTexelSize(format);
+  const uint32_t map_stride = texel_size * width;
+  const uint32_t buffer_size = map_stride * height;
 
   VkBufferUsageFlags usage_flags;
   switch (type)
@@ -91,8 +92,8 @@ void StagingTexture::Destroy(bool defer /* = true */)
   m_map_stride = 0;
 }
 
-void StagingTexture::CopyFromTexture(VkCommandBuffer command_buffer, Texture& src_texture, u32 src_x, u32 src_y,
-                                     u32 src_layer, u32 src_level, u32 dst_x, u32 dst_y, u32 width, u32 height)
+void StagingTexture::CopyFromTexture(VkCommandBuffer command_buffer, Texture& src_texture, uint32_t src_x, uint32_t src_y,
+                                     uint32_t src_layer, uint32_t src_level, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   VkImageLayout old_layout = src_texture.GetLayout();
   src_texture.TransitionToLayout(command_buffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
@@ -114,8 +115,8 @@ void StagingTexture::CopyFromTexture(VkCommandBuffer command_buffer, Texture& sr
   src_texture.TransitionToLayout(command_buffer, old_layout);
 }
 
-void StagingTexture::CopyFromTexture(Texture& src_texture, u32 src_x, u32 src_y, u32 src_layer, u32 src_level,
-                                     u32 dst_x, u32 dst_y, u32 width, u32 height)
+void StagingTexture::CopyFromTexture(Texture& src_texture, uint32_t src_x, uint32_t src_y, uint32_t src_layer, uint32_t src_level,
+                                     uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   CopyFromTexture(g_vulkan_context->GetCurrentCommandBuffer(), src_texture, src_x, src_y, src_layer, src_level, dst_x,
                   dst_y, width, height);
@@ -124,8 +125,8 @@ void StagingTexture::CopyFromTexture(Texture& src_texture, u32 src_x, u32 src_y,
   m_flush_fence_counter = g_vulkan_context->GetCurrentFenceCounter();
 }
 
-void StagingTexture::CopyToTexture(VkCommandBuffer command_buffer, u32 src_x, u32 src_y, Texture& dst_texture,
-                                   u32 dst_x, u32 dst_y, u32 dst_layer, u32 dst_level, u32 width, u32 height)
+void StagingTexture::CopyToTexture(VkCommandBuffer command_buffer, uint32_t src_x, uint32_t src_y, Texture& dst_texture,
+                                   uint32_t dst_x, uint32_t dst_y, uint32_t dst_layer, uint32_t dst_level, uint32_t width, uint32_t height)
 {
   // Flush caches before copying.
   m_staging_buffer.FlushCPUCache();
@@ -148,8 +149,8 @@ void StagingTexture::CopyToTexture(VkCommandBuffer command_buffer, u32 src_x, u3
   dst_texture.TransitionToLayout(command_buffer, old_layout);
 }
 
-void StagingTexture::CopyToTexture(u32 src_x, u32 src_y, Texture& dst_texture, u32 dst_x, u32 dst_y, u32 dst_layer,
-                                   u32 dst_level, u32 width, u32 height)
+void StagingTexture::CopyToTexture(uint32_t src_x, uint32_t src_y, Texture& dst_texture, uint32_t dst_x, uint32_t dst_y, uint32_t dst_layer,
+                                   uint32_t dst_level, uint32_t width, uint32_t height)
 {
   CopyToTexture(g_vulkan_context->GetCurrentCommandBuffer(), src_x, src_y, dst_texture, dst_x, dst_y, dst_layer,
                 dst_level, width, height);
@@ -185,7 +186,7 @@ void StagingTexture::Flush()
   m_needs_flush = false;
 }
 
-void StagingTexture::ReadTexels(u32 src_x, u32 src_y, u32 width, u32 height, void* out_ptr, u32 out_stride)
+void StagingTexture::ReadTexels(uint32_t src_x, uint32_t src_y, uint32_t width, uint32_t height, void* out_ptr, uint32_t out_stride)
 {
   PrepareForAccess();
 
@@ -201,9 +202,9 @@ void StagingTexture::ReadTexels(u32 src_x, u32 src_y, u32 width, u32 height, voi
     return;
   }
 
-  size_t copy_size = std::min<u32>(width * m_texel_size, m_map_stride);
+  size_t copy_size = std::min<uint32_t>(width * m_texel_size, m_map_stride);
   char* dst_ptr = reinterpret_cast<char*>(out_ptr);
-  for (u32 row = 0; row < height; row++)
+  for (uint32_t row = 0; row < height; row++)
   {
     std::memcpy(dst_ptr, current_ptr, copy_size);
     current_ptr += m_map_stride;
@@ -211,15 +212,7 @@ void StagingTexture::ReadTexels(u32 src_x, u32 src_y, u32 width, u32 height, voi
   }
 }
 
-void StagingTexture::ReadTexel(u32 x, u32 y, void* out_ptr)
-{
-  PrepareForAccess();
-
-  const char* src_ptr = GetMappedPointer() + y * GetMappedStride() + x * m_texel_size;
-  std::memcpy(out_ptr, src_ptr, m_texel_size);
-}
-
-void StagingTexture::WriteTexels(u32 dst_x, u32 dst_y, u32 width, u32 height, const void* in_ptr, u32 in_stride)
+void StagingTexture::WriteTexels(uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height, const void* in_ptr, uint32_t in_stride)
 {
   PrepareForAccess();
 
@@ -235,22 +228,14 @@ void StagingTexture::WriteTexels(u32 dst_x, u32 dst_y, u32 width, u32 height, co
     return;
   }
 
-  size_t copy_size = std::min<u32>(width * m_texel_size, m_map_stride);
+  size_t copy_size = std::min<uint32_t>(width * m_texel_size, m_map_stride);
   const char* src_ptr = reinterpret_cast<const char*>(in_ptr);
-  for (u32 row = 0; row < height; row++)
+  for (uint32_t row = 0; row < height; row++)
   {
     std::memcpy(current_ptr, src_ptr, copy_size);
     current_ptr += m_map_stride;
     src_ptr += in_stride;
   }
-}
-
-void StagingTexture::WriteTexel(u32 x, u32 y, const void* in_ptr)
-{
-  PrepareForAccess();
-
-  char* dest_ptr = GetMappedPointer() + y * m_map_stride + x * m_texel_size;
-  std::memcpy(dest_ptr, in_ptr, m_texel_size);
 }
 
 void StagingTexture::PrepareForAccess()

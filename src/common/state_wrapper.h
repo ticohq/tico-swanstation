@@ -3,6 +3,7 @@
 #include "fifo_queue.h"
 #include "heap_array.h"
 #include "types.h"
+#include <array>
 #include <cstring>
 #include <deque>
 #include <string>
@@ -20,16 +21,15 @@ public:
     Write
   };
 
-  StateWrapper(ByteStream* stream, Mode mode, u32 version);
+  StateWrapper(ByteStream* stream, Mode mode, uint32_t version);
   StateWrapper(const StateWrapper&) = delete;
   ~StateWrapper();
 
   bool HasError() const { return m_error; }
   bool IsReading() const { return (m_mode == Mode::Read); }
   bool IsWriting() const { return (m_mode == Mode::Write); }
-  Mode GetMode() const { return m_mode; }
   void SetMode(Mode mode) { m_mode = mode; }
-  u32 GetVersion() const { return m_version; }
+  uint32_t GetVersion() const { return m_version; }
 
   /// Overload for integral or floating-point types. Writes bytes as-is.
   template<typename T, std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>, int> = 0>
@@ -113,7 +113,7 @@ public:
   template<typename T>
   void Do(std::vector<T>* data)
   {
-    u32 length = static_cast<u32>(data->size());
+    uint32_t length = static_cast<uint32_t>(data->size());
     Do(&length);
     if (m_mode == Mode::Read)
       data->resize(length);
@@ -123,12 +123,12 @@ public:
   template<typename T>
   void Do(std::deque<T>* data)
   {
-    u32 length = static_cast<u32>(data->size());
+    uint32_t length = static_cast<uint32_t>(data->size());
     Do(&length);
     if (m_mode == Mode::Read)
     {
       data->clear();
-      for (u32 i = 0; i < length; i++)
+      for (uint32_t i = 0; i < length; i++)
       {
         T value;
         Do(&value);
@@ -137,15 +137,15 @@ public:
     }
     else
     {
-      for (u32 i = 0; i < length; i++)
+      for (uint32_t i = 0; i < length; i++)
         Do(&data[i]);
     }
   }
 
-  template<typename T, u32 CAPACITY>
+  template<typename T, uint32_t CAPACITY>
   void Do(FIFOQueue<T, CAPACITY>* data)
   {
-    u32 size = data->GetSize();
+    uint32_t size = data->GetSize();
     Do(&size);
 
     if (m_mode == Mode::Read)
@@ -158,7 +158,7 @@ public:
     }
     else
     {
-      for (u32 i = 0; i < size; i++)
+      for (uint32_t i = 0; i < size; i++)
       {
         T temp(data->Peek(i));
         Do(&temp);
@@ -169,7 +169,7 @@ public:
   bool DoMarker(const char* marker);
 
   template<typename T>
-  void DoEx(T* data, u32 version_introduced, T default_value)
+  void DoEx(T* data, uint32_t version_introduced, T default_value)
   {
     if (m_version < version_introduced)
     {
@@ -183,6 +183,6 @@ public:
 private:
   ByteStream* m_stream;
   Mode m_mode;
-  u32 m_version;
+  uint32_t m_version;
   bool m_error = false;
 };

@@ -28,7 +28,7 @@
 #include "aarch32/constants-aarch32.h"
 #include "utils-vixl.h"
 
-namespace swanstation_vixl {
+namespace vixl {
 namespace aarch32 {
 
 // Start of generated code.
@@ -843,13 +843,13 @@ const char* ToCString(InstructionType type) {
     case kYield:
       return "yield";
     case kUndefInstructionType:
-      SWANSTATION_VIXL_UNREACHABLE();
+      VIXL_UNREACHABLE();
       return "";
   }
-  SWANSTATION_VIXL_UNREACHABLE();
+  VIXL_UNREACHABLE();
   return "";
 }  // NOLINT(readability/fn_size)
 // End of generated code.
 
 }  // namespace aarch32
-}  // namespace swanstation_vixl
+}  // namespace vixl

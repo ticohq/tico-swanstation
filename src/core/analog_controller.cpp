@@ -6,7 +6,7 @@
 #include "system.h"
 #include <cmath>
 
-AnalogController::AnalogController(u32 index) : m_index(index)
+AnalogController::AnalogController(uint32_t index) : m_index(index)
 {
   m_axis_state.fill(0x80);
   Reset();
@@ -47,10 +47,10 @@ bool AnalogController::DoState(StateWrapper& sw, bool apply_input_state)
   sw.DoEx(&m_legacy_rumble_unlocked, 44, false);
   sw.Do(&m_configuration_mode);
   sw.Do(&m_command_param);
-  sw.DoEx(&m_status_byte, 55, static_cast<u8>(0x5A));
+  sw.DoEx(&m_status_byte, 55, static_cast<uint8_t>(0x5A));
 
-  u16 button_state = m_button_state;
-  sw.DoEx(&button_state, 44, static_cast<u16>(0xFFFF));
+  uint16_t button_state = m_button_state;
+  sw.DoEx(&button_state, 44, static_cast<uint16_t>(0xFFFF));
   if (apply_input_state)
     m_button_state = button_state;
   else
@@ -68,7 +68,7 @@ bool AnalogController::DoState(StateWrapper& sw, bool apply_input_state)
 
   if (sw.IsReading())
   {
-    for (u8 i = 0; i < NUM_MOTORS; i++)
+    for (uint8_t i = 0; i < NUM_MOTORS; i++)
       SetMotorState(i, motor_state[i]);
 
     if (old_analog_mode != m_analog_mode)
@@ -84,24 +84,24 @@ bool AnalogController::DoState(StateWrapper& sw, bool apply_input_state)
   return true;
 }
 
-void AnalogController::SetAxisState(s32 axis_code, float value)
+void AnalogController::SetAxisState(int32_t axis_code, float value)
 {
-  if (axis_code < 0 || axis_code >= static_cast<s32>(Axis::Count))
+  if (axis_code < 0 || axis_code >= static_cast<int32_t>(Axis::Count))
     return;
 
   // -1..1 -> 0..255
   const float scaled_value = std::clamp(value * m_axis_scale, -1.0f, 1.0f);
-  const u8 u8_value = static_cast<u8>(std::clamp(std::round(((scaled_value + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
+  const uint8_t u8_value = static_cast<uint8_t>(std::clamp(std::round(((scaled_value + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
 
   SetAxisState(static_cast<Axis>(axis_code), u8_value);
 }
 
-void AnalogController::SetAxisState(Axis axis, u8 value)
+void AnalogController::SetAxisState(Axis axis, uint8_t value)
 {
-  if (value != m_axis_state[static_cast<u8>(axis)])
+  if (value != m_axis_state[static_cast<uint8_t>(axis)])
     System::SetRunaheadReplayFlag();
 
-  m_axis_state[static_cast<u8>(axis)] = value;
+  m_axis_state[static_cast<uint8_t>(axis)] = value;
 }
 
 void AnalogController::SetButtonState(Button button, bool pressed)
@@ -129,7 +129,7 @@ void AnalogController::SetButtonState(Button button, bool pressed)
     return;
   }
 
-  const u16 bit = u16(1) << static_cast<u8>(button);
+  const uint16_t bit = uint16_t(1) << static_cast<uint8_t>(button);
 
   if (pressed)
   {
@@ -147,39 +147,34 @@ void AnalogController::SetButtonState(Button button, bool pressed)
   }
 }
 
-void AnalogController::SetButtonState(s32 button_code, bool pressed)
+void AnalogController::SetButtonState(int32_t button_code, bool pressed)
 {
-  if (button_code < 0 || button_code >= static_cast<s32>(Button::Count))
+  if (button_code < 0 || button_code >= static_cast<int32_t>(Button::Count))
     return;
 
   SetButtonState(static_cast<Button>(button_code), pressed);
 }
 
-u32 AnalogController::GetButtonStateBits() const
+uint32_t AnalogController::GetButtonStateBits() const
 {
   // flip bits, native data is active low
   return m_button_state ^ 0xFFFF;
 }
 
-std::optional<u32> AnalogController::GetAnalogInputBytes() const
+std::optional<uint32_t> AnalogController::GetAnalogInputBytes() const
 {
   return m_axis_state[static_cast<size_t>(Axis::LeftY)] << 24 | m_axis_state[static_cast<size_t>(Axis::LeftX)] << 16 |
          m_axis_state[static_cast<size_t>(Axis::RightY)] << 8 | m_axis_state[static_cast<size_t>(Axis::RightX)];
 }
 
-u32 AnalogController::GetVibrationMotorCount() const
-{
-  return NUM_MOTORS;
-}
-
-float AnalogController::GetVibrationMotorStrength(u32 motor)
+float AnalogController::GetVibrationMotorStrength(uint32_t motor)
 {
   if (m_motor_state[motor] == 0)
     return 0.0f;
 
   // Curve from https://github.com/KrossX/Pokopom/blob/master/Pokopom/Input_XInput.cpp#L210
   const double x =
-    static_cast<double>(std::min<u32>(static_cast<u32>(m_motor_state[motor]) + static_cast<u32>(m_rumble_bias), 255));
+    static_cast<double>(std::min<uint32_t>(static_cast<uint32_t>(m_motor_state[motor]) + static_cast<uint32_t>(m_rumble_bias), 255));
   const double strength = 0.006474549734772402 * std::pow(x, 3.0) - 1.258165252213538 * std::pow(x, 2.0) +
                           156.82454281087692 * x + 3.637978807091713e-11;
 
@@ -235,28 +230,28 @@ void AnalogController::ProcessAnalogModeToggle()
   }
 }
 
-void AnalogController::SetMotorState(u8 motor, u8 value)
+void AnalogController::SetMotorState(uint8_t motor, uint8_t value)
 {
   m_motor_state[motor] = value;
 }
 
-u8 AnalogController::GetExtraButtonMaskLSB() const
+uint8_t AnalogController::GetExtraButtonMaskLSB() const
 {
   if (m_analog_mode || m_configuration_mode)
     return 0xFF;
 
-  static constexpr u8 NEG_THRESHOLD = static_cast<u8>(128.0f - (127.0 * 0.5f));
-  static constexpr u8 POS_THRESHOLD = static_cast<u8>(128.0f + (127.0 * 0.5f));
+  static constexpr uint8_t NEG_THRESHOLD = static_cast<uint8_t>(128.0f - (127.0 * 0.5f));
+  static constexpr uint8_t POS_THRESHOLD = static_cast<uint8_t>(128.0f + (127.0 * 0.5f));
 
-  const bool left = (m_axis_state[static_cast<u8>(Axis::LeftX)] <= NEG_THRESHOLD);
-  const bool right = (m_axis_state[static_cast<u8>(Axis::LeftX)] >= POS_THRESHOLD);
-  const bool up = (m_axis_state[static_cast<u8>(Axis::LeftY)] <= NEG_THRESHOLD);
-  const bool down = (m_axis_state[static_cast<u8>(Axis::LeftY)] >= POS_THRESHOLD);
+  const bool left = (m_axis_state[static_cast<uint8_t>(Axis::LeftX)] <= NEG_THRESHOLD);
+  const bool right = (m_axis_state[static_cast<uint8_t>(Axis::LeftX)] >= POS_THRESHOLD);
+  const bool up = (m_axis_state[static_cast<uint8_t>(Axis::LeftY)] <= NEG_THRESHOLD);
+  const bool down = (m_axis_state[static_cast<uint8_t>(Axis::LeftY)] >= POS_THRESHOLD);
 
-  return ~((static_cast<u8>(left) << static_cast<u8>(Button::Left)) |
-           (static_cast<u8>(right) << static_cast<u8>(Button::Right)) |
-           (static_cast<u8>(up) << static_cast<u8>(Button::Up)) |
-           (static_cast<u8>(down) << static_cast<u8>(Button::Down)));
+  return ~((static_cast<uint8_t>(left) << static_cast<uint8_t>(Button::Left)) |
+           (static_cast<uint8_t>(right) << static_cast<uint8_t>(Button::Right)) |
+           (static_cast<uint8_t>(up) << static_cast<uint8_t>(Button::Up)) |
+           (static_cast<uint8_t>(down) << static_cast<uint8_t>(Button::Down)));
 }
 
 void AnalogController::ResetRumbleConfig()
@@ -270,7 +265,7 @@ void AnalogController::ResetRumbleConfig()
   SetMotorState(SmallMotor, 0);
 }
 
-void AnalogController::SetMotorStateForConfigIndex(int index, u8 value)
+void AnalogController::SetMotorStateForConfigIndex(int index, uint8_t value)
 {
   if (m_rumble_config_small_motor_index == index)
     SetMotorState(SmallMotor, ((value & 0x01) != 0) ? 255 : 0);
@@ -278,7 +273,7 @@ void AnalogController::SetMotorStateForConfigIndex(int index, u8 value)
     SetMotorState(LargeMotor, value);
 }
 
-u8 AnalogController::GetResponseNumHalfwords() const
+uint8_t AnalogController::GetResponseNumHalfwords() const
 {
   if (m_configuration_mode || m_analog_mode)
     return 0x3;
@@ -286,7 +281,7 @@ u8 AnalogController::GetResponseNumHalfwords() const
   return (0x1 + m_digital_mode_extra_halfwords);
 }
 
-u8 AnalogController::GetModeID() const
+uint8_t AnalogController::GetModeID() const
 {
   if (m_configuration_mode)
     return 0xF;
@@ -297,12 +292,12 @@ u8 AnalogController::GetModeID() const
   return 0x4;
 }
 
-u8 AnalogController::GetIDByte() const
+uint8_t AnalogController::GetIDByte() const
 {
-  return Truncate8((GetModeID() << 4) | GetResponseNumHalfwords());
+  return static_cast<uint8_t>((GetModeID() << 4) | GetResponseNumHalfwords());
 }
 
-bool AnalogController::Transfer(const u8 data_in, u8* data_out)
+bool AnalogController::Transfer(const uint8_t data_in, uint8_t* data_out)
 {
   bool ack;
   m_rx_buffer[m_command_step] = data_in;
@@ -349,7 +344,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
       {
         m_response_length = (GetResponseNumHalfwords() + 1) * 2;
         m_command = Command::GetAnalogMode;
-        m_tx_buffer = {GetIDByte(), m_status_byte, 0x01, 0x02, BoolToUInt8(m_analog_mode), 0x02, 0x01, 0x00};
+        m_tx_buffer = {GetIDByte(), m_status_byte, 0x01, 0x02, static_cast<uint8_t>(m_analog_mode), 0x02, 0x01, 0x00};
       }
       else if (m_configuration_mode && data_in == 0x46)
       {
@@ -394,7 +389,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
       {
         case 2:
         {
-          m_tx_buffer[m_command_step] = Truncate8(m_button_state) & GetExtraButtonMaskLSB();
+          m_tx_buffer[m_command_step] = static_cast<uint8_t>(m_button_state) & GetExtraButtonMaskLSB();
 
           if (m_dualshock_enabled)
             SetMotorStateForConfigIndex(rumble_index, data_in);
@@ -403,7 +398,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
 
         case 3:
         {
-          m_tx_buffer[m_command_step] = Truncate8(m_button_state >> 8);
+          m_tx_buffer[m_command_step] = static_cast<uint8_t>(m_button_state >> 8);
 
           if (m_dualshock_enabled)
           {
@@ -420,7 +415,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
         case 4:
         {
           if (m_configuration_mode || m_analog_mode)
-            m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::RightX)];
+            m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::RightX)];
 
           if (m_dualshock_enabled)
             SetMotorStateForConfigIndex(rumble_index, data_in);
@@ -430,7 +425,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
         case 5:
         {
           if (m_configuration_mode || m_analog_mode)
-            m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::RightY)];
+            m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::RightY)];
 
           if (m_dualshock_enabled)
             SetMotorStateForConfigIndex(rumble_index, data_in);
@@ -440,7 +435,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
         case 6:
         {
           if (m_configuration_mode || m_analog_mode)
-            m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::LeftX)];
+            m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::LeftX)];
 
           if (m_dualshock_enabled)
             SetMotorStateForConfigIndex(rumble_index, data_in);
@@ -450,7 +445,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
         case 7:
         {
           if (m_configuration_mode || m_analog_mode)
-            m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::LeftY)];
+            m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::LeftY)];
 
           if (m_dualshock_enabled)
             SetMotorStateForConfigIndex(rumble_index, data_in);
@@ -473,41 +468,41 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
         {
           case 2:
           {
-            m_tx_buffer[m_command_step] = Truncate8(m_button_state) & GetExtraButtonMaskLSB();
+            m_tx_buffer[m_command_step] = static_cast<uint8_t>(m_button_state) & GetExtraButtonMaskLSB();
           }
           break;
 
           case 3:
           {
-            m_tx_buffer[m_command_step] = Truncate8(m_button_state >> 8);
+            m_tx_buffer[m_command_step] = static_cast<uint8_t>(m_button_state >> 8);
           }
           break;
 
           case 4:
           {
             if (m_configuration_mode || m_analog_mode)
-              m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::RightX)];
+              m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::RightX)];
           }
           break;
 
           case 5:
           {
             if (m_configuration_mode || m_analog_mode)
-              m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::RightY)];
+              m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::RightY)];
           }
           break;
 
           case 6:
           {
             if (m_configuration_mode || m_analog_mode)
-              m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::LeftX)];
+              m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::LeftX)];
           }
           break;
 
           case 7:
           {
             if (m_configuration_mode || m_analog_mode)
-              m_tx_buffer[m_command_step] = m_axis_state[static_cast<u8>(Axis::LeftY)];
+              m_tx_buffer[m_command_step] = m_axis_state[static_cast<uint8_t>(Axis::LeftY)];
           }
           break;
 
@@ -518,7 +513,7 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
         }
       }
 
-      if (m_command_step == (static_cast<s32>(m_response_length) - 1))
+      if (m_command_step == (static_cast<int32_t>(m_response_length) - 1))
       {
         m_configuration_mode = (m_rx_buffer[2] == 1);
 
@@ -642,14 +637,9 @@ bool AnalogController::Transfer(const u8 data_in, u8* data_out)
   return ack;
 }
 
-std::unique_ptr<AnalogController> AnalogController::Create(u32 index)
+std::unique_ptr<AnalogController> AnalogController::Create(uint32_t index)
 {
   return std::make_unique<AnalogController>(index);
-}
-
-u32 AnalogController::StaticGetVibrationMotorCount()
-{
-  return NUM_MOTORS;
 }
 
 void AnalogController::LoadSettings(const char* section)
@@ -658,7 +648,7 @@ void AnalogController::LoadSettings(const char* section)
   m_force_analog = g_host_interface->GetBoolSettingValue(section, "ForceAnalog", false);
   m_analog_dpad_in_digital_mode = g_host_interface->GetBoolSettingValue(section, "AnalogDPadInDigitalMode", false);
   m_axis_scale =
-    std::clamp(std::abs(g_host_interface->GetFloatSettingValue(section, "AxisScale", 1.00f)), 0.01f, 1.50f);
+    std::clamp(std::abs(g_host_interface->GetFloatSettingValue(section, "AxisScale", 1.33f)), 0.01f, 1.50f);
   m_rumble_bias =
-    static_cast<u8>(std::min<u32>(g_host_interface->GetIntSettingValue(section, "VibrationBias", 8), 255));
+    static_cast<uint8_t>(std::min<uint32_t>(g_host_interface->GetIntSettingValue(section, "VibrationBias", 8), 255));
 }

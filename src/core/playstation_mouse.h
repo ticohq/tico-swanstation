@@ -7,7 +7,7 @@
 class PlayStationMouse final : public Controller
 {
 public:
-  enum class Button : u8
+  enum class Button : uint8_t
   {
     Left = 0,
     Right = 1,
@@ -18,24 +18,23 @@ public:
   ~PlayStationMouse() override;
 
   static std::unique_ptr<PlayStationMouse> Create();
-  static u32 StaticGetVibrationMotorCount();
 
   ControllerType GetType() const override;
 
   void Reset() override;
   bool DoState(StateWrapper& sw, bool apply_input_state) override;
 
-  void SetButtonState(s32 button_code, bool pressed) override;
+  void SetButtonState(int32_t button_code, bool pressed) override;
 
   void ResetTransferState() override;
-  bool Transfer(const u8 data_in, u8* data_out) override;
+  bool Transfer(const uint8_t data_in, uint8_t* data_out) override;
 
   void SetButtonState(Button button, bool pressed);
 
 private:
   void UpdatePosition();
 
-  enum class TransferState : u8
+  enum class TransferState : uint8_t
   {
     Idle,
     Ready,
@@ -46,13 +45,13 @@ private:
     DeltaY
   };
 
-  s32 m_last_host_position_x = 0;
-  s32 m_last_host_position_y = 0;
+  int32_t m_last_host_position_x = 0;
+  int32_t m_last_host_position_y = 0;
 
   // buttons are active low
-  u16 m_button_state = UINT16_C(0xFFFF);
-  s8 m_delta_x = 0;
-  s8 m_delta_y = 0;
+  uint16_t m_button_state = UINT16_C(0xFFFF);
+  int8_t m_delta_x = 0;
+  int8_t m_delta_y = 0;
 
   TransferState m_transfer_state = TransferState::Idle;
 };

@@ -8,7 +8,7 @@
 #include <tuple>
 #include <vector>
 
-enum class HostDisplayPixelFormat : u32
+enum class HostDisplayPixelFormat : uint32_t
 {
   Unknown,
   RGBA8,
@@ -25,12 +25,9 @@ public:
   virtual ~HostDisplayTexture();
 
   virtual void* GetHandle() const = 0;
-  virtual u32 GetWidth() const = 0;
-  virtual u32 GetHeight() const = 0;
-  virtual u32 GetLayers() const = 0;
-  virtual u32 GetLevels() const = 0;
-  virtual u32 GetSamples() const = 0;
-  virtual HostDisplayPixelFormat GetFormat() const = 0;
+  virtual uint32_t GetWidth() const = 0;
+  virtual uint32_t GetHeight() const = 0;
+  virtual uint32_t GetSamples() const = 0;
 };
 
 // Interface to the frontend's renderer.
@@ -49,16 +46,34 @@ public:
 
   virtual ~HostDisplay();
 
-  ALWAYS_INLINE s32 GetWindowWidth() const { return static_cast<s32>(m_window_info.surface_width); }
-  ALWAYS_INLINE s32 GetWindowHeight() const { return static_cast<s32>(m_window_info.surface_height); }
+  ALWAYS_INLINE int32_t GetWindowWidth() const { return static_cast<int32_t>(m_window_info.surface_width); }
+  ALWAYS_INLINE int32_t GetWindowHeight() const { return static_cast<int32_t>(m_window_info.surface_height); }
 
   // Position is relative to the top-left corner of the window.
-  ALWAYS_INLINE s32 GetMousePositionX() const { return m_mouse_position_x; }
-  ALWAYS_INLINE s32 GetMousePositionY() const { return m_mouse_position_y; }
-  ALWAYS_INLINE void SetMousePosition(s32 x, s32 y)
+  ALWAYS_INLINE int32_t GetMousePositionX() const { return m_mouse_position_x; }
+  ALWAYS_INLINE int32_t GetMousePositionY() const { return m_mouse_position_y; }
+  ALWAYS_INLINE void SetMousePosition(int32_t x, int32_t y)
   {
     m_mouse_position_x = x;
     m_mouse_position_y = y;
+  }
+
+  // Lightgun position cached per frame at controller-update time, in
+  // libretro's normalized [-0x7FFF, 0x7FFF] screen coordinates. The HW
+  // renderers consume these directly so they don't have to re-poll
+  // input from inside the render path - see retro_run_frame() in
+  // libretro_host_interface.cpp where they are populated. Reading
+  // input twice per frame is undefined per the libretro spec
+  // (frontends may return stale or fresh values), so renderers must
+  // never call g_retro_input_state_callback themselves.
+  ALWAYS_INLINE int16_t GetLightgunRawX() const { return m_lightgun_raw_x; }
+  ALWAYS_INLINE int16_t GetLightgunRawY() const { return m_lightgun_raw_y; }
+  ALWAYS_INLINE bool IsLightgunOffscreen() const { return m_lightgun_offscreen; }
+  ALWAYS_INLINE void SetLightgunState(int16_t raw_x, int16_t raw_y, bool offscreen)
+  {
+    m_lightgun_raw_x = raw_x;
+    m_lightgun_raw_y = raw_y;
+    m_lightgun_offscreen = offscreen;
   }
 
   virtual RenderAPI GetRenderAPI() const = 0;
@@ -73,22 +88,21 @@ public:
   virtual bool ChangeRenderWindow(const WindowInfo& wi) = 0;
   virtual bool CreateResources() = 0;
   virtual void DestroyResources() = 0;
-  virtual void RenderSoftwareCursor() = 0;
 
   /// Call when the window size changes externally to recreate any resources.
-  virtual void ResizeRenderWindow(s32 new_window_width, s32 new_window_height) = 0;
+  virtual void ResizeRenderWindow(int32_t new_window_width, int32_t new_window_height) = 0;
 
   /// Creates an abstracted RGBA8 texture. If dynamic, the texture can be updated with UpdateTexture() below.
-  virtual std::unique_ptr<HostDisplayTexture> CreateTexture(u32 width, u32 height, u32 layers, u32 levels, u32 samples,
+  virtual std::unique_ptr<HostDisplayTexture> CreateTexture(uint32_t width, uint32_t height, uint32_t layers, uint32_t levels, uint32_t samples,
                                                             HostDisplayPixelFormat format, const void* data,
-                                                            u32 data_stride, bool dynamic = false) = 0;
+                                                            uint32_t data_stride, bool dynamic = false) = 0;
 
   /// Returns false if the window was completely occluded.
   virtual bool Render() = 0;
 
   const void* GetDisplayTextureHandle() const { return m_display_texture_handle; }
-  s32 GetDisplayWidth() const { return m_display_width; }
-  s32 GetDisplayHeight() const { return m_display_height; }
+  int32_t GetDisplayWidth() const { return m_display_width; }
+  int32_t GetDisplayHeight() const { return m_display_height; }
   float GetDisplayAspectRatio() const { return m_display_aspect_ratio; }
 
   void ClearDisplayTexture()
@@ -100,11 +114,10 @@ public:
     m_display_texture_view_y = 0;
     m_display_texture_view_width = 0;
     m_display_texture_view_height = 0;
-    m_display_changed = true;
   }
 
-  void SetDisplayTexture(void* texture_handle, HostDisplayPixelFormat texture_format, s32 texture_width,
-                         s32 texture_height, s32 view_x, s32 view_y, s32 view_width, s32 view_height)
+  void SetDisplayTexture(void* texture_handle, HostDisplayPixelFormat texture_format, int32_t texture_width,
+                         int32_t texture_height, int32_t view_x, int32_t view_y, int32_t view_width, int32_t view_height)
   {
     m_display_texture_handle = texture_handle;
     m_display_texture_format = texture_format;
@@ -114,11 +127,10 @@ public:
     m_display_texture_view_y = view_y;
     m_display_texture_view_width = view_width;
     m_display_texture_view_height = view_height;
-    m_display_changed = true;
   }
 
-  void SetDisplayParameters(s32 display_width, s32 display_height, s32 active_left, s32 active_top, s32 active_width,
-                            s32 active_height, float display_aspect_ratio)
+  void SetDisplayParameters(int32_t display_width, int32_t display_height, int32_t active_left, int32_t active_top, int32_t active_width,
+                            int32_t active_height, float display_aspect_ratio)
   {
     m_display_width = display_width;
     m_display_height = display_height;
@@ -127,70 +139,69 @@ public:
     m_display_active_width = active_width;
     m_display_active_height = active_height;
     m_display_aspect_ratio = display_aspect_ratio;
-    m_display_changed = true;
   }
 
-  static u32 GetDisplayPixelFormatSize(HostDisplayPixelFormat format);
+  static uint32_t GetDisplayPixelFormatSize(HostDisplayPixelFormat format);
 
   virtual bool SupportsDisplayPixelFormat(HostDisplayPixelFormat format) const = 0;
 
-  virtual bool BeginSetDisplayPixels(HostDisplayPixelFormat format, u32 width, u32 height, void** out_buffer,
-                                     u32* out_pitch) = 0;
+  virtual bool BeginSetDisplayPixels(HostDisplayPixelFormat format, uint32_t width, uint32_t height, void** out_buffer,
+                                     uint32_t* out_pitch) = 0;
   virtual void EndSetDisplayPixels() = 0;
-  virtual bool SetDisplayPixels(HostDisplayPixelFormat format, u32 width, u32 height, const void* buffer, u32 pitch);
+  virtual bool SetDisplayPixels(HostDisplayPixelFormat format, uint32_t width, uint32_t height, const void* buffer, uint32_t pitch);
 
   /// Sets the software cursor to the specified texture. Ownership of the texture is transferred.
   void SetSoftwareCursor(std::unique_ptr<HostDisplayTexture> texture, float scale = 1.0f);
 
   /// Sets the software cursor to the specified image.
-  bool SetSoftwareCursor(const void* pixels, u32 width, u32 height, u32 stride, float scale = 1.0f);
+  bool SetSoftwareCursor(const void* pixels, uint32_t width, uint32_t height, uint32_t stride, float scale = 1.0f);
 
   /// Disables the software cursor.
   void ClearSoftwareCursor();
 
   /// Helper function for computing the draw rectangle in a larger window.
-  std::tuple<s32, s32, s32, s32> CalculateDrawRect(s32 window_width, s32 window_height, s32 top_margin,
+  std::tuple<int32_t, int32_t, int32_t, int32_t> CalculateDrawRect(int32_t window_width, int32_t window_height, int32_t top_margin,
                                                    bool apply_aspect_ratio = true) const;
 
   /// Helper function for converting window coordinates to display coordinates.
-  std::tuple<float, float> ConvertWindowCoordinatesToDisplayCoordinates(s32 window_x, s32 window_y, s32 window_width,
-                                                                        s32 window_height, s32 top_margin) const;
+  std::tuple<float, float> ConvertWindowCoordinatesToDisplayCoordinates(int32_t window_x, int32_t window_y, int32_t window_width,
+                                                                        int32_t window_height, int32_t top_margin) const;
 
 protected:
   ALWAYS_INLINE bool HasSoftwareCursor() const { return static_cast<bool>(m_cursor_texture); }
   ALWAYS_INLINE bool HasDisplayTexture() const { return (m_display_texture_handle != nullptr); }
 
-  void CalculateDrawRect(s32 window_width, s32 window_height, float* out_left, float* out_top, float* out_width,
+  void CalculateDrawRect(int32_t window_width, int32_t window_height, float* out_left, float* out_top, float* out_width,
                          float* out_height, float* out_left_padding, float* out_top_padding, float* out_scale,
                          float* out_x_scale, bool apply_aspect_ratio = true) const;
 
-  std::tuple<s32, s32, s32, s32> CalculateSoftwareCursorDrawRect() const;
-  std::tuple<s32, s32, s32, s32> CalculateSoftwareCursorDrawRect(s32 cursor_x, s32 cursor_y) const;
-
   WindowInfo m_window_info;
 
-  s32 m_mouse_position_x = 0;
-  s32 m_mouse_position_y = 0;
+  int32_t m_mouse_position_x = 0;
+  int32_t m_mouse_position_y = 0;
 
-  s32 m_display_width = 0;
-  s32 m_display_height = 0;
-  s32 m_display_active_left = 0;
-  s32 m_display_active_top = 0;
-  s32 m_display_active_width = 0;
-  s32 m_display_active_height = 0;
+  // Cached per-frame libretro lightgun state - see SetLightgunState().
+  int16_t  m_lightgun_raw_x = 0;
+  int16_t  m_lightgun_raw_y = 0;
+  bool m_lightgun_offscreen = true;
+
+  int32_t m_display_width = 0;
+  int32_t m_display_height = 0;
+  int32_t m_display_active_left = 0;
+  int32_t m_display_active_top = 0;
+  int32_t m_display_active_width = 0;
+  int32_t m_display_active_height = 0;
   float m_display_aspect_ratio = 1.0f;
 
   void* m_display_texture_handle = nullptr;
   HostDisplayPixelFormat m_display_texture_format = HostDisplayPixelFormat::Count;
-  s32 m_display_texture_width = 0;
-  s32 m_display_texture_height = 0;
-  s32 m_display_texture_view_x = 0;
-  s32 m_display_texture_view_y = 0;
-  s32 m_display_texture_view_width = 0;
-  s32 m_display_texture_view_height = 0;
+  int32_t m_display_texture_width = 0;
+  int32_t m_display_texture_height = 0;
+  int32_t m_display_texture_view_x = 0;
+  int32_t m_display_texture_view_y = 0;
+  int32_t m_display_texture_view_width = 0;
+  int32_t m_display_texture_view_height = 0;
 
   std::unique_ptr<HostDisplayTexture> m_cursor_texture;
   float m_cursor_texture_scale = 1.0f;
-
-  bool m_display_changed = false;
 };

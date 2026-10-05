@@ -28,8 +28,8 @@ std::string MemoryCard::SanitizeGameTitleForFileName(const std::string_view& nam
 {
   std::string ret(name);
 
-  const u32 len = static_cast<u32>(ret.length());
-  for (u32 i = 0; i < len; i++)
+  const uint32_t len = static_cast<uint32_t>(ret.length());
+  for (uint32_t i = 0; i < len; i++)
   {
     if (ret[i] == '\\' || ret[i] == '/' || ret[i] == '?' || ret[i] == '*')
       ret[i] = '_';
@@ -76,7 +76,7 @@ void MemoryCard::ResetTransferState()
   m_last_byte = 0;
 }
 
-bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
+bool MemoryCard::Transfer(const uint8_t data_in, uint8_t* data_out)
 {
   bool ack = false;
   switch (m_state)
@@ -96,7 +96,7 @@ bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
   {                                                                                                                    \
     *data_out = 0x00;                                                                                                  \
     ack = true;                                                                                                        \
-    m_address = ((m_address & u16(0x00FF)) | (ZeroExtend16(data_in) << 8)) & 0x3FF;                                    \
+    m_address = ((m_address & uint16_t(0x00FF)) | (static_cast<uint16_t>(data_in) << 8)) & 0x3FF;                                    \
     m_state = next_state;                                                                                              \
   }                                                                                                                    \
   break;
@@ -106,7 +106,7 @@ bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
   {                                                                                                                    \
     *data_out = m_last_byte;                                                                                           \
     ack = true;                                                                                                        \
-    m_address = ((m_address & u16(0xFF00)) | ZeroExtend16(data_in)) & 0x3FF;                                           \
+    m_address = ((m_address & uint16_t(0xFF00)) | static_cast<uint16_t>(data_in)) & 0x3FF;                                           \
     m_sector_offset = 0;                                                                                               \
     m_state = next_state;                                                                                              \
   }                                                                                                                    \
@@ -120,14 +120,14 @@ bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
     ADDRESS_STATE_LSB(State::ReadAddressLSB, State::ReadACK1);
     FIXED_REPLY_STATE(State::ReadACK1, 0x5C, true, State::ReadACK2);
     FIXED_REPLY_STATE(State::ReadACK2, 0x5D, true, State::ReadConfirmAddressMSB);
-    FIXED_REPLY_STATE(State::ReadConfirmAddressMSB, Truncate8(m_address >> 8), true, State::ReadConfirmAddressLSB);
-    FIXED_REPLY_STATE(State::ReadConfirmAddressLSB, Truncate8(m_address), true, State::ReadData);
+    FIXED_REPLY_STATE(State::ReadConfirmAddressMSB, static_cast<uint8_t>(m_address >> 8), true, State::ReadConfirmAddressLSB);
+    FIXED_REPLY_STATE(State::ReadConfirmAddressLSB, static_cast<uint8_t>(m_address), true, State::ReadData);
 
     case State::ReadData:
     {
-      const u8 bits = m_data[ZeroExtend32(m_address) * MemoryCardImage::FRAME_SIZE + m_sector_offset];
+      const uint8_t bits = m_data[static_cast<uint32_t>(m_address) * MemoryCardImage::FRAME_SIZE + m_sector_offset];
       if (m_sector_offset == 0)
-        m_checksum = Truncate8(m_address >> 8) ^ Truncate8(m_address) ^ bits;
+        m_checksum = static_cast<uint8_t>(m_address >> 8) ^ static_cast<uint8_t>(m_address) ^ bits;
       else
         m_checksum ^= bits;
 
@@ -157,8 +157,8 @@ bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
     {
       if (m_sector_offset == 0)
       {
-        Log_InfoPrintf("Writing memory card sector %u", ZeroExtend32(m_address));
-        m_checksum = Truncate8(m_address >> 8) ^ Truncate8(m_address) ^ data_in;
+        Log_InfoPrintf("Writing memory card sector %u", static_cast<uint32_t>(m_address));
+        m_checksum = static_cast<uint8_t>(m_address >> 8) ^ static_cast<uint8_t>(m_address) ^ data_in;
         m_FLAG.no_write_yet = false;
       }
       else
@@ -166,7 +166,7 @@ bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
         m_checksum ^= data_in;
       }
 
-      const u32 offset = ZeroExtend32(m_address) * MemoryCardImage::FRAME_SIZE + m_sector_offset;
+      const uint32_t offset = static_cast<uint32_t>(m_address) * MemoryCardImage::FRAME_SIZE + m_sector_offset;
       m_changed |= (m_data[offset] != data_in);
       m_data[offset] = data_in;
 
@@ -227,7 +227,7 @@ bool MemoryCard::Transfer(const u8 data_in, u8* data_out)
 
         default:
         {
-          Log_ErrorPrintf("Invalid command 0x%02X", ZeroExtend32(data_in));
+          Log_ErrorPrintf("Invalid command 0x%02X", static_cast<uint32_t>(data_in));
           *data_out = m_FLAG.bits;
           ack = false;
           m_state = State::Idle;

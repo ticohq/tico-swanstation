@@ -5,12 +5,13 @@
 #include "context.h"
 #include "shader_cache.h"
 #include <cstdarg>
+#include <cstring>
 #include <limits>
 Log_SetChannel(D3D12);
 
 namespace D3D12 {
 
-u32 GetTexelSize(DXGI_FORMAT format)
+uint32_t GetTexelSize(DXGI_FORMAT format)
 {
   switch (format)
   {
@@ -122,10 +123,10 @@ void GraphicsPipelineBuilder::SetRootSignature(ID3D12RootSignature* rs)
 
 void GraphicsPipelineBuilder::SetVertexShader(ID3DBlob* blob)
 {
-  SetVertexShader(blob->GetBufferPointer(), static_cast<u32>(blob->GetBufferSize()));
+  SetVertexShader(blob->GetBufferPointer(), static_cast<uint32_t>(blob->GetBufferSize()));
 }
 
-void GraphicsPipelineBuilder::SetVertexShader(const void* data, u32 data_size)
+void GraphicsPipelineBuilder::SetVertexShader(const void* data, uint32_t data_size)
 {
   m_desc.VS.pShaderBytecode = data;
   m_desc.VS.BytecodeLength = data_size;
@@ -133,10 +134,10 @@ void GraphicsPipelineBuilder::SetVertexShader(const void* data, u32 data_size)
 
 void GraphicsPipelineBuilder::SetGeometryShader(ID3DBlob* blob)
 {
-  SetGeometryShader(blob->GetBufferPointer(), static_cast<u32>(blob->GetBufferSize()));
+  SetGeometryShader(blob->GetBufferPointer(), static_cast<uint32_t>(blob->GetBufferSize()));
 }
 
-void GraphicsPipelineBuilder::SetGeometryShader(const void* data, u32 data_size)
+void GraphicsPipelineBuilder::SetGeometryShader(const void* data, uint32_t data_size)
 {
   m_desc.GS.pShaderBytecode = data;
   m_desc.GS.BytecodeLength = data_size;
@@ -144,19 +145,34 @@ void GraphicsPipelineBuilder::SetGeometryShader(const void* data, u32 data_size)
 
 void GraphicsPipelineBuilder::SetPixelShader(ID3DBlob* blob)
 {
-  SetPixelShader(blob->GetBufferPointer(), static_cast<u32>(blob->GetBufferSize()));
+  SetPixelShader(blob->GetBufferPointer(), static_cast<uint32_t>(blob->GetBufferSize()));
 }
 
-void GraphicsPipelineBuilder::SetPixelShader(const void* data, u32 data_size)
+void GraphicsPipelineBuilder::SetPixelShader(const void* data, uint32_t data_size)
 {
   m_desc.PS.pShaderBytecode = data;
   m_desc.PS.BytecodeLength = data_size;
 }
 
-void GraphicsPipelineBuilder::AddVertexAttribute(const char* semantic_name, u32 semantic_index, DXGI_FORMAT format,
-                                                 u32 buffer, u32 offset)
+void GraphicsPipelineBuilder::SetVertexShader(const D3D12_SHADER_BYTECODE& bc)
 {
-  const u32 index = m_desc.InputLayout.NumElements;
+  SetVertexShader(bc.pShaderBytecode, static_cast<uint32_t>(bc.BytecodeLength));
+}
+
+void GraphicsPipelineBuilder::SetGeometryShader(const D3D12_SHADER_BYTECODE& bc)
+{
+  SetGeometryShader(bc.pShaderBytecode, static_cast<uint32_t>(bc.BytecodeLength));
+}
+
+void GraphicsPipelineBuilder::SetPixelShader(const D3D12_SHADER_BYTECODE& bc)
+{
+  SetPixelShader(bc.pShaderBytecode, static_cast<uint32_t>(bc.BytecodeLength));
+}
+
+void GraphicsPipelineBuilder::AddVertexAttribute(const char* semantic_name, uint32_t semantic_index, DXGI_FORMAT format,
+                                                 uint32_t buffer, uint32_t offset)
+{
+  const uint32_t index = m_desc.InputLayout.NumElements;
   m_input_elements[index].SemanticIndex = semantic_index;
   m_input_elements[index].SemanticName = semantic_name;
   m_input_elements[index].Format = format;
@@ -182,7 +198,7 @@ void GraphicsPipelineBuilder::SetRasterizationState(D3D12_FILL_MODE polygon_mode
   m_desc.RasterizerState.FrontCounterClockwise = front_face_ccw;
 }
 
-void GraphicsPipelineBuilder::SetMultisamples(u32 multisamples)
+void GraphicsPipelineBuilder::SetMultisamples(uint32_t multisamples)
 {
   m_desc.RasterizerState.MultisampleEnable = multisamples > 1;
   m_desc.SampleDesc.Count = multisamples;
@@ -205,10 +221,10 @@ void GraphicsPipelineBuilder::SetNoDepthTestState()
   SetDepthState(false, false, D3D12_COMPARISON_FUNC_ALWAYS);
 }
 
-void GraphicsPipelineBuilder::SetBlendState(u32 rt, bool blend_enable, D3D12_BLEND src_factor, D3D12_BLEND dst_factor,
+void GraphicsPipelineBuilder::SetBlendState(uint32_t rt, bool blend_enable, D3D12_BLEND src_factor, D3D12_BLEND dst_factor,
                                             D3D12_BLEND_OP op, D3D12_BLEND alpha_src_factor,
                                             D3D12_BLEND alpha_dst_factor, D3D12_BLEND_OP alpha_op,
-                                            u8 write_mask /*= 0xFF*/)
+                                            uint8_t write_mask /*= 0xFF*/)
 {
   m_desc.BlendState.RenderTarget[rt].BlendEnable = blend_enable;
   m_desc.BlendState.RenderTarget[rt].SrcBlend = src_factor;
@@ -233,11 +249,11 @@ void GraphicsPipelineBuilder::SetNoBlendingState()
 void GraphicsPipelineBuilder::ClearRenderTargets()
 {
   m_desc.NumRenderTargets = 0;
-  for (u32 i = 0; i < sizeof(m_desc.RTVFormats) / sizeof(m_desc.RTVFormats[0]); i++)
+  for (uint32_t i = 0; i < sizeof(m_desc.RTVFormats) / sizeof(m_desc.RTVFormats[0]); i++)
     m_desc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
 }
 
-void GraphicsPipelineBuilder::SetRenderTarget(u32 rt, DXGI_FORMAT format)
+void GraphicsPipelineBuilder::SetRenderTarget(uint32_t rt, DXGI_FORMAT format)
 {
   m_desc.RTVFormats[rt] = format;
   if (rt >= m_desc.NumRenderTargets)
@@ -285,9 +301,9 @@ void RootSignatureBuilder::SetInputAssemblerFlag()
   m_desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 }
 
-u32 RootSignatureBuilder::Add32BitConstants(u32 shader_reg, u32 num_values, D3D12_SHADER_VISIBILITY visibility)
+uint32_t RootSignatureBuilder::Add32BitConstants(uint32_t shader_reg, uint32_t num_values, D3D12_SHADER_VISIBILITY visibility)
 {
-  const u32 index = m_desc.NumParameters++;
+  const uint32_t index = m_desc.NumParameters++;
 
   m_params[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
   m_params[index].ShaderVisibility = visibility;
@@ -298,9 +314,9 @@ u32 RootSignatureBuilder::Add32BitConstants(u32 shader_reg, u32 num_values, D3D1
   return index;
 }
 
-u32 RootSignatureBuilder::AddCBVParameter(u32 shader_reg, D3D12_SHADER_VISIBILITY visibility)
+uint32_t RootSignatureBuilder::AddCBVParameter(uint32_t shader_reg, D3D12_SHADER_VISIBILITY visibility)
 {
-  const u32 index = m_desc.NumParameters++;
+  const uint32_t index = m_desc.NumParameters++;
 
   m_params[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
   m_params[index].ShaderVisibility = visibility;
@@ -310,9 +326,9 @@ u32 RootSignatureBuilder::AddCBVParameter(u32 shader_reg, D3D12_SHADER_VISIBILIT
   return index;
 }
 
-u32 RootSignatureBuilder::AddSRVParameter(u32 shader_reg, D3D12_SHADER_VISIBILITY visibility)
+uint32_t RootSignatureBuilder::AddSRVParameter(uint32_t shader_reg, D3D12_SHADER_VISIBILITY visibility)
 {
-  const u32 index = m_desc.NumParameters++;
+  const uint32_t index = m_desc.NumParameters++;
 
   m_params[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
   m_params[index].ShaderVisibility = visibility;
@@ -322,11 +338,11 @@ u32 RootSignatureBuilder::AddSRVParameter(u32 shader_reg, D3D12_SHADER_VISIBILIT
   return index;
 }
 
-u32 RootSignatureBuilder::AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rt, u32 start_shader_reg, u32 num_shader_regs,
+uint32_t RootSignatureBuilder::AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rt, uint32_t start_shader_reg, uint32_t num_shader_regs,
                                              D3D12_SHADER_VISIBILITY visibility)
 {
-  const u32 index = m_desc.NumParameters++;
-  const u32 dr_index = m_num_descriptor_ranges++;
+  const uint32_t index = m_desc.NumParameters++;
+  const uint32_t dr_index = m_num_descriptor_ranges++;
 
   m_descriptor_ranges[dr_index].RangeType = rt;
   m_descriptor_ranges[dr_index].NumDescriptors = num_shader_regs;

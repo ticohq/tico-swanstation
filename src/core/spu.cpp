@@ -1,12 +1,13 @@
 #include "spu.h"
 #include "cdrom.h"
-#include "common/audio_stream.h"
+#include "libretro/libretro_audio_stream.h"
 #include "common/state_wrapper.h"
 #include "dma.h"
 #include "host_interface.h"
 #include "interrupt_controller.h"
 #include "system.h"
-
+#include <cstring>
+#include <limits>
 #define SPU_TriggerRAMIRQ() \
   m_SPUSTAT.irq9_flag = true; \
   g_interrupt_controller.InterruptRequest(InterruptController::IRQ::SPU)
@@ -80,21 +81,21 @@ void SPU::Reset()
   m_reverb_on_register = 0;
   m_reverb_registers = {};
   m_reverb_registers.mBASE = 0;
-  m_reverb_base_address = m_reverb_current_address = ZeroExtend32(m_reverb_registers.mBASE) << 2;
+  m_reverb_base_address = m_reverb_current_address = static_cast<uint32_t>(m_reverb_registers.mBASE) << 2;
   m_reverb_downsample_buffer = {};
   m_reverb_upsample_buffer = {};
   m_reverb_resample_buffer_position = 0;
 
-  for (u32 i = 0; i < NUM_VOICES; i++)
+  for (uint32_t i = 0; i < NUM_VOICES; i++)
   {
     Voice& v = m_voices[i];
     v.current_address = 0;
-    std::fill_n(v.regs.index, NUM_VOICE_REGISTERS, u16(0));
+    std::fill_n(v.regs.index, NUM_VOICE_REGISTERS, uint16_t(0));
     v.counter.bits = 0;
     v.current_block_flags.bits = 0;
     v.is_first_block = 0;
-    v.current_block_samples.fill(s16(0));
-    v.adpcm_last_samples.fill(s32(0));
+    v.current_block_samples.fill(int16_t(0));
+    v.adpcm_last_samples.fill(int32_t(0));
     v.adsr_envelope.Reset(0, false, false);
     v.adsr_phase = ADSRPhase::Off;
     v.adsr_target = 0;
@@ -140,12 +141,12 @@ bool SPU::DoState(StateWrapper& sw)
   sw.Do(&m_reverb_registers.vROUT);
   sw.Do(&m_reverb_registers.mBASE);
   sw.DoArray(m_reverb_registers.rev, NUM_REVERB_REGS);
-  for (u32 i = 0; i < 2; i++)
+  for (uint32_t i = 0; i < 2; i++)
     sw.DoArray(m_reverb_downsample_buffer.data(), m_reverb_downsample_buffer.size());
-  for (u32 i = 0; i < 2; i++)
+  for (uint32_t i = 0; i < 2; i++)
     sw.DoArray(m_reverb_upsample_buffer.data(), m_reverb_upsample_buffer.size());
   sw.Do(&m_reverb_resample_buffer_position);
-  for (u32 i = 0; i < NUM_VOICES; i++)
+  for (uint32_t i = 0; i < NUM_VOICES; i++)
   {
     Voice& v = m_voices[i];
     sw.Do(&v.current_address);
@@ -178,7 +179,7 @@ bool SPU::DoState(StateWrapper& sw)
   return !sw.HasError();
 }
 
-u16 SPU::ReadRegister(u32 offset)
+uint16_t SPU::ReadRegister(uint32_t offset)
 {
   switch (offset)
   {
@@ -195,40 +196,40 @@ u16 SPU::ReadRegister(u32 offset)
       return m_reverb_registers.vROUT;
 
     case 0x1F801D88 - SPU_BASE:
-      return Truncate16(m_key_on_register);
+      return static_cast<uint16_t>(m_key_on_register);
 
     case 0x1F801D8A - SPU_BASE:
-      return Truncate16(m_key_on_register >> 16);
+      return static_cast<uint16_t>(m_key_on_register >> 16);
 
     case 0x1F801D8C - SPU_BASE:
-      return Truncate16(m_key_off_register);
+      return static_cast<uint16_t>(m_key_off_register);
 
     case 0x1F801D8E - SPU_BASE:
-      return Truncate16(m_key_off_register >> 16);
+      return static_cast<uint16_t>(m_key_off_register >> 16);
 
     case 0x1F801D90 - SPU_BASE:
-      return Truncate16(m_pitch_modulation_enable_register);
+      return static_cast<uint16_t>(m_pitch_modulation_enable_register);
 
     case 0x1F801D92 - SPU_BASE:
-      return Truncate16(m_pitch_modulation_enable_register >> 16);
+      return static_cast<uint16_t>(m_pitch_modulation_enable_register >> 16);
 
     case 0x1F801D94 - SPU_BASE:
-      return Truncate16(m_noise_mode_register);
+      return static_cast<uint16_t>(m_noise_mode_register);
 
     case 0x1F801D96 - SPU_BASE:
-      return Truncate16(m_noise_mode_register >> 16);
+      return static_cast<uint16_t>(m_noise_mode_register >> 16);
 
     case 0x1F801D98 - SPU_BASE:
-      return Truncate16(m_reverb_on_register);
+      return static_cast<uint16_t>(m_reverb_on_register);
 
     case 0x1F801D9A - SPU_BASE:
-      return Truncate16(m_reverb_on_register >> 16);
+      return static_cast<uint16_t>(m_reverb_on_register >> 16);
 
     case 0x1F801D9C - SPU_BASE:
-      return Truncate16(m_endx_register);
+      return static_cast<uint16_t>(m_endx_register);
 
     case 0x1F801D9E - SPU_BASE:
-      return Truncate16(m_endx_register >> 16);
+      return static_cast<uint16_t>(m_endx_register >> 16);
 
     case 0x1F801DA2 - SPU_BASE:
       return m_reverb_registers.mBASE;
@@ -282,7 +283,7 @@ u16 SPU::ReadRegister(u32 offset)
 
       if (offset >= (0x1F801E00 - SPU_BASE) && offset < (0x1F801E60 - SPU_BASE))
       {
-        const u32 voice_index = (offset - (0x1F801E00 - SPU_BASE)) / 4;
+        const uint32_t voice_index = (offset - (0x1F801E00 - SPU_BASE)) / 4;
         GeneratePendingSamples();
         if (offset & 0x02)
           return m_voices[voice_index].left_volume.current_level;
@@ -294,7 +295,7 @@ u16 SPU::ReadRegister(u32 offset)
   }
 }
 
-void SPU::WriteRegister(u32 offset, u16 value)
+void SPU::WriteRegister(uint32_t offset, uint16_t value)
 {
   switch (offset)
   {
@@ -331,35 +332,35 @@ void SPU::WriteRegister(u32 offset, u16 value)
     case 0x1F801D88 - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_key_on_register = (m_key_on_register & 0xFFFF0000) | ZeroExtend32(value);
+      m_key_on_register = (m_key_on_register & 0xFFFF0000) | static_cast<uint32_t>(value);
     }
     break;
 
     case 0x1F801D8A - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_key_on_register = (m_key_on_register & 0x0000FFFF) | (ZeroExtend32(value) << 16);
+      m_key_on_register = (m_key_on_register & 0x0000FFFF) | (static_cast<uint32_t>(value) << 16);
     }
     break;
 
     case 0x1F801D8C - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_key_off_register = (m_key_off_register & 0xFFFF0000) | ZeroExtend32(value);
+      m_key_off_register = (m_key_off_register & 0xFFFF0000) | static_cast<uint32_t>(value);
     }
     break;
 
     case 0x1F801D8E - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_key_off_register = (m_key_off_register & 0x0000FFFF) | (ZeroExtend32(value) << 16);
+      m_key_off_register = (m_key_off_register & 0x0000FFFF) | (static_cast<uint32_t>(value) << 16);
     }
     break;
 
     case 0x1F801D90 - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_pitch_modulation_enable_register = (m_pitch_modulation_enable_register & 0xFFFF0000) | ZeroExtend32(value);
+      m_pitch_modulation_enable_register = (m_pitch_modulation_enable_register & 0xFFFF0000) | static_cast<uint32_t>(value);
     }
     break;
 
@@ -367,35 +368,35 @@ void SPU::WriteRegister(u32 offset, u16 value)
     {
       GeneratePendingSamples();
       m_pitch_modulation_enable_register =
-        (m_pitch_modulation_enable_register & 0x0000FFFF) | (ZeroExtend32(value) << 16);
+        (m_pitch_modulation_enable_register & 0x0000FFFF) | (static_cast<uint32_t>(value) << 16);
     }
     break;
 
     case 0x1F801D94 - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_noise_mode_register = (m_noise_mode_register & 0xFFFF0000) | ZeroExtend32(value);
+      m_noise_mode_register = (m_noise_mode_register & 0xFFFF0000) | static_cast<uint32_t>(value);
     }
     break;
 
     case 0x1F801D96 - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_noise_mode_register = (m_noise_mode_register & 0x0000FFFF) | (ZeroExtend32(value) << 16);
+      m_noise_mode_register = (m_noise_mode_register & 0x0000FFFF) | (static_cast<uint32_t>(value) << 16);
     }
     break;
 
     case 0x1F801D98 - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_reverb_on_register = (m_reverb_on_register & 0xFFFF0000) | ZeroExtend32(value);
+      m_reverb_on_register = (m_reverb_on_register & 0xFFFF0000) | static_cast<uint32_t>(value);
     }
     break;
 
     case 0x1F801D9A - SPU_BASE:
     {
       GeneratePendingSamples();
-      m_reverb_on_register = (m_reverb_on_register & 0x0000FFFF) | (ZeroExtend32(value) << 16);
+      m_reverb_on_register = (m_reverb_on_register & 0x0000FFFF) | (static_cast<uint32_t>(value) << 16);
     }
     break;
 
@@ -403,7 +404,7 @@ void SPU::WriteRegister(u32 offset, u16 value)
     {
       GeneratePendingSamples();
       m_reverb_registers.mBASE = value;
-      m_reverb_base_address = ZeroExtend32(value << 2) & 0x3FFFFu;
+      m_reverb_base_address = static_cast<uint32_t>(value << 2) & 0x3FFFFu;
       m_reverb_current_address = m_reverb_base_address;
     }
     break;
@@ -430,7 +431,7 @@ void SPU::WriteRegister(u32 offset, u16 value)
     {
       m_transfer_event->InvokeEarly();
       m_transfer_address_reg = value;
-      m_transfer_address = ZeroExtend32(value) * 8;
+      m_transfer_address = static_cast<uint32_t>(value) * 8;
       if (IsRAMIRQTriggerable() && CheckRAMIRQ(m_transfer_address))
       {
         SPU_TriggerRAMIRQ();
@@ -472,7 +473,7 @@ void SPU::WriteRegister(u32 offset, u16 value)
       {
         // Mute all voices.
         // Interestingly, hardware tests found this seems to happen immediately, not on the next 44100hz cycle.
-        for (u32 i = 0; i < NUM_VOICES; i++)
+        for (uint32_t i = 0; i < NUM_VOICES; i++)
           m_voices[i].ForceOff();
       }
 
@@ -483,12 +484,20 @@ void SPU::WriteRegister(u32 offset, u16 value)
         m_SPUSTAT.irq9_flag = false;
       else if (IsRAMIRQTriggerable())
       {
+        // Only a transfer (DMA/manual) sitting exactly on the IRQ address fires
+        // immediately on irq9 enable. We must NOT additionally synthesize a voice
+        // RAM-IRQ here via CheckForLateRAMIRQs(): a voice parked on the IRQ address
+        // (e.g. a looping streaming voice on a dummy loop block) already fires the
+        // IRQ from its own block read on access, and re-firing it on every irq9
+        // enable double-counts, desyncing games that toggle irq9 to poll a
+        // streaming buffer. This hangs Shockwave Assault's in-game FMVs (#40):
+        // the spurious extra IRQ throws off the game's double-buffer bookkeeping
+        // so it stops refilling and spins forever waiting on an IRQ that already
+        // (wrongly) fired. The voice's own read still raises the IRQ correctly.
         if (CheckRAMIRQ(m_transfer_address))
         {
           SPU_TriggerRAMIRQ();
         }
-        else
-          CheckForLateRAMIRQs();
       }
 
       UpdateEventInterval();
@@ -547,7 +556,7 @@ void SPU::WriteRegister(u32 offset, u16 value)
 
       if (offset >= (0x1F801DC0 - SPU_BASE) && offset < (0x1F801E00 - SPU_BASE))
       {
-        const u32 reg = (offset - (0x1F801DC0 - SPU_BASE)) / 2;
+        const uint32_t reg = (offset - (0x1F801DC0 - SPU_BASE)) / 2;
         GeneratePendingSamples();
         m_reverb_registers.rev[reg] = value;
         return;
@@ -558,10 +567,10 @@ void SPU::WriteRegister(u32 offset, u16 value)
   }
 }
 
-u16 SPU::ReadVoiceRegister(u32 offset)
+uint16_t SPU::ReadVoiceRegister(uint32_t offset)
 {
-  const u32 reg_index = (offset % 0x10) / 2; //(offset & 0x0F) / 2;
-  const u32 voice_index = (offset / 0x10);   //((offset >> 4) & 0x1F);
+  const uint32_t reg_index = (offset % 0x10) / 2; //(offset & 0x0F) / 2;
+  const uint32_t voice_index = (offset / 0x10);   //((offset >> 4) & 0x1F);
 
   // ADSR volume needs to be updated when reading. A voice might be off as well, but key on is pending.
   const Voice& voice = m_voices[voice_index];
@@ -571,11 +580,11 @@ u16 SPU::ReadVoiceRegister(u32 offset)
   return voice.regs.index[reg_index];
 }
 
-void SPU::WriteVoiceRegister(u32 offset, u16 value)
+void SPU::WriteVoiceRegister(uint32_t offset, uint16_t value)
 {
   // per-voice registers
-  const u32 reg_index = (offset % 0x10);
-  const u32 voice_index = (offset / 0x10);
+  const uint32_t reg_index = (offset % 0x10);
+  const uint32_t voice_index = (offset / 0x10);
 
   Voice& voice = m_voices[voice_index];
   if (voice.IsOn() || m_key_on_register & (1u << voice_index))
@@ -652,7 +661,7 @@ void SPU::WriteVoiceRegister(u32 offset, u16 value)
 
 void SPU::CheckForLateRAMIRQs()
 {
-  for (u32 i = 0; i < NUM_VOICES; i++)
+  for (uint32_t i = 0; i < NUM_VOICES; i++)
   {
     // we skip voices which haven't started this block yet - because they'll check
     // the next time they're sampled, and the delay might be important.
@@ -660,7 +669,7 @@ void SPU::CheckForLateRAMIRQs()
     if (!v.has_samples)
       continue;
 
-    const u32 address = v.current_address * 8;
+    const uint32_t address = v.current_address * 8;
     if (CheckRAMIRQ(address) || CheckRAMIRQ((address + 8) & RAM_MASK))
     {
       SPU_TriggerRAMIRQ();
@@ -669,9 +678,9 @@ void SPU::CheckForLateRAMIRQs()
   }
 }
 
-void SPU::WriteToCaptureBuffer(u32 index, s16 value)
+void SPU::WriteToCaptureBuffer(uint32_t index, int16_t value)
 {
-  const u32 ram_address = (index * CAPTURE_BUFFER_SIZE_PER_CHANNEL) | ZeroExtend16(m_capture_buffer_position);
+  const uint32_t ram_address = (index * CAPTURE_BUFFER_SIZE_PER_CHANNEL) | static_cast<uint16_t>(m_capture_buffer_position);
   std::memcpy(&m_ram[ram_address], &value, sizeof(value));
   if (IsRAMIRQTriggerable() && CheckRAMIRQ(ram_address))
   {
@@ -681,16 +690,16 @@ void SPU::WriteToCaptureBuffer(u32 index, s16 value)
 
 void SPU::IncrementCaptureBufferPosition()
 {
-  m_capture_buffer_position += sizeof(s16);
+  m_capture_buffer_position += sizeof(int16_t);
   m_capture_buffer_position %= CAPTURE_BUFFER_SIZE_PER_CHANNEL;
   m_SPUSTAT.second_half_capture_buffer = m_capture_buffer_position >= (CAPTURE_BUFFER_SIZE_PER_CHANNEL / 2);
 }
 
 void ALWAYS_INLINE SPU::ExecuteFIFOReadFromRAM(TickCount& ticks)
 {
-  u16 value;
-  std::memcpy(&value, &m_ram[m_transfer_address], sizeof(u16));
-  m_transfer_address = (m_transfer_address + sizeof(u16)) & RAM_MASK;
+  uint16_t value;
+  std::memcpy(&value, &m_ram[m_transfer_address], sizeof(uint16_t));
+  m_transfer_address = (m_transfer_address + sizeof(uint16_t)) & RAM_MASK;
   m_transfer_fifo.Push(value);
   ticks -= TRANSFER_TICKS_PER_HALFWORD;
 
@@ -702,9 +711,9 @@ void ALWAYS_INLINE SPU::ExecuteFIFOReadFromRAM(TickCount& ticks)
 
 void ALWAYS_INLINE SPU::ExecuteFIFOWriteToRAM(TickCount& ticks)
 {
-  u16 value = m_transfer_fifo.Pop();
-  std::memcpy(&m_ram[m_transfer_address], &value, sizeof(u16));
-  m_transfer_address = (m_transfer_address + sizeof(u16)) & RAM_MASK;
+  uint16_t value = m_transfer_fifo.Pop();
+  std::memcpy(&m_ram[m_transfer_address], &value, sizeof(uint16_t));
+  m_transfer_address = (m_transfer_address + sizeof(uint16_t)) & RAM_MASK;
   ticks -= TRANSFER_TICKS_PER_HALFWORD;
 
   if (IsRAMIRQTriggerable() && CheckRAMIRQ(m_transfer_address))
@@ -737,7 +746,7 @@ void SPU::ExecuteTransfer(TickCount ticks)
 
     m_SPUSTAT.transfer_busy = true;
     const TickCount ticks_until_complete =
-      TickCount(m_transfer_fifo.GetSpace() * u32(TRANSFER_TICKS_PER_HALFWORD)) + ((ticks < 0) ? -ticks : 0);
+      TickCount(m_transfer_fifo.GetSpace() * uint32_t(TRANSFER_TICKS_PER_HALFWORD)) + ((ticks < 0) ? -ticks : 0);
     m_transfer_event->Schedule(ticks_until_complete);
   }
   else
@@ -761,12 +770,12 @@ void SPU::ExecuteTransfer(TickCount ticks)
 
     m_SPUSTAT.transfer_busy = true;
     const TickCount ticks_until_complete =
-      TickCount(m_transfer_fifo.GetSize() * u32(TRANSFER_TICKS_PER_HALFWORD)) + ((ticks < 0) ? -ticks : 0);
+      TickCount(m_transfer_fifo.GetSize() * uint32_t(TRANSFER_TICKS_PER_HALFWORD)) + ((ticks < 0) ? -ticks : 0);
     m_transfer_event->Schedule(ticks_until_complete);
   }
 }
 
-void SPU::ManualTransferWrite(u16 value)
+void SPU::ManualTransferWrite(uint16_t value)
 {
   if (m_transfer_fifo.IsFull())
     return;
@@ -788,7 +797,7 @@ void SPU::UpdateTransferEvent()
     if (m_transfer_fifo.IsFull())
       m_transfer_event->Deactivate();
     else if (!m_transfer_event->IsActive())
-      m_transfer_event->Schedule(TickCount(m_transfer_fifo.GetSpace() * u32(TRANSFER_TICKS_PER_HALFWORD)));
+      m_transfer_event->Schedule(TickCount(m_transfer_fifo.GetSpace() * uint32_t(TRANSFER_TICKS_PER_HALFWORD)));
   }
   else
   {
@@ -796,7 +805,7 @@ void SPU::UpdateTransferEvent()
     if (m_transfer_fifo.IsEmpty())
       m_transfer_event->Deactivate();
     else if (!m_transfer_event->IsActive())
-      m_transfer_event->Schedule(TickCount(m_transfer_fifo.GetSize() * u32(TRANSFER_TICKS_PER_HALFWORD)));
+      m_transfer_event->Schedule(TickCount(m_transfer_fifo.GetSize() * uint32_t(TRANSFER_TICKS_PER_HALFWORD)));
   }
 
   m_SPUSTAT.transfer_busy = m_transfer_event->IsActive();
@@ -831,7 +840,7 @@ void SPU::UpdateDMARequest()
   g_dma.SetRequest(DMA::Channel::SPU, m_SPUSTAT.dma_request);
 }
 
-void SPU::DMARead(u32* words, u32 word_count)
+void SPU::DMARead(uint32_t* words, uint32_t word_count)
 {
   /*
     From @JaCzekanski - behavior when block size is larger than the FIFO size
@@ -875,13 +884,13 @@ void SPU::DMARead(u32* words, u32 word_count)
     % 0x000010f0: f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff ................
    */
 
-  u16* halfwords = reinterpret_cast<u16*>(words);
-  u32 halfword_count = word_count * 2;
+  uint16_t* halfwords = reinterpret_cast<uint16_t*>(words);
+  uint32_t halfword_count = word_count * 2;
 
-  const u32 size = m_transfer_fifo.GetSize();
+  const uint32_t size = m_transfer_fifo.GetSize();
   if (word_count > size)
   {
-    u16 fill_value = 0;
+    uint16_t fill_value = 0;
     if (size > 0)
     {
       m_transfer_fifo.PopRange(halfwords, size);
@@ -897,12 +906,12 @@ void SPU::DMARead(u32* words, u32 word_count)
   UpdateTransferEvent();
 }
 
-void SPU::DMAWrite(const u32* words, u32 word_count)
+void SPU::DMAWrite(const uint32_t* words, uint32_t word_count)
 {
-  const u16* halfwords = reinterpret_cast<const u16*>(words);
-  u32 halfword_count = word_count * 2;
+  const uint16_t* halfwords = reinterpret_cast<const uint16_t*>(words);
+  uint32_t halfword_count = word_count * 2;
 
-  const u32 words_to_transfer = std::min(m_transfer_fifo.GetSpace(), halfword_count);
+  const uint32_t words_to_transfer = std::min(m_transfer_fifo.GetSpace(), halfword_count);
   m_transfer_fifo.PushRange(halfwords, words_to_transfer);
 
   UpdateDMARequest();
@@ -918,9 +927,9 @@ void SPU::GeneratePendingSamples()
   TickCount frames_to_execute;
   if (g_settings.cpu_overclock_active)
   {
-    frames_to_execute = static_cast<u32>((static_cast<u64>(ticks_pending) * g_settings.cpu_overclock_denominator) +
-                                         static_cast<u32>(m_ticks_carry)) /
-                        static_cast<u32>(m_cpu_tick_divider);
+    frames_to_execute = static_cast<uint32_t>((static_cast<uint64_t>(ticks_pending) * g_settings.cpu_overclock_denominator) +
+                                         static_cast<uint32_t>(m_ticks_carry)) /
+                        static_cast<uint32_t>(m_cpu_tick_divider);
   }
   else
   {
@@ -933,14 +942,14 @@ void SPU::GeneratePendingSamples()
 
 void SPU::Voice::KeyOn()
 {
-  current_address = regs.adpcm_start_address & ~u16(1);
+  current_address = regs.adpcm_start_address & ~uint16_t(1);
   counter.bits = 0;
   regs.adsr_volume = 0;
   adpcm_last_samples.fill(0);
 
   // Samples from the previous block for interpolation should be zero. Fixes clicks in audio in Breath of Fire III.
   std::fill_n(&current_block_samples[NUM_SAMPLES_PER_ADPCM_BLOCK], NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK,
-              static_cast<s16>(0));
+              static_cast<int16_t>(0));
 
   has_samples = false;
   is_first_block = true;
@@ -994,36 +1003,36 @@ SPU::ADSRPhase SPU::GetNextADSRPhase(ADSRPhase phase)
 
 struct ADSRTableEntry
 {
-  s32 ticks;
-  s32 step;
+  int32_t ticks;
+  int32_t step;
 };
-constexpr u32 NUM_ADSR_TABLE_ENTRIES = 128,
+constexpr uint32_t NUM_ADSR_TABLE_ENTRIES = 128,
               NUM_ADSR_DIRECTIONS = 2; // increasing, decreasing
 using ADSRTableEntries = std::array<std::array<ADSRTableEntry, NUM_ADSR_TABLE_ENTRIES>, NUM_ADSR_DIRECTIONS>;
 
 static constexpr ADSRTableEntries ComputeADSRTableEntries()
 {
   ADSRTableEntries entries = {};
-  for (u32 decreasing = 0; decreasing < 2; decreasing++)
+  for (uint32_t decreasing = 0; decreasing < 2; decreasing++)
   {
-    for (u32 rate = 0; rate < NUM_ADSR_TABLE_ENTRIES; rate++)
+    for (uint32_t rate = 0; rate < NUM_ADSR_TABLE_ENTRIES; rate++)
     {
       if (rate < 48)
       {
         entries[decreasing][rate].ticks = 1;
         if (decreasing != 0)
           entries[decreasing][rate].step =
-            static_cast<s32>(static_cast<u32>(-8 + static_cast<s32>(rate & 3)) << (11 - (rate >> 2)));
+            static_cast<int32_t>(static_cast<uint32_t>(-8 + static_cast<int32_t>(rate & 3)) << (11 - (rate >> 2)));
         else
-          entries[decreasing][rate].step = (7 - static_cast<s32>(rate & 3)) << (11 - (rate >> 2));
+          entries[decreasing][rate].step = (7 - static_cast<int32_t>(rate & 3)) << (11 - (rate >> 2));
       }
       else
       {
-        entries[decreasing][rate].ticks = 1 << (static_cast<s32>(rate >> 2) - 11);
+        entries[decreasing][rate].ticks = 1 << (static_cast<int32_t>(rate >> 2) - 11);
         if (decreasing != 0)
-          entries[decreasing][rate].step = (-8 + static_cast<s32>(rate & 3));
+          entries[decreasing][rate].step = (-8 + static_cast<int32_t>(rate & 3));
         else
-          entries[decreasing][rate].step = (7 - static_cast<s32>(rate & 3));
+          entries[decreasing][rate].step = (7 - static_cast<int32_t>(rate & 3));
       }
     }
   }
@@ -1033,24 +1042,24 @@ static constexpr ADSRTableEntries ComputeADSRTableEntries()
 
 static constexpr ADSRTableEntries s_adsr_table = ComputeADSRTableEntries();
 
-void SPU::VolumeEnvelope::Reset(u8 rate_, bool decreasing_, bool exponential_)
+void SPU::VolumeEnvelope::Reset(uint8_t rate_, bool decreasing_, bool exponential_)
 {
   rate = rate_;
   decreasing = decreasing_;
   exponential = exponential_;
 
-  const ADSRTableEntry& table_entry = s_adsr_table[BoolToUInt8(decreasing)][rate];
+  const ADSRTableEntry& table_entry = s_adsr_table[static_cast<uint8_t>(decreasing)][rate];
   counter = table_entry.ticks;
 }
 
-s16 SPU::VolumeEnvelope::Tick(s16 current_level)
+int16_t SPU::VolumeEnvelope::Tick(int16_t current_level)
 {
   counter--;
   if (counter > 0)
     return current_level;
 
-  const ADSRTableEntry& table_entry = s_adsr_table[BoolToUInt8(decreasing)][rate];
-  s32 this_step = table_entry.step;
+  const ADSRTableEntry& table_entry = s_adsr_table[static_cast<uint8_t>(decreasing)][rate];
+  int32_t this_step = table_entry.step;
   counter = table_entry.ticks;
 
   if (exponential)
@@ -1074,8 +1083,8 @@ s16 SPU::VolumeEnvelope::Tick(s16 current_level)
     }
   }
 
-  return static_cast<s16>(
-    std::clamp<s32>(static_cast<s32>(current_level) + this_step, ENVELOPE_MIN_VOLUME, ENVELOPE_MAX_VOLUME));
+  return static_cast<int16_t>(
+    std::clamp<int32_t>(static_cast<int32_t>(current_level) + this_step, ENVELOPE_MIN_VOLUME, ENVELOPE_MAX_VOLUME));
 }
 
 void SPU::VolumeSweep::Reset(VolumeRegister reg)
@@ -1116,7 +1125,7 @@ void SPU::Voice::UpdateADSREnvelope()
       break;
 
     case ADSRPhase::Decay:
-      adsr_target = static_cast<s16>(std::min<s32>((u32(regs.adsr.sustain_level.GetValue()) + 1) * 0x800,
+      adsr_target = static_cast<int16_t>(std::min<int32_t>((uint32_t(regs.adsr.sustain_level.GetValue()) + 1) * 0x800,
                                                    ENVELOPE_MAX_VOLUME)); // max -> sustain level
       adsr_envelope.Reset(regs.adsr.decay_rate_shr2 << 2, true, true);
       break;
@@ -1154,8 +1163,16 @@ void SPU::Voice::TickADSR()
 
 void SPU::Voice::DecodeBlock(const ADPCMBlock& block)
 {
-  static s32 filter_table_pos[5] = {0, 60, 115, 98, 122};
-  static s32 filter_table_neg[5] = {0, 0, -52, -55, -60};
+  // The two ADPCM predictor tables only depend on the block's filter
+  // index and never change at runtime. Marking them constexpr places
+  // them in .rodata and eliminates the C++11 thread-safe-static-init
+  // guard (one acquire-load plus branch) that the compiler would
+  // otherwise emit on every entry to this function. DecodeBlock runs
+  // once per ADPCM block per active voice, up to ~200 times/sec per
+  // voice across 24 voices, so removing the guard is a small but
+  // consistent saving in the SPU hot path.
+  static constexpr int32_t filter_table_pos[5] = {0, 60, 115, 98, 122};
+  static constexpr int32_t filter_table_neg[5] = {0, 0, -52, -55, -60};
 
   // store samples needed for interpolation
   current_block_samples[2] = current_block_samples[NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK + NUM_SAMPLES_PER_ADPCM_BLOCK - 1];
@@ -1163,31 +1180,31 @@ void SPU::Voice::DecodeBlock(const ADPCMBlock& block)
   current_block_samples[0] = current_block_samples[NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK + NUM_SAMPLES_PER_ADPCM_BLOCK - 3];
 
   // pre-lookup
-  const u8 shift = block.GetShift();
-  const u8 filter_index = block.GetFilter();
-  const s32 filter_pos = filter_table_pos[filter_index];
-  const s32 filter_neg = filter_table_neg[filter_index];
-  s16 last_samples[2] = {adpcm_last_samples[0], adpcm_last_samples[1]};
+  const uint8_t shift = block.GetShift();
+  const uint8_t filter_index = block.GetFilter();
+  const int32_t filter_pos = filter_table_pos[filter_index];
+  const int32_t filter_neg = filter_table_neg[filter_index];
+  int16_t last_samples[2] = {adpcm_last_samples[0], adpcm_last_samples[1]};
 
   // samples
-  for (u32 i = 0; i < NUM_SAMPLES_PER_ADPCM_BLOCK; i++)
+  for (uint32_t i = 0; i < NUM_SAMPLES_PER_ADPCM_BLOCK; i++)
   {
     // extend 4-bit to 16-bit, apply shift from header and mix in previous samples
-    s32 sample = s32(static_cast<s16>(ZeroExtend16(block.GetNibble(i)) << 12) >> shift);
+    int32_t sample = int32_t(static_cast<int16_t>(static_cast<uint16_t>(block.GetNibble(i)) << 12) >> shift);
     sample += (last_samples[0] * filter_pos) >> 6;
     sample += (last_samples[1] * filter_neg) >> 6;
 
     last_samples[1] = last_samples[0];
-    current_block_samples[NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK + i] = last_samples[0] = static_cast<s16>(Clamp16(sample));
+    current_block_samples[NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK + i] = last_samples[0] = static_cast<int16_t>(Clamp16(sample));
   }
 
   std::copy(last_samples, last_samples + countof(last_samples), adpcm_last_samples.begin());
   current_block_flags.bits = block.flags.bits;
 }
 
-s32 SPU::Voice::Interpolate() const
+int32_t SPU::Voice::Interpolate() const
 {
-  static s16 gauss[0x200] = {
+  static constexpr int16_t gauss[0x200] = {
     -0x001, -0x001, -0x001, -0x001, -0x001, -0x001, -0x001, -0x001, //
     -0x001, -0x001, -0x001, -0x001, -0x001, -0x001, -0x001, -0x001, //
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, //
@@ -1254,19 +1271,19 @@ s32 SPU::Voice::Interpolate() const
     0x5997, 0x599E, 0x59A4, 0x59A9, 0x59AD, 0x59B0, 0x59B2, 0x59B3  //
   };
 
-  const u8 i  = counter.interpolation_index;
-  const u32 s = NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK + ZeroExtend32(counter.sample_index.GetValue());
+  const uint8_t i  = counter.interpolation_index;
+  const uint32_t s = NUM_SAMPLES_FROM_LAST_ADPCM_BLOCK + static_cast<uint32_t>(counter.sample_index.GetValue());
 
-  s32 out     = s32(gauss[0x0FF - i]) * s32(current_block_samples[s - 3]);
-  out        += s32(gauss[0x1FF - i]) * s32(current_block_samples[s - 2]);
-  out        += s32(gauss[0x100 + i]) * s32(current_block_samples[s - 1]);
-  out        += s32(gauss[0x000 + i]) * s32(current_block_samples[s - 0]);
+  int32_t out     = int32_t(gauss[0x0FF - i]) * int32_t(current_block_samples[s - 3]);
+  out        += int32_t(gauss[0x1FF - i]) * int32_t(current_block_samples[s - 2]);
+  out        += int32_t(gauss[0x100 + i]) * int32_t(current_block_samples[s - 1]);
+  out        += int32_t(gauss[0x000 + i]) * int32_t(current_block_samples[s - 0]);
   return out >> 15;
 }
 
-void SPU::ReadADPCMBlock(u16 address, ADPCMBlock* block)
+void SPU::ReadADPCMBlock(uint16_t address, ADPCMBlock* block)
 {
-  u32 ram_address = (ZeroExtend32(address) * 8) & RAM_MASK;
+  uint32_t ram_address = (static_cast<uint32_t>(address) * 8) & RAM_MASK;
   if (IsRAMIRQTriggerable() && (CheckRAMIRQ(ram_address) || CheckRAMIRQ((ram_address + 8) & RAM_MASK)))
   {
     SPU_TriggerRAMIRQ();
@@ -1283,14 +1300,14 @@ void SPU::ReadADPCMBlock(u16 address, ADPCMBlock* block)
   ram_address = (ram_address + 1) & RAM_MASK;
   block->flags.bits = m_ram[ram_address];
   ram_address = (ram_address + 1) & RAM_MASK;
-  for (u32 i = 0; i < 14; i++)
+  for (uint32_t i = 0; i < 14; i++)
   {
     block->data[i] = m_ram[ram_address];
     ram_address = (ram_address + 1) & RAM_MASK;
   }
 }
 
-ALWAYS_INLINE_RELEASE std::tuple<s32, s32> SPU::SampleVoice(u32 voice_index)
+ALWAYS_INLINE_RELEASE std::tuple<int32_t, int32_t> SPU::SampleVoice(uint32_t voice_index)
 {
   Voice& voice = m_voices[voice_index];
   if (!voice.IsOn() && !m_SPUCNT.irq9_enable)
@@ -1311,11 +1328,11 @@ ALWAYS_INLINE_RELEASE std::tuple<s32, s32> SPU::SampleVoice(u32 voice_index)
   }
 
   // skip interpolation when the volume is muted anyway
-  s32 volume;
+  int32_t volume;
   if (voice.regs.adsr_volume != 0)
   {
     // interpolate/sample and apply ADSR volume
-    s32 sample;
+    int32_t sample;
     if (IsVoiceNoiseEnabled(voice_index))
       sample = GetVoiceNoiseLevel();
     else
@@ -1332,13 +1349,13 @@ ALWAYS_INLINE_RELEASE std::tuple<s32, s32> SPU::SampleVoice(u32 voice_index)
     voice.TickADSR();
 
   // Pitch modulation
-  u16 step = voice.regs.adpcm_sample_rate;
+  uint16_t step = voice.regs.adpcm_sample_rate;
   if (IsPitchModulationEnabled(voice_index))
   {
-    const s32 factor = std::clamp<s32>(m_voices[voice_index - 1].last_volume, -0x8000, 0x7FFF) + 0x8000;
-    step = Truncate16(static_cast<u32>((SignExtend32(step) * factor) >> 15));
+    const int32_t factor = std::clamp<int32_t>(m_voices[voice_index - 1].last_volume, -0x8000, 0x7FFF) + 0x8000;
+    step = static_cast<uint16_t>((static_cast<uint32_t>(static_cast<int16_t>(step)) * factor) >> 15);
   }
-  step = std::min<u16>(step, 0x3FFF);
+  step = std::min<uint16_t>(step, 0x3FFF);
 
   // Shouldn't ever overflow because if sample_index == 27, step == 0x4000 there won't be a carry out from the
   // interpolation index. If there is a carry out, bit 12 will never be 1, so it'll never add more than 4 to
@@ -1356,8 +1373,8 @@ ALWAYS_INLINE_RELEASE std::tuple<s32, s32> SPU::SampleVoice(u32 voice_index)
     // handle flags
     if (voice.current_block_flags.loop_end)
     {
-      m_endx_register |= (u32(1) << voice_index);
-      voice.current_address = voice.regs.adpcm_repeat_address & ~u16(1);
+      m_endx_register |= (uint32_t(1) << voice_index);
+      voice.current_address = voice.regs.adpcm_repeat_address & ~uint16_t(1);
 
       if (!voice.current_block_flags.loop_repeat)
         voice.ForceOff();
@@ -1365,8 +1382,8 @@ ALWAYS_INLINE_RELEASE std::tuple<s32, s32> SPU::SampleVoice(u32 voice_index)
   }
 
   // apply per-channel volume
-  const s32 left = ApplyVolume(volume, voice.left_volume.current_level);
-  const s32 right = ApplyVolume(volume, voice.right_volume.current_level);
+  const int32_t left = ApplyVolume(volume, voice.left_volume.current_level);
+  const int32_t right = ApplyVolume(volume, voice.right_volume.current_level);
   voice.left_volume.Tick();
   voice.right_volume.Tick();
   return std::make_tuple(left, right);
@@ -1375,13 +1392,16 @@ ALWAYS_INLINE_RELEASE std::tuple<s32, s32> SPU::SampleVoice(u32 voice_index)
 void SPU::UpdateNoise()
 {
   // Dr Hell's noise waveform, implementation borrowed from pcsx-r.
-  static u8 noise_wave_add[64] = {
+  // constexpr to avoid the C++11 thread-safe-static-init guard the
+  // compiler would otherwise emit; this function runs once per SPU
+  // tick (44100 Hz) while audio is enabled.
+  static constexpr uint8_t noise_wave_add[64] = {
     1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
      0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1};
-  static u8 noise_freq_add[5]  = {0, 84, 140, 180, 210};
+  static constexpr uint8_t noise_freq_add[5]  = {0, 84, 140, 180, 210};
 
-  const u32 noise_clock        = m_SPUCNT.noise_clock;
-  const u32 level              = (0x8000u >> (noise_clock >> 2)) << 16;
+  const uint32_t noise_clock        = m_SPUCNT.noise_clock;
+  const uint32_t level              = (0x8000u >> (noise_clock >> 2)) << 16;
 
   m_noise_count += 0x10000u + noise_freq_add[noise_clock & 3u];
   if ((m_noise_count & 0xFFFFu) >= noise_freq_add[4])
@@ -1401,78 +1421,78 @@ void SPU::UpdateNoise()
 /* Reverb algorithm from Mednafen-PSX                                   */
 /************************************************************************/
 
-u32 SPU::ReverbMemoryAddress(u32 address) const
+uint32_t SPU::ReverbMemoryAddress(uint32_t address) const
 {
   // Ensures address does not leave the reverb work area.
-  static constexpr u32 MASK = (RAM_SIZE - 1) / 2;
-  u32 offset = m_reverb_current_address + (address & MASK);
-  offset += m_reverb_base_address & ((s32)(offset << 13) >> 31);
+  static constexpr uint32_t MASK = (RAM_SIZE - 1) / 2;
+  uint32_t offset = m_reverb_current_address + (address & MASK);
+  offset += m_reverb_base_address & ((int32_t)(offset << 13) >> 31);
 
   // We address RAM in bytes. TODO: Change this to words.
   return (offset & MASK) * 2u;
 }
 
-s16 SPU::ReverbRead(u32 address, s32 offset)
+int16_t SPU::ReverbRead(uint32_t address, int32_t offset)
 {
   // TODO: This should check interrupts.
-  const u32 real_address = ReverbMemoryAddress((address << 2) + offset);
+  const uint32_t real_address = ReverbMemoryAddress((address << 2) + offset);
 
-  s16 data;
+  int16_t data;
   std::memcpy(&data, &m_ram[real_address], sizeof(data));
   return data;
 }
 
-void SPU::ReverbWrite(u32 address, s16 data)
+void SPU::ReverbWrite(uint32_t address, int16_t data)
 {
   // TODO: This should check interrupts.
-  const u32 real_address = ReverbMemoryAddress(address << 2);
+  const uint32_t real_address = ReverbMemoryAddress(address << 2);
   std::memcpy(&m_ram[real_address], &data, sizeof(data));
 }
 
 // Zeroes optimized out; middle removed too(it's 16384)
-static s16 s_reverb_resample_coefficients[20] = {
+static int16_t s_reverb_resample_coefficients[20] = {
   -1, 2, -10, 35, -103, 266, -616, 1332, -2960, 10246, 10246, -2960, 1332, -616, 266, -103, 35, -10, 2, -1,
 };
 
-ALWAYS_INLINE static s32 Reverb4422(const s16* src)
+ALWAYS_INLINE static int32_t Reverb4422(const int16_t* src)
 {
-  s32 out = 0; // 32-bits is adequate(it won't overflow)
-  for (u32 i = 0; i < 20; i++)
+  int32_t out = 0; // 32-bits is adequate(it won't overflow)
+  for (uint32_t i = 0; i < 20; i++)
     out += s_reverb_resample_coefficients[i] * src[i * 2];
 
   // Middle non-zero
   out += 0x4000 * src[19];
   out >>= 15;
-  return std::clamp<s32>(out, -32768, 32767);
+  return std::clamp<int32_t>(out, -32768, 32767);
 }
 
 template<bool phase>
-ALWAYS_INLINE static s32 Reverb2244(const s16* src)
+ALWAYS_INLINE static int32_t Reverb2244(const int16_t* src)
 {
-  s32 out = 0; // 32-bits is adequate(it won't overflow)
+  int32_t out = 0; // 32-bits is adequate(it won't overflow)
   // Middle non-zero
   if (phase)
     return src[9];
-  for (u32 i = 0; i < 20; i++)
+  for (uint32_t i = 0; i < 20; i++)
     out += s_reverb_resample_coefficients[i] * src[i];
   out >>= 14;
-  out = std::clamp<s32>(out, -32768, 32767);
+  out = std::clamp<int32_t>(out, -32768, 32767);
   return out;
 }
 
-ALWAYS_INLINE static s16 ReverbSat(s32 val)
+ALWAYS_INLINE static int16_t ReverbSat(int32_t val)
 {
-  return static_cast<s16>(std::clamp<s32>(val, -0x8000, 0x7FFF));
+  return static_cast<int16_t>(std::clamp<int32_t>(val, -0x8000, 0x7FFF));
 }
 
-ALWAYS_INLINE static s16 ReverbNeg(s16 samp)
+ALWAYS_INLINE static int16_t ReverbNeg(int16_t samp)
 {
   if (samp == -32768)
     return 0x7FFF;
   return -samp;
 }
 
-ALWAYS_INLINE static s32 IIASM(const s16 IIR_ALPHA, const s16 insamp)
+ALWAYS_INLINE static int32_t IIASM(const int16_t IIR_ALPHA, const int16_t insamp)
 {
   if (IIR_ALPHA == -32768)
   {
@@ -1483,17 +1503,17 @@ ALWAYS_INLINE static s32 IIASM(const s16 IIR_ALPHA, const s16 insamp)
   return insamp * (32768 - IIR_ALPHA);
 }
 
-void SPU::ProcessReverb(s16 left_in, s16 right_in, s32* left_out, s32* right_out)
+void SPU::ProcessReverb(int16_t left_in, int16_t right_in, int32_t* left_out, int32_t* right_out)
 {
   m_reverb_downsample_buffer[0][m_reverb_resample_buffer_position | 0x00] = left_in;
   m_reverb_downsample_buffer[0][m_reverb_resample_buffer_position | 0x40] = left_in;
   m_reverb_downsample_buffer[1][m_reverb_resample_buffer_position | 0x00] = right_in;
   m_reverb_downsample_buffer[1][m_reverb_resample_buffer_position | 0x40] = right_in;
 
-  s32 out[2];
+  int32_t out[2];
   if (m_reverb_resample_buffer_position & 1u)
   {
-    s32 downsampled[2];
+    int32_t downsampled[2];
     for (unsigned lr = 0; lr < 2; lr++)
       downsampled[lr] = Reverb4422(&m_reverb_downsample_buffer[lr][(m_reverb_resample_buffer_position - 38) & 0x3F]);
 
@@ -1501,19 +1521,19 @@ void SPU::ProcessReverb(s16 left_in, s16 right_in, s32* left_out, s32* right_out
     {
       if (m_SPUCNT.reverb_master_enable)
       {
-        const s16 IIR_INPUT_A =
+        const int16_t IIR_INPUT_A =
           ReverbSat((((ReverbRead(m_reverb_registers.IIR_SRC_A[lr ^ 0]) * m_reverb_registers.IIR_COEF) >> 14) +
                      ((downsampled[lr] * m_reverb_registers.IN_COEF[lr]) >> 14)) >>
                     1);
-        const s16 IIR_INPUT_B =
+        const int16_t IIR_INPUT_B =
           ReverbSat((((ReverbRead(m_reverb_registers.IIR_SRC_B[lr ^ 1]) * m_reverb_registers.IIR_COEF) >> 14) +
                      ((downsampled[lr] * m_reverb_registers.IN_COEF[lr]) >> 14)) >>
                     1);
-        const s16 IIR_A =
+        const int16_t IIR_A =
           ReverbSat((((IIR_INPUT_A * m_reverb_registers.IIR_ALPHA) >> 14) +
                      (IIASM(m_reverb_registers.IIR_ALPHA, ReverbRead(m_reverb_registers.IIR_DEST_A[lr], -1)) >> 14)) >>
                     1);
-        const s16 IIR_B =
+        const int16_t IIR_B =
           ReverbSat((((IIR_INPUT_B * m_reverb_registers.IIR_ALPHA) >> 14) +
                      (IIASM(m_reverb_registers.IIR_ALPHA, ReverbRead(m_reverb_registers.IIR_DEST_B[lr], -1)) >> 14)) >>
                     1);
@@ -1522,18 +1542,18 @@ void SPU::ProcessReverb(s16 left_in, s16 right_in, s32* left_out, s32* right_out
         ReverbWrite(m_reverb_registers.IIR_DEST_B[lr], IIR_B);
       }
 
-      const s32 ACC = ((ReverbRead(m_reverb_registers.ACC_SRC_A[lr]) * m_reverb_registers.ACC_COEF_A) >> 14) +
+      const int32_t ACC = ((ReverbRead(m_reverb_registers.ACC_SRC_A[lr]) * m_reverb_registers.ACC_COEF_A) >> 14) +
                       ((ReverbRead(m_reverb_registers.ACC_SRC_B[lr]) * m_reverb_registers.ACC_COEF_B) >> 14) +
                       ((ReverbRead(m_reverb_registers.ACC_SRC_C[lr]) * m_reverb_registers.ACC_COEF_C) >> 14) +
                       ((ReverbRead(m_reverb_registers.ACC_SRC_D[lr]) * m_reverb_registers.ACC_COEF_D) >> 14);
 
-      const s16 FB_A = ReverbRead(m_reverb_registers.MIX_DEST_A[lr] - m_reverb_registers.FB_SRC_A);
-      const s16 FB_B = ReverbRead(m_reverb_registers.MIX_DEST_B[lr] - m_reverb_registers.FB_SRC_B);
-      const s16 MDA = ReverbSat((ACC + ((FB_A * ReverbNeg(m_reverb_registers.FB_ALPHA)) >> 14)) >> 1);
-      const s16 MDB = ReverbSat(
+      const int16_t FB_A = ReverbRead(m_reverb_registers.MIX_DEST_A[lr] - m_reverb_registers.FB_SRC_A);
+      const int16_t FB_B = ReverbRead(m_reverb_registers.MIX_DEST_B[lr] - m_reverb_registers.FB_SRC_B);
+      const int16_t MDA = ReverbSat((ACC + ((FB_A * ReverbNeg(m_reverb_registers.FB_ALPHA)) >> 14)) >> 1);
+      const int16_t MDB = ReverbSat(
         FB_A +
         ((((MDA * m_reverb_registers.FB_ALPHA) >> 14) + ((FB_B * ReverbNeg(m_reverb_registers.FB_X)) >> 14)) >> 1));
-      const s16 IVB = ReverbSat(FB_B + ((MDB * m_reverb_registers.FB_X) >> 15));
+      const int16_t IVB = ReverbSat(FB_B + ((MDB * m_reverb_registers.FB_X) >> 15));
 
       if (m_SPUCNT.reverb_master_enable)
       {
@@ -1567,38 +1587,38 @@ void SPU::ProcessReverb(s16 left_in, s16 right_in, s32* left_out, s32* right_out
 
 void SPU::Execute(TickCount ticks)
 {
-  u32 remaining_frames;
+  uint32_t remaining_frames;
   if (g_settings.cpu_overclock_active)
   {
     // (X * D) / N / 768 -> (X * D) / (N * 768)
-    const u64 num = (static_cast<u64>(ticks) * g_settings.cpu_overclock_denominator) + static_cast<u32>(m_ticks_carry);
-    remaining_frames = static_cast<u32>(num / m_cpu_tick_divider);
+    const uint64_t num = (static_cast<uint64_t>(ticks) * g_settings.cpu_overclock_denominator) + static_cast<uint32_t>(m_ticks_carry);
+    remaining_frames = static_cast<uint32_t>(num / m_cpu_tick_divider);
     m_ticks_carry = static_cast<TickCount>(num % m_cpu_tick_divider);
   }
   else
   {
-    remaining_frames = static_cast<u32>((ticks + m_ticks_carry) / SYSCLK_TICKS_PER_SPU_TICK);
+    remaining_frames = static_cast<uint32_t>((ticks + m_ticks_carry) / SYSCLK_TICKS_PER_SPU_TICK);
     m_ticks_carry = (ticks + m_ticks_carry) % SYSCLK_TICKS_PER_SPU_TICK;
   }
 
   while (remaining_frames > 0)
   {
-    s16* output_frame_start;
-    u32 output_frame_space = remaining_frames;
+    int16_t* output_frame_start;
+    uint32_t output_frame_space = remaining_frames;
     m_audio_stream->BeginWrite(&output_frame_start, &output_frame_space);
 
-    s16* output_frame = output_frame_start;
-    const u32 frames_in_this_batch = std::min(remaining_frames, output_frame_space);
-    for (u32 i = 0; i < frames_in_this_batch; i++)
+    int16_t* output_frame = output_frame_start;
+    const uint32_t frames_in_this_batch = std::min(remaining_frames, output_frame_space);
+    for (uint32_t i = 0; i < frames_in_this_batch; i++)
     {
-      s32 left_sum = 0;
-      s32 right_sum = 0;
-      s32 reverb_in_left = 0;
-      s32 reverb_in_right = 0;
+      int32_t left_sum = 0;
+      int32_t right_sum = 0;
+      int32_t reverb_in_left = 0;
+      int32_t reverb_in_right = 0;
 
-      u32 reverb_on_register = m_reverb_on_register;
+      uint32_t reverb_on_register = m_reverb_on_register;
 
-      for (u32 voice = 0; voice < NUM_VOICES; voice++)
+      for (uint32_t voice = 0; voice < NUM_VOICES; voice++)
       {
         const auto [left, right] = SampleVoice(voice);
         left_sum += left;
@@ -1625,8 +1645,8 @@ void SPU::Execute(TickCount ticks)
       const auto [cd_audio_left, cd_audio_right] = g_cdrom.GetAudioFrame();
       if (m_SPUCNT.cd_audio_enable)
       {
-        const s32 cd_audio_volume_left = ApplyVolume(s32(cd_audio_left), m_cd_audio_volume_left);
-        const s32 cd_audio_volume_right = ApplyVolume(s32(cd_audio_right), m_cd_audio_volume_right);
+        const int32_t cd_audio_volume_left = ApplyVolume(int32_t(cd_audio_left), m_cd_audio_volume_left);
+        const int32_t cd_audio_volume_right = ApplyVolume(int32_t(cd_audio_right), m_cd_audio_volume_right);
 
         left_sum += cd_audio_volume_left;
         right_sum += cd_audio_volume_right;
@@ -1639,8 +1659,8 @@ void SPU::Execute(TickCount ticks)
       }
 
       // Compute reverb.
-      s32 reverb_out_left, reverb_out_right;
-      ProcessReverb(static_cast<s16>(Clamp16(reverb_in_left)), static_cast<s16>(Clamp16(reverb_in_right)),
+      int32_t reverb_out_left, reverb_out_right;
+      ProcessReverb(static_cast<int16_t>(Clamp16(reverb_in_left)), static_cast<int16_t>(Clamp16(reverb_in_right)),
                     &reverb_out_left, &reverb_out_right);
 
       // Mix in reverb.
@@ -1648,28 +1668,28 @@ void SPU::Execute(TickCount ticks)
       right_sum += reverb_out_right;
 
       // Apply main volume after clamping. A maximum volume should not overflow here because both are 16-bit values.
-      *(output_frame++) = static_cast<s16>(ApplyVolume(Clamp16(left_sum), m_main_volume_left.current_level));
-      *(output_frame++) = static_cast<s16>(ApplyVolume(Clamp16(right_sum), m_main_volume_right.current_level));
+      *(output_frame++) = static_cast<int16_t>(ApplyVolume(Clamp16(left_sum), m_main_volume_left.current_level));
+      *(output_frame++) = static_cast<int16_t>(ApplyVolume(Clamp16(right_sum), m_main_volume_right.current_level));
       m_main_volume_left.Tick();
       m_main_volume_right.Tick();
 
       // Write to capture buffers.
       WriteToCaptureBuffer(0, cd_audio_left);
       WriteToCaptureBuffer(1, cd_audio_right);
-      WriteToCaptureBuffer(2, static_cast<s16>(Clamp16(m_voices[1].last_volume)));
-      WriteToCaptureBuffer(3, static_cast<s16>(Clamp16(m_voices[3].last_volume)));
+      WriteToCaptureBuffer(2, static_cast<int16_t>(Clamp16(m_voices[1].last_volume)));
+      WriteToCaptureBuffer(3, static_cast<int16_t>(Clamp16(m_voices[3].last_volume)));
       IncrementCaptureBufferPosition();
 
       // Key off/on voices after the first frame.
       if (i == 0 && (m_key_off_register != 0 || m_key_on_register != 0))
       {
-        u32 key_off_register = m_key_off_register;
+        uint32_t key_off_register = m_key_off_register;
         m_key_off_register = 0;
 
-        u32 key_on_register = m_key_on_register;
+        uint32_t key_on_register = m_key_on_register;
         m_key_on_register = 0;
 
-        for (u32 voice = 0; voice < NUM_VOICES; voice++)
+        for (uint32_t voice = 0; voice < NUM_VOICES; voice++)
         {
           if (key_off_register & 1u)
             m_voices[voice].KeyOff();
@@ -1695,10 +1715,10 @@ void SPU::UpdateEventInterval()
   // Don't generate more than the audio buffer since in a single slice, otherwise we'll both overflow the buffers when
   // we do write it, and the audio thread will underflow since it won't have enough data it the game isn't messing with
   // the SPU state.
-  const u32 max_slice_frames = g_host_interface->GetAudioStream()->GetBufferSize();
+  const uint32_t max_slice_frames = g_host_interface->GetAudioStream()->GetBufferSize();
 
   // TODO: Make this predict how long until the interrupt will be hit instead...
-  const u32 interval = (m_SPUCNT.enable && m_SPUCNT.irq9_enable) ? 1 : max_slice_frames;
+  const uint32_t interval = (m_SPUCNT.enable && m_SPUCNT.irq9_enable) ? 1 : max_slice_frames;
   const TickCount interval_ticks = static_cast<TickCount>(interval) * m_cpu_ticks_per_spu_tick;
   if (m_tick_event->IsActive() && m_tick_event->GetInterval() == interval_ticks)
     return;

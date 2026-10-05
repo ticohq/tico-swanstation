@@ -3,14 +3,12 @@
 #include <memory>
 
 // base byte stream creation functions
-inline constexpr u32 BYTESTREAM_OPEN_READ = 1, // open stream for writing
-  BYTESTREAM_OPEN_WRITE = 2,                   // open stream for writing
-  BYTESTREAM_OPEN_APPEND = 4,                  // seek to the end
-  BYTESTREAM_OPEN_TRUNCATE = 8,                // truncate the file, seek to start
-  BYTESTREAM_OPEN_CREATE = 16,                 // if the file does not exist, create it
-  BYTESTREAM_OPEN_CREATE_PATH = 32,            // if the file parent directories don't exist, create them
-  BYTESTREAM_OPEN_ATOMIC_UPDATE = 64,          //
-  BYTESTREAM_OPEN_SEEKABLE = 128, BYTESTREAM_OPEN_STREAMED = 256;
+inline constexpr uint32_t BYTESTREAM_OPEN_READ = 1,
+  BYTESTREAM_OPEN_WRITE = 2,
+  BYTESTREAM_OPEN_TRUNCATE = 8,
+  BYTESTREAM_OPEN_CREATE = 16,
+  BYTESTREAM_OPEN_ATOMIC_UPDATE = 64,
+  BYTESTREAM_OPEN_STREAMED = 256;
 
 // interface class used by readers, writers, etc.
 class ByteStream
@@ -19,35 +17,34 @@ public:
   virtual ~ByteStream() {}
 
   // reads a single byte from the stream.
-  virtual bool ReadByte(u8* pDestByte) = 0;
+  virtual bool ReadByte(uint8_t* pDestByte) = 0;
 
   // read bytes from this stream. returns the number of bytes read, if this isn't equal to the requested size, an error
   // or EOF occurred.
-  virtual u32 Read(void* pDestination, u32 ByteCount) = 0;
+  virtual uint32_t Read(void* pDestination, uint32_t ByteCount) = 0;
 
   // read bytes from this stream, optionally returning the number of bytes read.
-  virtual bool Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead = nullptr) = 0;
+  virtual bool Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead = nullptr) = 0;
 
   // writes a single byte to the stream.
-  virtual bool WriteByte(u8 SourceByte) = 0;
+  virtual bool WriteByte(uint8_t SourceByte) = 0;
 
   // write bytes to this stream, returns the number of bytes written. if this isn't equal to the requested size, a
   // buffer overflow, or write error occurred.
-  virtual u32 Write(const void* pSource, u32 ByteCount) = 0;
+  virtual uint32_t Write(const void* pSource, uint32_t ByteCount) = 0;
 
   // write bytes to this stream, optionally returning the number of bytes written.
-  virtual bool Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten = nullptr) = 0;
+  virtual bool Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten = nullptr) = 0;
 
   // seeks to the specified position in the stream
   // if seek failed, returns false.
-  virtual bool SeekAbsolute(u64 Offset) = 0;
-  virtual bool SeekRelative(s64 Offset) = 0;
+  virtual bool SeekAbsolute(uint64_t Offset) = 0;
 
   // gets the current offset in the stream
-  virtual u64 GetPosition() const = 0;
+  virtual uint64_t GetPosition() const = 0;
 
   // gets the size of the stream
-  virtual u64 GetSize() const = 0;
+  virtual uint64_t GetSize() const = 0;
 
   // flush any changes to the stream to disk
   virtual bool Flush() = 0;
@@ -75,101 +72,98 @@ protected:
 class MemoryByteStream final : public ByteStream
 {
 public:
-  MemoryByteStream(void* pMemory, u32 MemSize);
+  MemoryByteStream(void* pMemory, uint32_t MemSize);
   ~MemoryByteStream() override;
 
-  bool ReadByte(u8* pDestByte) override;
-  u32 Read(void* pDestination, u32 ByteCount) override;
-  bool Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead) override;
-  bool WriteByte(u8 SourceByte) override;
-  u32 Write(const void* pSource, u32 ByteCount) override;
-  bool Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten) override;
-  bool SeekAbsolute(u64 Offset) override;
-  bool SeekRelative(s64 Offset) override;
-  u64 GetSize() const override;
-  u64 GetPosition() const override;
+  bool ReadByte(uint8_t* pDestByte) override;
+  uint32_t Read(void* pDestination, uint32_t ByteCount) override;
+  bool Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead) override;
+  bool WriteByte(uint8_t SourceByte) override;
+  uint32_t Write(const void* pSource, uint32_t ByteCount) override;
+  bool Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten) override;
+  bool SeekAbsolute(uint64_t Offset) override;
+  uint64_t GetSize() const override;
+  uint64_t GetPosition() const override;
   bool Flush() override;
   bool Commit() override;
   bool Discard() override;
 
 private:
-  u8* m_pMemory;
-  u32 m_iPosition;
-  u32 m_iSize;
+  uint8_t* m_pMemory;
+  uint32_t m_iPosition;
+  uint32_t m_iSize;
 };
 
 class ReadOnlyMemoryByteStream final : public ByteStream
 {
 public:
-  ReadOnlyMemoryByteStream(const void* pMemory, u32 MemSize);
+  ReadOnlyMemoryByteStream(const void* pMemory, uint32_t MemSize);
   ~ReadOnlyMemoryByteStream() override;
 
-  bool ReadByte(u8* pDestByte) override;
-  u32 Read(void* pDestination, u32 ByteCount) override;
-  bool Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead) override;
-  bool WriteByte(u8 SourceByte) override;
-  u32 Write(const void* pSource, u32 ByteCount) override;
-  bool Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten) override;
-  bool SeekAbsolute(u64 Offset) override;
-  bool SeekRelative(s64 Offset) override;
-  u64 GetSize() const override;
-  u64 GetPosition() const override;
+  bool ReadByte(uint8_t* pDestByte) override;
+  uint32_t Read(void* pDestination, uint32_t ByteCount) override;
+  bool Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead) override;
+  bool WriteByte(uint8_t SourceByte) override;
+  uint32_t Write(const void* pSource, uint32_t ByteCount) override;
+  bool Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten) override;
+  bool SeekAbsolute(uint64_t Offset) override;
+  uint64_t GetSize() const override;
+  uint64_t GetPosition() const override;
   bool Flush() override;
   bool Commit() override;
   bool Discard() override;
 
 private:
-  const u8* m_pMemory;
-  u32 m_iPosition;
-  u32 m_iSize;
+  const uint8_t* m_pMemory;
+  uint32_t m_iPosition;
+  uint32_t m_iSize;
 };
 
 class GrowableMemoryByteStream final : public ByteStream
 {
 public:
-  GrowableMemoryByteStream(void* pInitialMem, u32 InitialMemSize);
+  GrowableMemoryByteStream(void* pInitialMem, uint32_t InitialMemSize);
   ~GrowableMemoryByteStream() override;
 
-  void Resize(u32 new_size);
-  void ResizeMemory(u32 new_size);
+  void Resize(uint32_t new_size);
+  void ResizeMemory(uint32_t new_size);
 
-  bool ReadByte(u8* pDestByte) override;
-  u32 Read(void* pDestination, u32 ByteCount) override;
-  bool Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead) override;
-  bool WriteByte(u8 SourceByte) override;
-  u32 Write(const void* pSource, u32 ByteCount) override;
-  bool Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten) override;
-  bool SeekAbsolute(u64 Offset) override;
-  bool SeekRelative(s64 Offset) override;
-  u64 GetSize() const override;
-  u64 GetPosition() const override;
+  bool ReadByte(uint8_t* pDestByte) override;
+  uint32_t Read(void* pDestination, uint32_t ByteCount) override;
+  bool Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead) override;
+  bool WriteByte(uint8_t SourceByte) override;
+  uint32_t Write(const void* pSource, uint32_t ByteCount) override;
+  bool Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten) override;
+  bool SeekAbsolute(uint64_t Offset) override;
+  uint64_t GetSize() const override;
+  uint64_t GetPosition() const override;
   bool Flush() override;
   bool Commit() override;
   bool Discard() override;
 
 private:
-  void Grow(u32 MinimumGrowth);
+  void Grow(uint32_t MinimumGrowth);
 
-  u8* m_pPrivateMemory;
-  u8* m_pMemory;
-  u32 m_iPosition;
-  u32 m_iSize;
-  u32 m_iMemorySize;
+  uint8_t* m_pPrivateMemory;
+  uint8_t* m_pMemory;
+  uint32_t m_iPosition;
+  uint32_t m_iSize;
+  uint32_t m_iMemorySize;
 };
 
 // base byte stream creation functions
 // opens a local file-based stream. fills in error if passed, and returns false if the file cannot be opened.
-std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* FileName, u32 OpenMode);
+std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* FileName, uint32_t OpenMode);
 
 // memory byte stream, caller is responsible for management, therefore it can be located on either the stack or on the
 // heap.
-std::unique_ptr<MemoryByteStream> ByteStream_CreateMemoryStream(void* pMemory, u32 Size);
+std::unique_ptr<MemoryByteStream> ByteStream_CreateMemoryStream(void* pMemory, uint32_t Size);
 
 // a growable memory byte stream will automatically allocate its own memory if the provided memory is overflowed.
 // a "pure heap" buffer, i.e. a buffer completely managed by this implementation, can be created by supplying a NULL
 // pointer and initialSize of zero.
-std::unique_ptr<GrowableMemoryByteStream> ByteStream_CreateGrowableMemoryStream(void* pInitialMemory, u32 InitialSize);
+std::unique_ptr<GrowableMemoryByteStream> ByteStream_CreateGrowableMemoryStream(void* pInitialMemory, uint32_t InitialSize);
 std::unique_ptr<GrowableMemoryByteStream> ByteStream_CreateGrowableMemoryStream();
 
 // readable memory stream
-std::unique_ptr<ReadOnlyMemoryByteStream> ByteStream_CreateReadOnlyMemoryStream(const void* pMemory, u32 Size);
+std::unique_ptr<ReadOnlyMemoryByteStream> ByteStream_CreateReadOnlyMemoryStream(const void* pMemory, uint32_t Size);

@@ -6,9 +6,9 @@ class StateWrapper;
 class InterruptController final
 {
 public:
-  static constexpr u32 NUM_IRQS = 11;
+  static constexpr uint32_t NUM_IRQS = 11;
 
-  enum class IRQ : u32
+  enum class IRQ : uint32_t
   {
     VBLANK = 0, // IRQ0 - VBLANK
     GPU = 1,    // IRQ1 - GPU via GP0(1Fh)
@@ -32,24 +32,21 @@ public:
   void Reset();
   bool DoState(StateWrapper& sw);
 
-  // Should mirror CPU state.
-  ALWAYS_INLINE bool GetIRQLineState() const { return (m_interrupt_status_register != 0); }
-
   // Interupts are edge-triggered, so if it is masked when TriggerInterrupt() is called, it will be lost.
   void InterruptRequest(IRQ irq);
 
   // I/O
-  u32 ReadRegister(u32 offset);
-  void WriteRegister(u32 offset, u32 value);
+  uint32_t ReadRegister(uint32_t offset);
+  void WriteRegister(uint32_t offset, uint32_t value);
 
 private:
-  static constexpr u32 REGISTER_WRITE_MASK = (u32(1) << NUM_IRQS) - 1;
-  static constexpr u32 DEFAULT_INTERRUPT_MASK = 0; //(u32(1) << NUM_IRQS) - 1;
+  static constexpr uint32_t REGISTER_WRITE_MASK = (uint32_t(1) << NUM_IRQS) - 1;
+  static constexpr uint32_t DEFAULT_INTERRUPT_MASK = 0; //(uint32_t(1) << NUM_IRQS) - 1;
 
   void UpdateCPUInterruptRequest();
 
-  u32 m_interrupt_status_register = 0;
-  u32 m_interrupt_mask_register = DEFAULT_INTERRUPT_MASK;
+  uint32_t m_interrupt_status_register = 0;
+  uint32_t m_interrupt_mask_register = DEFAULT_INTERRUPT_MASK;
 };
 
 extern InterruptController g_interrupt_controller;

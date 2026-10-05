@@ -7,17 +7,17 @@ namespace CPU::Recompiler {
 
 void CodeGenerator::EmitLoadGuestRegister(HostReg host_reg, Reg guest_reg)
 {
-  EmitLoadCPUStructField(host_reg, RegSize_32, State::GPRRegisterOffset(static_cast<u32>(guest_reg)));
+  EmitLoadCPUStructField(host_reg, RegSize_32, State::GPRRegisterOffset(static_cast<uint32_t>(guest_reg)));
 }
 
 void CodeGenerator::EmitStoreGuestRegister(Reg guest_reg, const Value& value)
 {
-  EmitStoreCPUStructField(State::GPRRegisterOffset(static_cast<u32>(guest_reg)), value);
+  EmitStoreCPUStructField(State::GPRRegisterOffset(static_cast<uint32_t>(guest_reg)), value);
 }
 
 void CodeGenerator::EmitStoreInterpreterLoadDelay(Reg reg, const Value& value)
 {
-  EmitStoreCPUStructField(offsetof(State, load_delay_reg), Value::FromConstantU8(static_cast<u8>(reg)));
+  EmitStoreCPUStructField(offsetof(State, load_delay_reg), Value::FromConstantU8(static_cast<uint8_t>(reg)));
   EmitStoreCPUStructField(offsetof(State, load_delay_value), value);
   m_load_delay_dirty = true;
 }
@@ -29,7 +29,7 @@ Value CodeGenerator::EmitLoadGuestMemory(const CodeBlockInstruction& cbi, const 
   {
     TickCount read_ticks;
     void* ptr = GetDirectReadMemoryPointer(
-      static_cast<u32>(address.constant_value),
+      static_cast<uint32_t>(address.constant_value),
       (size == RegSize_8) ? MemoryAccessSize::Byte :
                             ((size == RegSize_16) ? MemoryAccessSize::HalfWord : MemoryAccessSize::Word),
       &read_ticks);
@@ -37,10 +37,10 @@ Value CodeGenerator::EmitLoadGuestMemory(const CodeBlockInstruction& cbi, const 
     {
       Value result = m_register_cache.AllocateScratch(size);
 
-      if (g_settings.IsUsingFastmem() && Bus::IsRAMAddress(static_cast<u32>(address.constant_value)))
+      if (g_settings.IsUsingFastmem() && Bus::IsRAMAddress(static_cast<uint32_t>(address.constant_value)))
       {
         // have to mask away the high bits for mirrors, since we don't map them in fastmem
-        EmitLoadGuestRAMFastmem(Value::FromConstantU32(static_cast<u32>(address.constant_value) & Bus::g_ram_mask),
+        EmitLoadGuestRAMFastmem(Value::FromConstantU32(static_cast<uint32_t>(address.constant_value) & Bus::g_ram_mask),
                                 size, result);
       }
       else
@@ -100,7 +100,7 @@ void CodeGenerator::EmitStoreGuestMemory(const CodeBlockInstruction& cbi, const 
   if (address.IsConstant() && !SpeculativeIsCacheIsolated())
   {
     void* ptr = GetDirectWriteMemoryPointer(
-      static_cast<u32>(address.constant_value),
+      static_cast<uint32_t>(address.constant_value),
       (size == RegSize_8) ? MemoryAccessSize::Byte :
                             ((size == RegSize_16) ? MemoryAccessSize::HalfWord : MemoryAccessSize::Word));
     if (ptr)

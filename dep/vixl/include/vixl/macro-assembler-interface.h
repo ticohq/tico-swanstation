@@ -24,12 +24,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SWANSTATION_VIXL_MACRO_ASSEMBLER_INTERFACE_H
-#define SWANSTATION_VIXL_MACRO_ASSEMBLER_INTERFACE_H
+#ifndef VIXL_MACRO_ASSEMBLER_INTERFACE_H
+#define VIXL_MACRO_ASSEMBLER_INTERFACE_H
 
 #include "assembler-base-vixl.h"
 
-namespace swanstation_vixl {
+namespace vixl {
 
 class MacroAssemblerInterface {
  public:
@@ -70,6 +70,6 @@ class MacroAssemblerInterface {
   friend class PoolManager;
 };
 
-}  // namespace swanstation_vixl
+}  // namespace vixl
 
-#endif  // SWANSTATION_VIXL_MACRO_ASSEMBLER_INTERFACE_H
+#endif  // VIXL_MACRO_ASSEMBLER_INTERFACE_H

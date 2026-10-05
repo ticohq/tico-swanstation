@@ -9,12 +9,12 @@ class MD5Digest
 public:
   MD5Digest();
 
-  void Update(const void* pData, u32 cbData);
-  void Final(u8 Digest[16]);
+  void Update(const void* pData, uint32_t cbData);
+  void Final(uint8_t Digest[16]);
   void Reset();
 
 private:
-  u32 buf[4];
-  u32 bits[2];
-  u8 in[64];
+  uint32_t buf[4];
+  uint32_t bits[2];
+  uint8_t in[64];
 };

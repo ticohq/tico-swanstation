@@ -18,7 +18,7 @@ StreamBuffer::~StreamBuffer()
   Destroy();
 }
 
-bool StreamBuffer::Create(u32 size)
+bool StreamBuffer::Create(uint32_t size)
 {
   static const D3D12_HEAP_PROPERTIES heap_properties = {D3D12_HEAP_TYPE_UPLOAD};
   const D3D12_RESOURCE_DESC resource_desc = {
@@ -34,7 +34,7 @@ bool StreamBuffer::Create(u32 size)
     return false;
 
   static const D3D12_RANGE read_range = {};
-  u8* host_pointer;
+  uint8_t* host_pointer;
   hr = buffer->Map(0, &read_range, reinterpret_cast<void**>(&host_pointer));
   if (FAILED(hr))
     return false;
@@ -48,15 +48,15 @@ bool StreamBuffer::Create(u32 size)
   return true;
 }
 
-bool StreamBuffer::ReserveMemory(u32 num_bytes, u32 alignment)
+bool StreamBuffer::ReserveMemory(uint32_t num_bytes, uint32_t alignment)
 {
-  const u32 required_bytes = num_bytes + alignment;
+  const uint32_t required_bytes = num_bytes + alignment;
 
   // Check for sane allocations
   if (num_bytes > m_size)
   {
-    Log_ErrorPrintf("Attempting to allocate %u bytes from a %u byte stream buffer", static_cast<u32>(num_bytes),
-                    static_cast<u32>(m_size));
+    Log_ErrorPrintf("Attempting to allocate %u bytes from a %u byte stream buffer", static_cast<uint32_t>(num_bytes),
+                    static_cast<uint32_t>(m_size));
     return false;
   }
 
@@ -64,8 +64,8 @@ bool StreamBuffer::ReserveMemory(u32 num_bytes, u32 alignment)
   UpdateCurrentFencePosition();
   if (m_current_offset >= m_current_gpu_position)
   {
-    const u32 aligned_required_bytes = (m_current_offset > 0) ? required_bytes : num_bytes;
-    const u32 remaining_bytes = m_size - m_current_offset;
+    const uint32_t aligned_required_bytes = (m_current_offset > 0) ? required_bytes : num_bytes;
+    const uint32_t remaining_bytes = m_size - m_current_offset;
     if (aligned_required_bytes <= remaining_bytes)
     {
       // Place at the current position, after the GPU position.
@@ -91,7 +91,7 @@ bool StreamBuffer::ReserveMemory(u32 num_bytes, u32 alignment)
   if (m_current_offset < m_current_gpu_position)
   {
     // We have from m_current_offset..m_current_gpu_position space to use.
-    const u32 remaining_bytes = m_current_gpu_position - m_current_offset;
+    const uint32_t remaining_bytes = m_current_gpu_position - m_current_offset;
     if (required_bytes < remaining_bytes)
     {
       // Place at the current position, since this is still behind the GPU.
@@ -104,7 +104,7 @@ bool StreamBuffer::ReserveMemory(u32 num_bytes, u32 alignment)
   // Can we find a fence to wait on that will give us enough memory?
   if (WaitForClearSpace(required_bytes))
   {
-    const u32 align_diff = Common::AlignUp(m_current_offset, alignment) - m_current_offset;
+    const uint32_t align_diff = Common::AlignUp(m_current_offset, alignment) - m_current_offset;
     m_current_offset += align_diff;
     m_current_space -= align_diff;
     return true;
@@ -116,7 +116,7 @@ bool StreamBuffer::ReserveMemory(u32 num_bytes, u32 alignment)
   return false;
 }
 
-void StreamBuffer::CommitMemory(u32 final_num_bytes)
+void StreamBuffer::CommitMemory(uint32_t final_num_bytes)
 {
   m_current_offset += final_num_bytes;
   m_current_space -= final_num_bytes;
@@ -148,7 +148,7 @@ void StreamBuffer::UpdateCurrentFencePosition()
     return;
 
   // Has the offset changed since the last fence?
-  const u64 fence = g_d3d12_context->GetCurrentFenceValue();
+  const uint64_t fence = g_d3d12_context->GetCurrentFenceValue();
   if (!m_tracked_fences.empty() && m_tracked_fences.back().first == fence)
   {
     // Still haven't executed a command buffer, so just update the offset.
@@ -165,7 +165,7 @@ void StreamBuffer::UpdateGPUPosition()
   auto start = m_tracked_fences.begin();
   auto end = start;
 
-  const u64 completed_counter = g_d3d12_context->GetCompletedFenceValue();
+  const uint64_t completed_counter = g_d3d12_context->GetCompletedFenceValue();
   while (end != m_tracked_fences.end() && completed_counter >= end->first)
   {
     m_current_gpu_position = end->second;
@@ -176,11 +176,11 @@ void StreamBuffer::UpdateGPUPosition()
     m_tracked_fences.erase(start, end);
 }
 
-bool StreamBuffer::WaitForClearSpace(u32 num_bytes)
+bool StreamBuffer::WaitForClearSpace(uint32_t num_bytes)
 {
-  u32 new_offset = 0;
-  u32 new_space = 0;
-  u32 new_gpu_position = 0;
+  uint32_t new_offset = 0;
+  uint32_t new_space = 0;
+  uint32_t new_gpu_position = 0;
 
   auto iter = m_tracked_fences.begin();
   for (; iter != m_tracked_fences.end(); ++iter)
@@ -189,7 +189,7 @@ bool StreamBuffer::WaitForClearSpace(u32 num_bytes)
     // This is the "last resort" case, where a command buffer execution has been forced
     // after no additional data has been written to it, so we can assume that after the
     // fence has been signaled the entire buffer is now consumed.
-    u32 gpu_position = iter->second;
+    uint32_t gpu_position = iter->second;
     if (m_current_offset == gpu_position)
     {
       new_offset = 0;
@@ -203,7 +203,7 @@ bool StreamBuffer::WaitForClearSpace(u32 num_bytes)
     {
       // This would suggest the GPU has now followed us and wrapped around, so we have from
       // m_current_position..m_size free, as well as and 0..gpu_position.
-      const u32 remaining_space_after_offset = m_size - m_current_offset;
+      const uint32_t remaining_space_after_offset = m_size - m_current_offset;
       if (remaining_space_after_offset >= num_bytes)
       {
         // Switch to allocating in front of the GPU, using the remainder of the buffer.
@@ -229,7 +229,7 @@ bool StreamBuffer::WaitForClearSpace(u32 num_bytes)
       // We're currently allocating behind the GPU. This would give us between the current
       // offset and the GPU position worth of space to work with. Again, > because we can't
       // align the GPU position with the buffer offset.
-      u32 available_space_inbetween = gpu_position - m_current_offset;
+      uint32_t available_space_inbetween = gpu_position - m_current_offset;
       if (available_space_inbetween > num_bytes)
       {
         // Leave the offset as-is, but update the GPU position.

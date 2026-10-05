@@ -5,6 +5,7 @@
 #include "gte.h"
 #include "pgxp.h"
 #include "settings.h"
+#include <cstring>
 Log_SetChannel(CPU::Recompiler);
 
 // TODO: Turn load+sext/zext into a single signed/unsigned load
@@ -13,7 +14,7 @@ Log_SetChannel(CPU::Recompiler);
 
 namespace CPU::Recompiler {
 
-bool CodeGenerator::CompileBlock(CodeBlock* block, CodeBlock::HostCodePointer* out_host_code, u32* out_host_code_size)
+bool CodeGenerator::CompileBlock(CodeBlock* block, CodeBlock::HostCodePointer* out_host_code, uint32_t* out_host_code_size)
 {
   // TODO: Align code buffer.
 
@@ -230,8 +231,8 @@ Value CodeGenerator::ConvertValueSize(const Value& value, RegSize size, bool sig
         switch (value.size)
         {
           case RegSize_8:
-            return Value::FromConstantU16(sign_extend ? SignExtend16(Truncate8(value.constant_value)) :
-                                                        ZeroExtend16(Truncate8(value.constant_value)));
+            return Value::FromConstantU16(sign_extend ? static_cast<uint16_t>(static_cast<int8_t>(value.constant_value)) :
+                                                        static_cast<uint16_t>(static_cast<uint8_t>(value.constant_value)));
 
           default:
             return Value::FromConstantU16(value.constant_value & 0xFFFF);
@@ -244,11 +245,11 @@ Value CodeGenerator::ConvertValueSize(const Value& value, RegSize size, bool sig
         switch (value.size)
         {
           case RegSize_8:
-            return Value::FromConstantU32(sign_extend ? SignExtend32(Truncate8(value.constant_value)) :
-                                                        ZeroExtend32(Truncate8(value.constant_value)));
+            return Value::FromConstantU32(sign_extend ? static_cast<uint32_t>(static_cast<int8_t>(value.constant_value)) :
+                                                        static_cast<uint32_t>(static_cast<uint8_t>(value.constant_value)));
           case RegSize_16:
-            return Value::FromConstantU32(sign_extend ? SignExtend32(Truncate16(value.constant_value)) :
-                                                        ZeroExtend32(Truncate16(value.constant_value)));
+            return Value::FromConstantU32(sign_extend ? static_cast<uint32_t>(static_cast<int16_t>(value.constant_value)) :
+                                                        static_cast<uint32_t>(static_cast<uint16_t>(value.constant_value)));
 
           case RegSize_32:
             return value;
@@ -321,17 +322,17 @@ Value CodeGenerator::AddValues(const Value& lhs, const Value& rhs, bool set_flag
   if (lhs.IsConstant() && rhs.IsConstant() && !set_flags)
   {
     // compile-time
-    u64 new_cv = lhs.constant_value + rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value + rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -372,17 +373,17 @@ Value CodeGenerator::SubValues(const Value& lhs, const Value& rhs, bool set_flag
   if (lhs.IsConstant() && rhs.IsConstant() && !set_flags)
   {
     // compile-time
-    u64 new_cv = lhs.constant_value - rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value - rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -423,43 +424,43 @@ std::pair<Value, Value> CodeGenerator::MulValues(const Value& lhs, const Value& 
     {
       case RegSize_8:
       {
-        u16 res;
+        uint16_t res;
         if (signed_multiply)
-          res = u16(s16(s8(lhs.constant_value)) * s16(s8(rhs.constant_value)));
+          res = uint16_t(int16_t(int8_t(lhs.constant_value)) * int16_t(int8_t(rhs.constant_value)));
         else
-          res = u16(u8(lhs.constant_value)) * u16(u8(rhs.constant_value));
+          res = uint16_t(uint8_t(lhs.constant_value)) * uint16_t(uint8_t(rhs.constant_value));
 
-        return std::make_pair(Value::FromConstantU8(Truncate8(res >> 8)), Value::FromConstantU8(Truncate8(res)));
+        return std::make_pair(Value::FromConstantU8(static_cast<uint8_t>(res >> 8)), Value::FromConstantU8(static_cast<uint8_t>(res)));
       }
 
       case RegSize_16:
       {
-        u32 res;
+        uint32_t res;
         if (signed_multiply)
-          res = u32(s32(s16(lhs.constant_value)) * s32(s16(rhs.constant_value)));
+          res = uint32_t(int32_t(int16_t(lhs.constant_value)) * int32_t(int16_t(rhs.constant_value)));
         else
-          res = u32(u16(lhs.constant_value)) * u32(u16(rhs.constant_value));
+          res = uint32_t(uint16_t(lhs.constant_value)) * uint32_t(uint16_t(rhs.constant_value));
 
-        return std::make_pair(Value::FromConstantU16(Truncate16(res >> 16)), Value::FromConstantU16(Truncate16(res)));
+        return std::make_pair(Value::FromConstantU16(static_cast<uint16_t>(res >> 16)), Value::FromConstantU16(static_cast<uint16_t>(res)));
       }
 
       case RegSize_32:
       {
-        u64 res;
+        uint64_t res;
         if (signed_multiply)
-          res = u64(s64(s32(lhs.constant_value)) * s64(s32(rhs.constant_value)));
+          res = uint64_t(int64_t(int32_t(lhs.constant_value)) * int64_t(int32_t(rhs.constant_value)));
         else
-          res = u64(u32(lhs.constant_value)) * u64(u32(rhs.constant_value));
+          res = uint64_t(uint32_t(lhs.constant_value)) * uint64_t(uint32_t(rhs.constant_value));
 
-        return std::make_pair(Value::FromConstantU32(Truncate32(res >> 32)), Value::FromConstantU32(Truncate32(res)));
+        return std::make_pair(Value::FromConstantU32(static_cast<uint32_t>(res >> 32)), Value::FromConstantU32(static_cast<uint32_t>(res)));
       }
       break;
 
       case RegSize_64:
       {
-        u64 res;
+        uint64_t res;
         if (signed_multiply)
-          res = u64(s64(lhs.constant_value) * s64(rhs.constant_value));
+          res = uint64_t(int64_t(lhs.constant_value) * int64_t(rhs.constant_value));
         else
           res = lhs.constant_value * rhs.constant_value;
 
@@ -484,17 +485,17 @@ Value CodeGenerator::ShlValues(const Value& lhs, const Value& rhs, bool assume_a
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value << (rhs.constant_value & 0x1F);
+    uint64_t new_cv = lhs.constant_value << (rhs.constant_value & 0x1F);
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -529,17 +530,17 @@ Value CodeGenerator::ShrValues(const Value& lhs, const Value& rhs, bool assume_a
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value >> (rhs.constant_value & 0x1F);
+    uint64_t new_cv = lhs.constant_value >> (rhs.constant_value & 0x1F);
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -578,19 +579,19 @@ Value CodeGenerator::SarValues(const Value& lhs, const Value& rhs, bool assume_a
     {
       case RegSize_8:
         return Value::FromConstantU8(
-          static_cast<u8>(static_cast<s8>(Truncate8(lhs.constant_value)) >> (rhs.constant_value & 0x1F)));
+          static_cast<uint8_t>(static_cast<int8_t>(static_cast<uint8_t>(lhs.constant_value)) >> (rhs.constant_value & 0x1F)));
 
       case RegSize_16:
         return Value::FromConstantU16(
-          static_cast<u16>(static_cast<s16>(Truncate16(lhs.constant_value)) >> (rhs.constant_value & 0x1F)));
+          static_cast<uint16_t>(static_cast<int16_t>(static_cast<uint16_t>(lhs.constant_value)) >> (rhs.constant_value & 0x1F)));
 
       case RegSize_32:
         return Value::FromConstantU32(
-          static_cast<u32>(static_cast<s32>(Truncate32(lhs.constant_value)) >> (rhs.constant_value & 0x1F)));
+          static_cast<uint32_t>(static_cast<int32_t>(static_cast<uint32_t>(lhs.constant_value)) >> (rhs.constant_value & 0x1F)));
 
       case RegSize_64:
         return Value::FromConstantU64(
-          static_cast<u64>(static_cast<s64>(lhs.constant_value) >> (rhs.constant_value & 0x3F)));
+          static_cast<uint64_t>(static_cast<int64_t>(lhs.constant_value) >> (rhs.constant_value & 0x3F)));
 
       default:
         return Value();
@@ -622,17 +623,17 @@ Value CodeGenerator::OrValues(const Value& lhs, const Value& rhs)
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value | rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value | rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -671,19 +672,19 @@ void CodeGenerator::OrValueInPlace(Value& lhs, const Value& rhs)
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value | rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value | rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        lhs = Value::FromConstantU8(Truncate8(new_cv));
+        lhs = Value::FromConstantU8(static_cast<uint8_t>(new_cv));
         break;
 
       case RegSize_16:
-        lhs = Value::FromConstantU16(Truncate16(new_cv));
+        lhs = Value::FromConstantU16(static_cast<uint16_t>(new_cv));
         break;
 
       case RegSize_32:
-        lhs = Value::FromConstantU32(Truncate32(new_cv));
+        lhs = Value::FromConstantU32(static_cast<uint32_t>(new_cv));
         break;
 
       case RegSize_64:
@@ -718,17 +719,17 @@ Value CodeGenerator::AndValues(const Value& lhs, const Value& rhs)
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value & rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value & rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -763,19 +764,19 @@ void CodeGenerator::AndValueInPlace(Value& lhs, const Value& rhs)
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value & rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value & rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        lhs = Value::FromConstantU8(Truncate8(new_cv));
+        lhs = Value::FromConstantU8(static_cast<uint8_t>(new_cv));
         break;
 
       case RegSize_16:
-        lhs = Value::FromConstantU16(Truncate16(new_cv));
+        lhs = Value::FromConstantU16(static_cast<uint16_t>(new_cv));
         break;
 
       case RegSize_32:
-        lhs = Value::FromConstantU32(Truncate32(new_cv));
+        lhs = Value::FromConstantU32(static_cast<uint32_t>(new_cv));
         break;
 
       case RegSize_64:
@@ -813,17 +814,17 @@ Value CodeGenerator::XorValues(const Value& lhs, const Value& rhs)
   if (lhs.IsConstant() && rhs.IsConstant())
   {
     // compile-time
-    u64 new_cv = lhs.constant_value ^ rhs.constant_value;
+    uint64_t new_cv = lhs.constant_value ^ rhs.constant_value;
     switch (lhs.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -863,17 +864,17 @@ Value CodeGenerator::NotValue(const Value& val)
 {
   if (val.IsConstant())
   {
-    u64 new_cv = ~val.constant_value;
+    uint64_t new_cv = ~val.constant_value;
     switch (val.size)
     {
       case RegSize_8:
-        return Value::FromConstantU8(Truncate8(new_cv));
+        return Value::FromConstantU8(static_cast<uint8_t>(new_cv));
 
       case RegSize_16:
-        return Value::FromConstantU16(Truncate16(new_cv));
+        return Value::FromConstantU16(static_cast<uint16_t>(new_cv));
 
       case RegSize_32:
-        return Value::FromConstantU32(Truncate32(new_cv));
+        return Value::FromConstantU32(static_cast<uint32_t>(new_cv));
 
       case RegSize_64:
         return Value::FromConstantU64(new_cv);
@@ -902,7 +903,7 @@ void CodeGenerator::GenerateExceptionExit(const CodeBlockInstruction& cbi, Excep
     m_register_cache.FlushAllGuestRegisters(true, true);
     m_register_cache.FlushLoadDelay(true);
 
-    EmitFunctionCall(nullptr, static_cast<void (*)(u32, u32)>(&CPU::RaiseException), CAUSE_bits,
+    EmitFunctionCall(nullptr, static_cast<void (*)(uint32_t, uint32_t)>(&CPU::RaiseException), CAUSE_bits,
                      GetCurrentInstructionPC());
     return;
   }
@@ -915,7 +916,7 @@ void CodeGenerator::GenerateExceptionExit(const CodeBlockInstruction& cbi, Excep
   EmitBranch(GetCurrentFarCodePointer());
 
   SwitchToFarCode();
-  EmitFunctionCall(nullptr, static_cast<void (*)(u32, u32)>(&CPU::RaiseException), CAUSE_bits,
+  EmitFunctionCall(nullptr, static_cast<void (*)(uint32_t, uint32_t)>(&CPU::RaiseException), CAUSE_bits,
                    GetCurrentInstructionPC());
   EmitExceptionExit();
   SwitchToNearCode();
@@ -1091,12 +1092,12 @@ void CodeGenerator::StallUntilGTEComplete()
   m_gte_busy_cycles_dirty = false;
 }
 
-Value CodeGenerator::CalculatePC(u32 offset /* = 0 */)
+Value CodeGenerator::CalculatePC(uint32_t offset /* = 0 */)
 {
   return Value::FromConstantU32(m_pc + offset);
 }
 
-Value CodeGenerator::GetCurrentInstructionPC(u32 offset /* = 0 */)
+Value CodeGenerator::GetCurrentInstructionPC(uint32_t offset /* = 0 */)
 {
   return Value::FromConstantU32(m_current_instruction->pc);
 }
@@ -1109,7 +1110,7 @@ void CodeGenerator::WriteNewPC(const Value& value, bool commit)
   {
     m_pc_valid = value.IsConstant();
     if (m_pc_valid)
-      m_pc = static_cast<u32>(value.constant_value);
+      m_pc = static_cast<uint32_t>(value.constant_value);
   }
 }
 
@@ -1357,7 +1358,7 @@ bool CodeGenerator::Compile_Shift(const CodeBlockInstruction& cbi)
 
       result = SarValues(rt, shamt, false);
       if (rt_spec && shamt_spec)
-        result_spec = static_cast<u32>(static_cast<s32>(*rt_spec) << *shamt_spec);
+        result_spec = static_cast<uint32_t>(static_cast<int32_t>(*rt_spec) >> *shamt_spec);
     }
     break;
 
@@ -1481,7 +1482,7 @@ bool CodeGenerator::Compile_Store(const CodeBlockInstruction& cbi)
         {
           if (value_spec)
           {
-            const u32 shift = (aligned_addr & 3u) * 8u;
+            const uint32_t shift = (aligned_addr & 3u) * 8u;
             SpeculativeWriteMemory(aligned_addr,
                                    (*aligned_existing_value & ~(0xFFu << shift)) | ((*value_spec & 0xFFu) << shift));
           }
@@ -1512,7 +1513,7 @@ bool CodeGenerator::Compile_Store(const CodeBlockInstruction& cbi)
         {
           if (value_spec)
           {
-            const u32 shift = (aligned_addr & 1u) * 16u;
+            const uint32_t shift = (aligned_addr & 1u) * 16u;
             SpeculativeWriteMemory(aligned_addr, (*aligned_existing_value & ~(0xFFFFu << shift)) |
                                                    ((*value_spec & 0xFFFFu) << shift));
           }
@@ -1551,7 +1552,7 @@ bool CodeGenerator::Compile_Store(const CodeBlockInstruction& cbi)
       const PhysicalMemoryAddress phys_addr = VirtualAddressToPhysical(*address_spec);
       const PhysicalMemoryAddress block_start = VirtualAddressToPhysical(m_block->GetPC());
       const PhysicalMemoryAddress block_end = VirtualAddressToPhysical(
-        m_block->GetPC() + static_cast<u32>(m_block->instructions.size()) * sizeof(Instruction));
+        m_block->GetPC() + static_cast<uint32_t>(m_block->instructions.size()) * sizeof(Instruction));
       if (phys_addr >= block_start && phys_addr < block_end)
       {
         Log_WarningPrintf("Instruction %08X speculatively writes to %08X inside block %08X-%08X. Truncating block.",
@@ -1578,7 +1579,7 @@ bool CodeGenerator::Compile_LoadLeftRight(const CodeBlockInstruction& cbi)
     address_spec = *address_spec + cbi.instruction.i.imm_sext32();
 
   Value shift = ShlValues(AndValues(address, Value::FromConstantU32(3)), Value::FromConstantU32(3)); // * 8
-  address = AndValues(address, Value::FromConstantU32(~u32(3)));
+  address = AndValues(address, Value::FromConstantU32(~uint32_t(3)));
 
   // hack to bypass load delays
   Value value;
@@ -1659,7 +1660,7 @@ bool CodeGenerator::Compile_StoreLeftRight(const CodeBlockInstruction& cbi)
   }
 
   Value shift = ShlValues(AndValues(address, Value::FromConstantU32(3)), Value::FromConstantU32(3)); // * 8
-  address = AndValues(address, Value::FromConstantU32(~u32(3)));
+  address = AndValues(address, Value::FromConstantU32(~uint32_t(3)));
 
   Value mem;
   if (cbi.instruction.op == InstructionOp::swl)
@@ -1803,7 +1804,7 @@ bool CodeGenerator::Compile_Add(const CodeBlockInstruction& cbi)
   if (g_settings.gpu_pgxp_enable && rhs.HasConstantValue(0))
   {
     EmitFunctionCall(nullptr, &PGXP::CPU_MOVE,
-                     Value::FromConstantU32((static_cast<u32>(dest) << 8) | (static_cast<u32>(lhs_src))), lhs);
+                     Value::FromConstantU32((static_cast<uint32_t>(dest) << 8) | (static_cast<uint32_t>(lhs_src))), lhs);
   }
   else if (g_settings.UsingPGXPCPUMode())
   {
@@ -1881,15 +1882,15 @@ bool CodeGenerator::Compile_Multiply(const CodeBlockInstruction& cbi)
   return true;
 }
 
-static std::tuple<u32, u32> MIPSDivide(u32 num, u32 denom)
+static std::tuple<uint32_t, uint32_t> MIPSDivide(uint32_t num, uint32_t denom)
 {
-  u32 lo, hi;
+  uint32_t lo, hi;
 
   if (denom == 0)
   {
     // divide by zero
     lo = UINT32_C(0xFFFFFFFF);
-    hi = static_cast<u32>(num);
+    hi = static_cast<uint32_t>(num);
   }
   else
   {
@@ -1900,16 +1901,16 @@ static std::tuple<u32, u32> MIPSDivide(u32 num, u32 denom)
   return std::tie(lo, hi);
 }
 
-static std::tuple<s32, s32> MIPSDivide(s32 num, s32 denom)
+static std::tuple<int32_t, int32_t> MIPSDivide(int32_t num, int32_t denom)
 {
-  s32 lo, hi;
+  int32_t lo, hi;
   if (denom == 0)
   {
     // divide by zero
     lo = (num >= 0) ? UINT32_C(0xFFFFFFFF) : UINT32_C(1);
-    hi = static_cast<u32>(num);
+    hi = static_cast<uint32_t>(num);
   }
-  else if (static_cast<u32>(num) == UINT32_C(0x80000000) && denom == -1)
+  else if (static_cast<uint32_t>(num) == UINT32_C(0x80000000) && denom == -1)
   {
     // unrepresentable
     lo = UINT32_C(0x80000000);
@@ -1936,7 +1937,7 @@ bool CodeGenerator::Compile_Divide(const CodeBlockInstruction& cbi)
 
   if (num.IsConstant() && denom.IsConstant())
   {
-    const auto [lo, hi] = MIPSDivide(static_cast<u32>(num.constant_value), static_cast<u32>(denom.constant_value));
+    const auto [lo, hi] = MIPSDivide(static_cast<uint32_t>(num.constant_value), static_cast<uint32_t>(denom.constant_value));
     m_register_cache.WriteGuestRegister(Reg::lo, Value::FromConstantU32(lo));
     m_register_cache.WriteGuestRegister(Reg::hi, Value::FromConstantU32(hi));
   }
@@ -1998,8 +1999,8 @@ bool CodeGenerator::Compile_SignedDivide(const CodeBlockInstruction& cbi)
   if (num.IsConstant() && denom.IsConstant())
   {
     const auto [lo, hi] = MIPSDivide(num.GetS32ConstantValue(), denom.GetS32ConstantValue());
-    m_register_cache.WriteGuestRegister(Reg::lo, Value::FromConstantU32(static_cast<u32>(lo)));
-    m_register_cache.WriteGuestRegister(Reg::hi, Value::FromConstantU32(static_cast<u32>(hi)));
+    m_register_cache.WriteGuestRegister(Reg::lo, Value::FromConstantU32(static_cast<uint32_t>(lo)));
+    m_register_cache.WriteGuestRegister(Reg::hi, Value::FromConstantU32(static_cast<uint32_t>(hi)));
   }
   else
   {
@@ -2025,7 +2026,7 @@ bool CodeGenerator::Compile_SignedDivide(const CodeBlockInstruction& cbi)
       EmitConditionalBranch(Condition::NotEqual, false, denom_reg.GetHostRegister(), Value::FromConstantU32(0),
                             &not_zero);
       {
-        // hi = static_cast<u32>(num);
+        // hi = static_cast<uint32_t>(num);
         EmitCopyValue(hi.GetHostRegister(), num_reg);
 
         // lo = (num >= 0) ? UINT32_C(0xFFFFFFFF) : UINT32_C(1);
@@ -2040,7 +2041,7 @@ bool CodeGenerator::Compile_SignedDivide(const CodeBlockInstruction& cbi)
       }
     }
 
-    // else if (static_cast<u32>(num) == UINT32_C(0x80000000) && denom == -1)
+    // else if (static_cast<uint32_t>(num) == UINT32_C(0x80000000) && denom == -1)
     {
       EmitBindLabel(&not_zero);
       EmitConditionalBranch(Condition::NotEqual, false, denom_reg.GetHostRegister(), Value::FromConstantS32(-1),
@@ -2130,7 +2131,7 @@ bool CodeGenerator::Compile_SetLess(const CodeBlockInstruction& cbi)
   SpeculativeValue value_spec;
   if (lhs_spec && rhs_spec)
   {
-    value_spec = BoolToUInt32(signed_comparison ? (static_cast<s32>(*lhs_spec) < static_cast<s32>(*rhs_spec)) :
+    value_spec = static_cast<uint32_t>(signed_comparison ? (static_cast<int32_t>(*lhs_spec) < static_cast<int32_t>(*rhs_spec)) :
                                                   (*lhs_spec < *rhs_spec));
   }
   SpeculativeWriteReg(cbi.instruction.r.rd, value_spec);
@@ -2234,7 +2235,7 @@ bool CodeGenerator::Compile_Branch(const CodeBlockInstruction& cbi)
       if (branch_target.IsConstant())
       {
         Log_WarningPrintf("Misaligned constant target branch 0x%08X, this is strange",
-                          Truncate32(branch_target.constant_value));
+                          static_cast<uint32_t>(branch_target.constant_value));
       }
       else
       {
@@ -2251,7 +2252,7 @@ bool CodeGenerator::Compile_Branch(const CodeBlockInstruction& cbi)
       SwitchToFarCode();
       EmitStoreCPUStructField(offsetof(State, cop0_regs.BadVaddr), branch_target);
       EmitFunctionCall(
-        nullptr, static_cast<void (*)(u32, u32)>(&CPU::RaiseException),
+        nullptr, static_cast<void (*)(uint32_t, uint32_t)>(&CPU::RaiseException),
         Value::FromConstantU32(Cop0Registers::CAUSE::MakeValueForException(Exception::AdEL, false, false, 0)),
         branch_target);
       EmitExceptionExit();
@@ -2297,7 +2298,7 @@ bool CodeGenerator::Compile_Branch(const CodeBlockInstruction& cbi)
           const void* jump_pointer = GetCurrentCodePointer();
           const void* resolve_pointer = GetCurrentFarCodePointer();
           EmitBranch(resolve_pointer);
-          const u32 jump_size = static_cast<u32>(static_cast<const char*>(GetCurrentCodePointer()) -
+          const uint32_t jump_size = static_cast<uint32_t>(static_cast<const char*>(GetCurrentCodePointer()) -
                                                  static_cast<const char*>(jump_pointer));
           SwitchToFarCode();
 
@@ -2332,8 +2333,8 @@ bool CodeGenerator::Compile_Branch(const CodeBlockInstruction& cbi)
       const void* jump_pointer = GetCurrentCodePointer();
       const void* resolve_pointer = GetCurrentFarCodePointer();
       EmitBranch(GetCurrentFarCodePointer());
-      const u32 jump_size =
-        static_cast<u32>(static_cast<const char*>(GetCurrentCodePointer()) - static_cast<const char*>(jump_pointer));
+      const uint32_t jump_size =
+        static_cast<uint32_t>(static_cast<const char*>(GetCurrentCodePointer()) - static_cast<const char*>(jump_pointer));
       SwitchToFarCode();
 
       EmitBeginBlock(true);
@@ -2450,12 +2451,12 @@ bool CodeGenerator::Compile_Branch(const CodeBlockInstruction& cbi)
       // npc = pc + (sext(imm) << 2)
       Value branch_target = CalculatePC(cbi.instruction.i.imm_sext32() << 2);
 
-      const u8 rt = static_cast<u8>(cbi.instruction.i.rt.GetValue());
-      const bool bgez = ConvertToBoolUnchecked(rt & u8(1));
+      const uint8_t rt = static_cast<uint8_t>(cbi.instruction.i.rt.GetValue());
+      const bool bgez = static_cast<bool>(rt & uint8_t(1));
       const Condition condition = (bgez && cbi.instruction.r.rs == Reg::zero) ?
                                     Condition::Always :
                                     (bgez ? Condition::PositiveOrZero : Condition::Negative);
-      const bool link = (rt & u8(0x1E)) == u8(0x10);
+      const bool link = (rt & uint8_t(0x1E)) == uint8_t(0x10);
 
       // Read has to happen before the link as the compare can use ra.
       Value lhs;
@@ -2485,7 +2486,7 @@ bool CodeGenerator::Compile_lui(const CodeBlockInstruction& cbi)
     EmitFunctionCall(nullptr, &PGXP::CPU_LUI, Value::FromConstantU32(cbi.instruction.bits));
 
   // rt <- (imm << 16)
-  const u32 value = cbi.instruction.i.imm_zext32() << 16;
+  const uint32_t value = cbi.instruction.i.imm_zext32() << 16;
   m_register_cache.WriteGuestRegister(cbi.instruction.i.rt, Value::FromConstantU32(value));
   SpeculativeWriteReg(cbi.instruction.i.rt, value);
 
@@ -2502,8 +2503,8 @@ bool CodeGenerator::Compile_cop0(const CodeBlockInstruction& cbi)
       case CopCommonInstruction::mfcn:
       case CopCommonInstruction::mtcn:
       {
-        u32 offset;
-        u32 write_mask = UINT32_C(0xFFFFFFFF);
+        uint32_t offset;
+        uint32_t write_mask = UINT32_C(0xFFFFFFFF);
 
         const Cop0Reg reg = static_cast<Cop0Reg>(cbi.instruction.r.rd.GetValue());
         switch (reg)
@@ -2712,7 +2713,7 @@ bool CodeGenerator::Compile_cop0(const CodeBlockInstruction& cbi)
         InstructionPrologue(cbi, 1);
 
         // shift mode bits right two, preserving upper bits
-        static constexpr u32 mode_bits_mask = UINT32_C(0b1111);
+        static constexpr uint32_t mode_bits_mask = UINT32_C(0b1111);
         Value sr = m_register_cache.AllocateScratch(RegSize_32);
         EmitLoadCPUStructField(sr.host_reg, RegSize_32, offsetof(State, cop0_regs.sr.bits));
         {
@@ -2747,7 +2748,7 @@ bool CodeGenerator::Compile_cop0(const CodeBlockInstruction& cbi)
   }
 }
 
-Value CodeGenerator::DoGTERegisterRead(u32 index)
+Value CodeGenerator::DoGTERegisterRead(uint32_t index)
 {
   Value value = m_register_cache.AllocateScratch(RegSize_32);
 
@@ -2777,7 +2778,7 @@ Value CodeGenerator::DoGTERegisterRead(u32 index)
   return value;
 }
 
-void CodeGenerator::DoGTERegisterWrite(u32 index, const Value& value)
+void CodeGenerator::DoGTERegisterWrite(uint32_t index, const Value& value)
 {
   switch (index)
   {
@@ -2866,7 +2867,7 @@ bool CodeGenerator::Compile_cop2(const CodeBlockInstruction& cbi)
     StallUntilGTEComplete();
     InstructionPrologue(cbi, 1);
 
-    const u32 reg = static_cast<u32>(cbi.instruction.i.rt.GetValue());
+    const uint32_t reg = static_cast<uint32_t>(cbi.instruction.i.rt.GetValue());
     Value address = AddValues(m_register_cache.ReadGuestRegister(cbi.instruction.i.rs),
                               Value::FromConstantU32(cbi.instruction.i.imm_sext32()), false);
     SpeculativeValue spec_address = SpeculativeReadReg(cbi.instruction.i.rs);
@@ -2904,7 +2905,7 @@ bool CodeGenerator::Compile_cop2(const CodeBlockInstruction& cbi)
       case CopCommonInstruction::mfcn:
       case CopCommonInstruction::cfcn:
       {
-        const u32 reg = static_cast<u32>(cbi.instruction.r.rd.GetValue()) +
+        const uint32_t reg = static_cast<uint32_t>(cbi.instruction.r.rd.GetValue()) +
                         ((cbi.instruction.cop.CommonOp() == CopCommonInstruction::cfcn) ? 32 : 0);
 
         StallUntilGTEComplete();
@@ -2930,7 +2931,7 @@ bool CodeGenerator::Compile_cop2(const CodeBlockInstruction& cbi)
       case CopCommonInstruction::mtcn:
       case CopCommonInstruction::ctcn:
       {
-        const u32 reg = static_cast<u32>(cbi.instruction.r.rd.GetValue()) +
+        const uint32_t reg = static_cast<uint32_t>(cbi.instruction.r.rd.GetValue()) +
                         ((cbi.instruction.cop.CommonOp() == CopCommonInstruction::ctcn) ? 32 : 0);
 
         StallUntilGTEComplete();
@@ -2974,7 +2975,7 @@ bool CodeGenerator::Compile_cop2(const CodeBlockInstruction& cbi)
 
 void CodeGenerator::InitSpeculativeRegs()
 {
-  for (u8 i = 0; i < static_cast<u8>(Reg::count); i++)
+  for (uint8_t i = 0; i < static_cast<uint8_t>(Reg::count); i++)
     m_speculative_constants.regs[i] = g_state.regs.r[i];
 
   m_speculative_constants.cop0_sr = g_state.cop0_regs.sr.bits;
@@ -2989,12 +2990,12 @@ void CodeGenerator::InvalidateSpeculativeValues()
 
 CodeGenerator::SpeculativeValue CodeGenerator::SpeculativeReadReg(Reg reg)
 {
-  return m_speculative_constants.regs[static_cast<u8>(reg)];
+  return m_speculative_constants.regs[static_cast<uint8_t>(reg)];
 }
 
 void CodeGenerator::SpeculativeWriteReg(Reg reg, SpeculativeValue value)
 {
-  m_speculative_constants.regs[static_cast<u8>(reg)] = value;
+  m_speculative_constants.regs[static_cast<uint8_t>(reg)] = value;
 }
 
 CodeGenerator::SpeculativeValue CodeGenerator::SpeculativeReadMemory(VirtualMemoryAddress address)
@@ -3005,17 +3006,17 @@ CodeGenerator::SpeculativeValue CodeGenerator::SpeculativeReadMemory(VirtualMemo
   if (it != m_speculative_constants.memory.end())
     return it->second;
 
-  u32 value;
+  uint32_t value;
   if ((phys_addr & DCACHE_LOCATION_MASK) == DCACHE_LOCATION)
   {
-    u32 scratchpad_offset = phys_addr & DCACHE_OFFSET_MASK;
+    uint32_t scratchpad_offset = phys_addr & DCACHE_OFFSET_MASK;
     std::memcpy(&value, &CPU::g_state.dcache[scratchpad_offset], sizeof(value));
     return value;
   }
 
   if (Bus::IsRAMAddress(phys_addr))
   {
-    u32 ram_offset = phys_addr & Bus::g_ram_mask;
+    uint32_t ram_offset = phys_addr & Bus::g_ram_mask;
     std::memcpy(&value, &Bus::g_ram[ram_offset], sizeof(value));
     return value;
   }
@@ -3023,7 +3024,7 @@ CodeGenerator::SpeculativeValue CodeGenerator::SpeculativeReadMemory(VirtualMemo
   return std::nullopt;
 }
 
-void CodeGenerator::SpeculativeWriteMemory(u32 address, SpeculativeValue value)
+void CodeGenerator::SpeculativeWriteMemory(uint32_t address, SpeculativeValue value)
 {
   PhysicalMemoryAddress phys_addr = address & PHYSICAL_MEMORY_ADDRESS_MASK;
 

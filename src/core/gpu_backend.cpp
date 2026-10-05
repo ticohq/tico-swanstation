@@ -4,8 +4,6 @@
 #include "common/timer.h"
 #include "settings.h"
 
-std::unique_ptr<GPUBackend> g_gpu_backend;
-
 GPUBackend::GPUBackend() = default;
 
 GPUBackend::~GPUBackend() = default;
@@ -48,9 +46,9 @@ GPUBackendFillVRAMCommand* GPUBackend::NewFillVRAMCommand()
     AllocateCommand(GPUBackendCommandType::FillVRAM, sizeof(GPUBackendFillVRAMCommand)));
 }
 
-GPUBackendUpdateVRAMCommand* GPUBackend::NewUpdateVRAMCommand(u32 num_words)
+GPUBackendUpdateVRAMCommand* GPUBackend::NewUpdateVRAMCommand(uint32_t num_words)
 {
-  const u32 size = sizeof(GPUBackendUpdateVRAMCommand) + (num_words * sizeof(u16));
+  const uint32_t size = sizeof(GPUBackendUpdateVRAMCommand) + (num_words * sizeof(uint16_t));
   GPUBackendUpdateVRAMCommand* cmd =
     static_cast<GPUBackendUpdateVRAMCommand*>(AllocateCommand(GPUBackendCommandType::UpdateVRAM, size));
   return cmd;
@@ -68,12 +66,12 @@ GPUBackendSetDrawingAreaCommand* GPUBackend::NewSetDrawingAreaCommand()
     AllocateCommand(GPUBackendCommandType::SetDrawingArea, sizeof(GPUBackendSetDrawingAreaCommand)));
 }
 
-GPUBackendDrawPolygonCommand* GPUBackend::NewDrawPolygonCommand(u32 num_vertices)
+GPUBackendDrawPolygonCommand* GPUBackend::NewDrawPolygonCommand(uint32_t num_vertices)
 {
-  const u32 size = sizeof(GPUBackendDrawPolygonCommand) + (num_vertices * sizeof(GPUBackendDrawPolygonCommand::Vertex));
+  const uint32_t size = sizeof(GPUBackendDrawPolygonCommand) + (num_vertices * sizeof(GPUBackendDrawPolygonCommand::Vertex));
   GPUBackendDrawPolygonCommand* cmd =
     static_cast<GPUBackendDrawPolygonCommand*>(AllocateCommand(GPUBackendCommandType::DrawPolygon, size));
-  cmd->num_vertices = Truncate16(num_vertices);
+  cmd->num_vertices = static_cast<uint16_t>(num_vertices);
   return cmd;
 }
 
@@ -83,27 +81,27 @@ GPUBackendDrawRectangleCommand* GPUBackend::NewDrawRectangleCommand()
     AllocateCommand(GPUBackendCommandType::DrawRectangle, sizeof(GPUBackendDrawRectangleCommand)));
 }
 
-GPUBackendDrawLineCommand* GPUBackend::NewDrawLineCommand(u32 num_vertices)
+GPUBackendDrawLineCommand* GPUBackend::NewDrawLineCommand(uint32_t num_vertices)
 {
-  const u32 size = sizeof(GPUBackendDrawLineCommand) + (num_vertices * sizeof(GPUBackendDrawLineCommand::Vertex));
+  const uint32_t size = sizeof(GPUBackendDrawLineCommand) + (num_vertices * sizeof(GPUBackendDrawLineCommand::Vertex));
   GPUBackendDrawLineCommand* cmd =
     static_cast<GPUBackendDrawLineCommand*>(AllocateCommand(GPUBackendCommandType::DrawLine, size));
-  cmd->num_vertices = Truncate16(num_vertices);
+  cmd->num_vertices = static_cast<uint16_t>(num_vertices);
   return cmd;
 }
 
-void* GPUBackend::AllocateCommand(GPUBackendCommandType command, u32 size)
+void* GPUBackend::AllocateCommand(GPUBackendCommandType command, uint32_t size)
 {
   // Ensure size is a multiple of 4 so we don't end up with an unaligned command.
   size = Common::AlignUpPow2(size, 4);
 
   for (;;)
   {
-    u32 read_ptr = m_command_fifo_read_ptr.load();
-    u32 write_ptr = m_command_fifo_write_ptr.load();
+    uint32_t read_ptr = m_command_fifo_read_ptr.load();
+    uint32_t write_ptr = m_command_fifo_write_ptr.load();
     if (read_ptr > write_ptr)
     {
-      u32 available_size = read_ptr - write_ptr;
+      uint32_t available_size = read_ptr - write_ptr;
       while (available_size < (size + sizeof(GPUBackendCommandType)))
       {
         WakeGPUThread();
@@ -113,7 +111,7 @@ void* GPUBackend::AllocateCommand(GPUBackendCommandType command, u32 size)
     }
     else
     {
-      const u32 available_size = COMMAND_QUEUE_SIZE - write_ptr;
+      const uint32_t available_size = COMMAND_QUEUE_SIZE - write_ptr;
       if ((size + sizeof(GPUBackendCommand)) > available_size)
       {
         // allocate a dummy command to wrap the buffer around
@@ -133,10 +131,10 @@ void* GPUBackend::AllocateCommand(GPUBackendCommandType command, u32 size)
   }
 }
 
-u32 GPUBackend::GetPendingCommandSize() const
+uint32_t GPUBackend::GetPendingCommandSize() const
 {
-  const u32 read_ptr = m_command_fifo_read_ptr.load();
-  const u32 write_ptr = m_command_fifo_write_ptr.load();
+  const uint32_t read_ptr = m_command_fifo_read_ptr.load();
+  const uint32_t write_ptr = m_command_fifo_write_ptr.load();
   return (write_ptr >= read_ptr) ? (write_ptr - read_ptr) : (COMMAND_QUEUE_SIZE - read_ptr + write_ptr);
 }
 
@@ -150,8 +148,8 @@ void GPUBackend::PushCommand(GPUBackendCommand* cmd)
   }
   else
   {
-    const u32 new_write_ptr = m_command_fifo_write_ptr.fetch_add(cmd->size) + cmd->size;
-    UNREFERENCED_VARIABLE(new_write_ptr);
+    const uint32_t new_write_ptr = m_command_fifo_write_ptr.fetch_add(cmd->size) + cmd->size;
+    (void)new_write_ptr;
     if (GetPendingCommandSize() >= THRESHOLD_TO_WAKE_GPU)
       WakeGPUThread();
   }
@@ -201,17 +199,21 @@ void GPUBackend::Sync(bool allow_sleep)
 
 void GPUBackend::RunGPULoop()
 {
-  static constexpr double SPIN_TIME_NS = 1 * 1000000;
+  // 1ms spin window before the GPU thread sleeps, expressed in the timer's
+  // native integer units (handles the Windows QPC tick scale via the same
+  // conversion). Comparing Values directly avoids a per-iteration trip
+  // through floating-point nanoseconds.
+  const Common::Timer::Value spin_time = Common::Timer::ConvertSecondsToValue(0.001);
   Common::Timer::Value last_command_time = 0;
 
   for (;;)
   {
-    u32 write_ptr = m_command_fifo_write_ptr.load();
-    u32 read_ptr = m_command_fifo_read_ptr.load();
+    uint32_t write_ptr = m_command_fifo_write_ptr.load();
+    uint32_t read_ptr = m_command_fifo_read_ptr.load();
     if (read_ptr == write_ptr)
     {
       const Common::Timer::Value current_time = Common::Timer::GetValue();
-      if (Common::Timer::ConvertValueToNanoseconds(current_time - last_command_time) < SPIN_TIME_NS)
+      if ((current_time - last_command_time) < spin_time)
         continue;
 
       std::unique_lock<std::mutex> lock(m_sync_mutex);
@@ -268,7 +270,7 @@ void GPUBackend::HandleCommand(const GPUBackendCommand* cmd)
     {
       FlushRender();
       const GPUBackendFillVRAMCommand* ccmd = static_cast<const GPUBackendFillVRAMCommand*>(cmd);
-      FillVRAM(ZeroExtend32(ccmd->x), ZeroExtend32(ccmd->y), ZeroExtend32(ccmd->width), ZeroExtend32(ccmd->height),
+      FillVRAM(static_cast<uint32_t>(ccmd->x), static_cast<uint32_t>(ccmd->y), static_cast<uint32_t>(ccmd->width), static_cast<uint32_t>(ccmd->height),
                ccmd->color, ccmd->params);
     }
     break;
@@ -277,7 +279,7 @@ void GPUBackend::HandleCommand(const GPUBackendCommand* cmd)
     {
       FlushRender();
       const GPUBackendUpdateVRAMCommand* ccmd = static_cast<const GPUBackendUpdateVRAMCommand*>(cmd);
-      UpdateVRAM(ZeroExtend32(ccmd->x), ZeroExtend32(ccmd->y), ZeroExtend32(ccmd->width), ZeroExtend32(ccmd->height),
+      UpdateVRAM(static_cast<uint32_t>(ccmd->x), static_cast<uint32_t>(ccmd->y), static_cast<uint32_t>(ccmd->width), static_cast<uint32_t>(ccmd->height),
                  ccmd->data, ccmd->params);
     }
     break;
@@ -286,8 +288,8 @@ void GPUBackend::HandleCommand(const GPUBackendCommand* cmd)
     {
       FlushRender();
       const GPUBackendCopyVRAMCommand* ccmd = static_cast<const GPUBackendCopyVRAMCommand*>(cmd);
-      CopyVRAM(ZeroExtend32(ccmd->src_x), ZeroExtend32(ccmd->src_y), ZeroExtend32(ccmd->dst_x),
-               ZeroExtend32(ccmd->dst_y), ZeroExtend32(ccmd->width), ZeroExtend32(ccmd->height), ccmd->params);
+      CopyVRAM(static_cast<uint32_t>(ccmd->src_x), static_cast<uint32_t>(ccmd->src_y), static_cast<uint32_t>(ccmd->dst_x),
+               static_cast<uint32_t>(ccmd->dst_y), static_cast<uint32_t>(ccmd->width), static_cast<uint32_t>(ccmd->height), ccmd->params);
     }
     break;
 

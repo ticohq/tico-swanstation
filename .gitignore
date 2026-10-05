@@ -45,3 +45,8 @@ __pycache__
 # UWP crap
 Generated Files
 /packages
+
+# static Makefile build artifacts
+*.o
+*.d
+/swanstation_libretro.so

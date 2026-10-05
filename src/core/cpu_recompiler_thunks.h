@@ -15,25 +15,24 @@ namespace Recompiler::Thunks {
 //////////////////////////////////////////////////////////////////////////
 bool InterpretInstruction();
 bool InterpretInstructionPGXP();
-void CheckAndUpdateICache(u32 pc, u32 line_count);
 
 // Memory access functions for the JIT - MSB is set on exception.
-u64 ReadMemoryByte(u32 address);
-u64 ReadMemoryHalfWord(u32 address);
-u64 ReadMemoryWord(u32 address);
-u32 WriteMemoryByte(u32 address, u32 value);
-u32 WriteMemoryHalfWord(u32 address, u32 value);
-u32 WriteMemoryWord(u32 address, u32 value);
+uint64_t ReadMemoryByte(uint32_t address);
+uint64_t ReadMemoryHalfWord(uint32_t address);
+uint64_t ReadMemoryWord(uint32_t address);
+uint32_t WriteMemoryByte(uint32_t address, uint32_t value);
+uint32_t WriteMemoryHalfWord(uint32_t address, uint32_t value);
+uint32_t WriteMemoryWord(uint32_t address, uint32_t value);
 
 // Unchecked memory access variants. No alignment or bus exceptions.
-u32 UncheckedReadMemoryByte(u32 address);
-u32 UncheckedReadMemoryHalfWord(u32 address);
-u32 UncheckedReadMemoryWord(u32 address);
-void UncheckedWriteMemoryByte(u32 address, u32 value);
-void UncheckedWriteMemoryHalfWord(u32 address, u32 value);
-void UncheckedWriteMemoryWord(u32 address, u32 value);
+uint32_t UncheckedReadMemoryByte(uint32_t address);
+uint32_t UncheckedReadMemoryHalfWord(uint32_t address);
+uint32_t UncheckedReadMemoryWord(uint32_t address);
+void UncheckedWriteMemoryByte(uint32_t address, uint32_t value);
+void UncheckedWriteMemoryHalfWord(uint32_t address, uint32_t value);
+void UncheckedWriteMemoryWord(uint32_t address, uint32_t value);
 
-void ResolveBranch(CodeBlock* block, void* host_pc, void* host_resolve_pc, u32 host_pc_size);
+void ResolveBranch(CodeBlock* block, void* host_pc, void* host_resolve_pc, uint32_t host_pc_size);
 
 } // namespace Recompiler::Thunks
 

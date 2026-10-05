@@ -22,7 +22,7 @@ class Timers;
 class GPU
 {
 public:
-  enum class BlitterState : u8
+  enum class BlitterState : uint8_t
   {
     Idle,
     ReadingVRAM,
@@ -30,7 +30,7 @@ public:
     DrawingPolyLine
   };
 
-  enum class DMADirection : u32
+  enum class DMADirection : uint32_t
   {
     Off = 0,
     FIFO = 1,
@@ -38,14 +38,14 @@ public:
     GPUREADtoCPU = 3
   };
 
-  static constexpr u32 MAX_FIFO_SIZE = 4096, DOT_TIMER_INDEX = 0, HBLANK_TIMER_INDEX = 1, MAX_RESOLUTION_SCALE = 32;
+  static constexpr uint32_t MAX_FIFO_SIZE = 4096, DOT_TIMER_INDEX = 0, HBLANK_TIMER_INDEX = 1;
 
-  static constexpr u16 NTSC_TICKS_PER_LINE = 3413, NTSC_HSYNC_TICKS = 200, NTSC_TOTAL_LINES = 263,
+  static constexpr uint16_t NTSC_TICKS_PER_LINE = 3413, NTSC_HSYNC_TICKS = 200, NTSC_TOTAL_LINES = 263,
                        PAL_TICKS_PER_LINE = 3406,
                        PAL_HSYNC_TICKS = 200, // actually one more on odd lines
     PAL_TOTAL_LINES = 314;
 
-  static constexpr u16 NTSC_HORIZONTAL_ACTIVE_START = 488, NTSC_HORIZONTAL_ACTIVE_END = 3288,
+  static constexpr uint16_t NTSC_HORIZONTAL_ACTIVE_START = 488, NTSC_HORIZONTAL_ACTIVE_END = 3288,
                        NTSC_VERTICAL_ACTIVE_START = 16, NTSC_VERTICAL_ACTIVE_END = 256,
                        PAL_HORIZONTAL_ACTIVE_START = 487, PAL_HORIZONTAL_ACTIVE_END = 3282,
                        PAL_VERTICAL_ACTIVE_START = 20, PAL_VERTICAL_ACTIVE_END = 308;
@@ -53,8 +53,6 @@ public:
   // Base class constructor.
   GPU();
   virtual ~GPU();
-
-  virtual GPURenderer GetRendererType() const = 0;
 
   virtual bool Initialize(HostDisplay* host_display);
   virtual void Reset(bool clear_vram);
@@ -64,20 +62,19 @@ public:
   virtual void ResetGraphicsAPIState();
   virtual void RestoreGraphicsAPIState();
 
-  bool IsHardwareRenderer();
   void CPUClockChanged();
 
   // MMIO access
-  u32 ReadRegister(u32 offset);
-  void WriteRegister(u32 offset, u32 value);
+  uint32_t ReadRegister(uint32_t offset);
+  void WriteRegister(uint32_t offset, uint32_t value);
 
   // DMA access
-  void DMARead(u32* words, u32 word_count);
+  void DMARead(uint32_t* words, uint32_t word_count);
 
   ALWAYS_INLINE bool BeginDMAWrite() const { return (m_GPUSTAT.dma_direction == DMADirection::CPUtoGP0); }
-  ALWAYS_INLINE void DMAWrite(u32 address, u32 value)
+  ALWAYS_INLINE void DMAWrite(uint32_t address, uint32_t value)
   {
-    m_fifo.Push((ZeroExtend64(address) << 32) | ZeroExtend64(value));
+    m_fifo.Push((static_cast<uint64_t>(address) << 32) | static_cast<uint64_t>(value));
   }
   void EndDMAWrite();
 
@@ -115,7 +112,6 @@ public:
   /// Recompile shaders/recreate framebuffers when needed.
   virtual void UpdateSettings();
 
-  float ComputeHorizontalFrequency() const;
   float ComputeVerticalFrequency() const;
   float GetDisplayAspectRatio() const;
 
@@ -135,8 +131,8 @@ public:
   static std::unique_ptr<GPU> CreateSoftwareRenderer();
 
   // Converts window coordinates into horizontal ticks and scanlines. Returns false if out of range. Used for lightguns.
-  bool ConvertScreenCoordinatesToBeamTicksAndLines(s32 window_x, s32 window_y, float x_scale, float y_scale,
-                                                   u32* out_tick, u32* out_line) const;
+  bool ConvertScreenCoordinatesToBeamTicksAndLines(int32_t window_x, int32_t window_y, float x_scale, float y_scale,
+                                                   uint32_t* out_tick, uint32_t* out_line) const;
 
   // Returns the video clock frequency.
   TickCount GetCRTCFrequency() const;
@@ -152,14 +148,9 @@ protected:
   }
   ALWAYS_INLINE static constexpr TickCount SystemTicksToGPUTicks(TickCount sysclk_ticks) { return sysclk_ticks << 1; }
 
-  static constexpr std::tuple<u8, u8> UnpackTexcoord(u16 texcoord)
+  static constexpr std::tuple<uint8_t, uint8_t> UnpackTexcoord(uint16_t texcoord)
   {
-    return std::make_tuple(static_cast<u8>(texcoord), static_cast<u8>(texcoord >> 8));
-  }
-
-  static constexpr std::tuple<u8, u8, u8> UnpackColorRGB24(u32 rgb24)
-  {
-    return std::make_tuple(static_cast<u8>(rgb24), static_cast<u8>(rgb24 >> 8), static_cast<u8>(rgb24 >> 16));
+    return std::make_tuple(static_cast<uint8_t>(texcoord), static_cast<uint8_t>(texcoord >> 8));
   }
 
   void SoftReset();
@@ -181,66 +172,66 @@ protected:
   void CommandTickEvent(TickCount ticks);
 
   /// Returns 0 if the currently-displayed field is on odd lines (1,3,5,...) or 1 if even (2,4,6,...).
-  ALWAYS_INLINE u32 GetInterlacedDisplayField() const { return ZeroExtend32(m_crtc_state.interlaced_field); }
+  ALWAYS_INLINE uint32_t GetInterlacedDisplayField() const { return static_cast<uint32_t>(m_crtc_state.interlaced_field); }
 
   /// Returns 0 if the currently-displayed field is on an even line in VRAM, otherwise 1.
-  ALWAYS_INLINE u32 GetActiveLineLSB() const { return ZeroExtend32(m_crtc_state.active_line_lsb); }
+  ALWAYS_INLINE uint32_t GetActiveLineLSB() const { return static_cast<uint32_t>(m_crtc_state.active_line_lsb); }
 
   /// Sets/decodes GP0(E1h) (set draw mode).
-  void SetDrawMode(u16 bits);
+  void SetDrawMode(uint16_t bits);
 
   /// Sets/decodes polygon/rectangle texture palette value.
-  void SetTexturePalette(u16 bits);
+  void SetTexturePalette(uint16_t bits);
 
   /// Sets/decodes texture window bits.
-  void SetTextureWindow(u32 value);
+  void SetTextureWindow(uint32_t value);
 
-  u32 ReadGPUREAD();
+  uint32_t ReadGPUREAD();
   void FinishVRAMWrite();
 
   /// Returns the number of vertices in the buffered poly-line.
-  ALWAYS_INLINE u32 GetPolyLineVertexCount() const
+  ALWAYS_INLINE uint32_t GetPolyLineVertexCount() const
   {
-    return (static_cast<u32>(m_blit_buffer.size()) + BoolToUInt32(m_render_command.shading_enable)) >>
-           BoolToUInt8(m_render_command.shading_enable);
+    return (static_cast<uint32_t>(m_blit_buffer.size()) + static_cast<uint32_t>(m_render_command.shading_enable)) >>
+           static_cast<uint8_t>(m_render_command.shading_enable);
   }
 
   /// Returns true if the drawing area is valid (i.e. left <= right, top <= bottom).
   ALWAYS_INLINE bool IsDrawingAreaIsValid() const { return m_drawing_area.Valid(); }
 
   /// Clamps the specified coordinates to the drawing area.
-  ALWAYS_INLINE void ClampCoordinatesToDrawingArea(s32* x, s32* y)
+  ALWAYS_INLINE void ClampCoordinatesToDrawingArea(int32_t* x, int32_t* y)
   {
-    const s32 x_value = *x;
-    if (x_value < static_cast<s32>(m_drawing_area.left))
+    const int32_t x_value = *x;
+    if (x_value < static_cast<int32_t>(m_drawing_area.left))
       *x = m_drawing_area.left;
-    else if (x_value >= static_cast<s32>(m_drawing_area.right))
+    else if (x_value >= static_cast<int32_t>(m_drawing_area.right))
       *x = m_drawing_area.right - 1;
 
-    const s32 y_value = *y;
-    if (y_value < static_cast<s32>(m_drawing_area.top))
+    const int32_t y_value = *y;
+    if (y_value < static_cast<int32_t>(m_drawing_area.top))
       *y = m_drawing_area.top;
-    else if (y_value >= static_cast<s32>(m_drawing_area.bottom))
+    else if (y_value >= static_cast<int32_t>(m_drawing_area.bottom))
       *y = m_drawing_area.bottom - 1;
   }
 
   void AddCommandTicks(TickCount ticks);
 
-  void WriteGP1(u32 value);
+  void WriteGP1(uint32_t value);
   void EndCommand();
   void ExecuteCommands();
 
   // Rendering in the backend
-  virtual void ReadVRAM(u32 x, u32 y, u32 width, u32 height);
-  virtual void FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color);
-  virtual void UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data, bool set_mask, bool check_mask);
-  virtual void CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height);
+  virtual void ReadVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+  virtual void FillVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color);
+  virtual void UpdateVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, bool set_mask, bool check_mask);
+  virtual void CopyVRAM(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height);
   virtual void DispatchRenderCommand();
   virtual void FlushRender();
   virtual void ClearDisplay();
   virtual void UpdateDisplay();
 
-  ALWAYS_INLINE void AddDrawTriangleTicks(s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, bool shaded, bool textured,
+  ALWAYS_INLINE void AddDrawTriangleTicks(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x3, int32_t y3, bool shaded, bool textured,
                                           bool semitransparent)
   {
     // This will not produce the correct results for triangles which are partially outside the clip area.
@@ -260,22 +251,22 @@ protected:
 
     AddCommandTicks(pixels);
   }
-  ALWAYS_INLINE void AddDrawRectangleTicks(u32 width, u32 height, bool textured, bool semitransparent)
+  ALWAYS_INLINE void AddDrawRectangleTicks(uint32_t width, uint32_t height, bool textured, bool semitransparent)
   {
-    u32 ticks_per_row = width;
+    uint32_t ticks_per_row = width;
     if (textured)
       ticks_per_row += width;
     if (semitransparent || m_GPUSTAT.check_mask_before_draw)
       ticks_per_row += (width + 1u) / 2u;
     if (m_GPUSTAT.SkipDrawingToActiveField())
-      height = std::max<u32>(height / 2, 1u);
+      height = std::max<uint32_t>(height / 2, 1u);
 
     AddCommandTicks(ticks_per_row * height);
   }
-  ALWAYS_INLINE void AddDrawLineTicks(u32 width, u32 height, bool shaded)
+  ALWAYS_INLINE void AddDrawLineTicks(uint32_t width, uint32_t height, bool shaded)
   {
     if (m_GPUSTAT.SkipDrawingToActiveField())
-      height = std::max<u32>(height / 2, 1u);
+      height = std::max<uint32_t>(height / 2, 1u);
 
     AddCommandTicks(std::max(width, height));
   }
@@ -286,82 +277,82 @@ protected:
   std::unique_ptr<TimingEvent> m_command_tick_event;
 
   // Pointer to VRAM, used for reads/writes. In the hardware backends, this is the shadow buffer.
-  u16* m_vram_ptr = nullptr;
+  uint16_t* m_vram_ptr = nullptr;
 
   union GPUSTAT
   {
-    u32 bits;
-    BitField<u32, u8, 0, 4> texture_page_x_base;
-    BitField<u32, u8, 4, 1> texture_page_y_base;
-    BitField<u32, GPUTransparencyMode, 5, 2> semi_transparency_mode;
-    BitField<u32, GPUTextureMode, 7, 2> texture_color_mode;
-    BitField<u32, bool, 9, 1> dither_enable;
-    BitField<u32, bool, 10, 1> draw_to_displayed_field;
-    BitField<u32, bool, 11, 1> set_mask_while_drawing;
-    BitField<u32, bool, 12, 1> check_mask_before_draw;
-    BitField<u32, u8, 13, 1> interlaced_field;
-    BitField<u32, bool, 14, 1> reverse_flag;
-    BitField<u32, bool, 15, 1> texture_disable;
-    BitField<u32, u8, 16, 1> horizontal_resolution_2;
-    BitField<u32, u8, 17, 2> horizontal_resolution_1;
-    BitField<u32, bool, 19, 1> vertical_resolution;
-    BitField<u32, bool, 20, 1> pal_mode;
-    BitField<u32, bool, 21, 1> display_area_color_depth_24;
-    BitField<u32, bool, 22, 1> vertical_interlace;
-    BitField<u32, bool, 23, 1> display_disable;
-    BitField<u32, bool, 24, 1> interrupt_request;
-    BitField<u32, bool, 25, 1> dma_data_request;
-    BitField<u32, bool, 26, 1> gpu_idle;
-    BitField<u32, bool, 27, 1> ready_to_send_vram;
-    BitField<u32, bool, 28, 1> ready_to_recieve_dma;
-    BitField<u32, DMADirection, 29, 2> dma_direction;
-    BitField<u32, bool, 31, 1> display_line_lsb;
+    uint32_t bits;
+    BitField<uint32_t, uint8_t, 0, 4> texture_page_x_base;
+    BitField<uint32_t, uint8_t, 4, 1> texture_page_y_base;
+    BitField<uint32_t, GPUTransparencyMode, 5, 2> semi_transparency_mode;
+    BitField<uint32_t, GPUTextureMode, 7, 2> texture_color_mode;
+    BitField<uint32_t, bool, 9, 1> dither_enable;
+    BitField<uint32_t, bool, 10, 1> draw_to_displayed_field;
+    BitField<uint32_t, bool, 11, 1> set_mask_while_drawing;
+    BitField<uint32_t, bool, 12, 1> check_mask_before_draw;
+    BitField<uint32_t, uint8_t, 13, 1> interlaced_field;
+    BitField<uint32_t, bool, 14, 1> reverse_flag;
+    BitField<uint32_t, bool, 15, 1> texture_disable;
+    BitField<uint32_t, uint8_t, 16, 1> horizontal_resolution_2;
+    BitField<uint32_t, uint8_t, 17, 2> horizontal_resolution_1;
+    BitField<uint32_t, bool, 19, 1> vertical_resolution;
+    BitField<uint32_t, bool, 20, 1> pal_mode;
+    BitField<uint32_t, bool, 21, 1> display_area_color_depth_24;
+    BitField<uint32_t, bool, 22, 1> vertical_interlace;
+    BitField<uint32_t, bool, 23, 1> display_disable;
+    BitField<uint32_t, bool, 24, 1> interrupt_request;
+    BitField<uint32_t, bool, 25, 1> dma_data_request;
+    BitField<uint32_t, bool, 26, 1> gpu_idle;
+    BitField<uint32_t, bool, 27, 1> ready_to_send_vram;
+    BitField<uint32_t, bool, 28, 1> ready_to_recieve_dma;
+    BitField<uint32_t, DMADirection, 29, 2> dma_direction;
+    BitField<uint32_t, bool, 31, 1> display_line_lsb;
 
     ALWAYS_INLINE bool IsMaskingEnabled() const
     {
-      static constexpr u32 MASK = ((1 << 11) | (1 << 12));
+      static constexpr uint32_t MASK = ((1 << 11) | (1 << 12));
       return ((bits & MASK) != 0);
     }
     ALWAYS_INLINE bool SkipDrawingToActiveField() const
     {
-      static constexpr u32 MASK = (1 << 19) | (1 << 22) | (1 << 10);
-      static constexpr u32 ACTIVE = (1 << 19) | (1 << 22);
+      static constexpr uint32_t MASK = (1 << 19) | (1 << 22) | (1 << 10);
+      static constexpr uint32_t ACTIVE = (1 << 19) | (1 << 22);
       return ((bits & MASK) == ACTIVE);
     }
     ALWAYS_INLINE bool InInterleaved480iMode() const
     {
-      static constexpr u32 ACTIVE = (1 << 19) | (1 << 22);
+      static constexpr uint32_t ACTIVE = (1 << 19) | (1 << 22);
       return ((bits & ACTIVE) == ACTIVE);
     }
 
     // During transfer/render operations, if ((dst_pixel & mask_and) == 0) { pixel = src_pixel | mask_or }
-    ALWAYS_INLINE u16 GetMaskAND() const
+    ALWAYS_INLINE uint16_t GetMaskAND() const
     {
       // return check_mask_before_draw ? 0x8000 : 0x0000;
-      return Truncate16((bits << 3) & 0x8000);
+      return static_cast<uint16_t>((bits << 3) & 0x8000);
     }
-    ALWAYS_INLINE u16 GetMaskOR() const
+    ALWAYS_INLINE uint16_t GetMaskOR() const
     {
       // return set_mask_while_drawing ? 0x8000 : 0x0000;
-      return Truncate16((bits << 4) & 0x8000);
+      return static_cast<uint16_t>((bits << 4) & 0x8000);
     }
   } m_GPUSTAT = {};
 
   struct DrawMode
   {
-    static constexpr u16 PALETTE_MASK = UINT16_C(0b0111111111111111);
-    static constexpr u32 TEXTURE_WINDOW_MASK = UINT32_C(0b11111111111111111111);
+    static constexpr uint16_t PALETTE_MASK = UINT16_C(0b0111111111111111);
+    static constexpr uint32_t TEXTURE_WINDOW_MASK = UINT32_C(0b11111111111111111111);
 
     // original values
     GPUDrawModeReg mode_reg;
-    u16 palette_reg; // from vertex
-    u32 texture_window_value;
+    uint16_t palette_reg; // from vertex
+    uint32_t texture_window_value;
 
     // decoded values
-    u32 texture_page_x;
-    u32 texture_page_y;
-    u32 texture_palette_x;
-    u32 texture_palette_y;
+    uint32_t texture_page_x;
+    uint32_t texture_page_y;
+    uint32_t texture_palette_x;
+    uint32_t texture_palette_y;
     GPUTextureWindow texture_window;
     bool texture_x_flip;
     bool texture_y_flip;
@@ -369,11 +360,11 @@ protected:
     bool texture_window_changed;
 
     /// Returns a rectangle comprising the texture palette area.
-    ALWAYS_INLINE_RELEASE Common::Rectangle<u32> GetTexturePaletteRectangle() const
+    ALWAYS_INLINE_RELEASE Common::Rectangle<uint32_t> GetTexturePaletteRectangle() const
     {
-      static constexpr std::array<u32, 4> palette_widths = {{16, 256, 0, 0}};
-      return Common::Rectangle<u32>::FromExtents(texture_palette_x, texture_palette_y,
-                                                 palette_widths[static_cast<u8>(mode_reg.texture_mode.GetValue())], 1);
+      static constexpr std::array<uint32_t, 4> palette_widths = {{16, 256, 0, 0}};
+      return Common::Rectangle<uint32_t>::FromExtents(texture_palette_x, texture_palette_y,
+                                                 palette_widths[static_cast<uint8_t>(mode_reg.texture_mode.GetValue())], 1);
     }
 
     ALWAYS_INLINE bool IsTexturePageChanged() const { return texture_page_changed; }
@@ -385,12 +376,12 @@ protected:
     ALWAYS_INLINE void ClearTextureWindowChangedFlag() { texture_window_changed = false; }
   } m_draw_mode = {};
 
-  Common::Rectangle<u32> m_drawing_area{0, 0, VRAM_WIDTH, VRAM_HEIGHT};
+  Common::Rectangle<uint32_t> m_drawing_area{0, 0, VRAM_WIDTH, VRAM_HEIGHT};
 
   struct DrawingOffset
   {
-    s32 x;
-    s32 y;
+    int32_t x;
+    int32_t y;
   } m_drawing_offset = {};
 
   bool m_console_is_pal = false;
@@ -403,82 +394,82 @@ protected:
   {
     struct Regs
     {
-      static constexpr u32 DISPLAY_ADDRESS_START_MASK = 0b111'11111111'11111110;
-      static constexpr u32 HORIZONTAL_DISPLAY_RANGE_MASK = 0b11111111'11111111'11111111;
-      static constexpr u32 VERTICAL_DISPLAY_RANGE_MASK = 0b1111'11111111'11111111;
+      static constexpr uint32_t DISPLAY_ADDRESS_START_MASK = 0b111'11111111'11111110;
+      static constexpr uint32_t HORIZONTAL_DISPLAY_RANGE_MASK = 0b11111111'11111111'11111111;
+      static constexpr uint32_t VERTICAL_DISPLAY_RANGE_MASK = 0b1111'11111111'11111111;
 
       union
       {
-        u32 display_address_start;
-        BitField<u32, u16, 0, 10> X;
-        BitField<u32, u16, 10, 9> Y;
+        uint32_t display_address_start;
+        BitField<uint32_t, uint16_t, 0, 10> X;
+        BitField<uint32_t, uint16_t, 10, 9> Y;
       };
       union
       {
-        u32 horizontal_display_range;
-        BitField<u32, u16, 0, 12> X1;
-        BitField<u32, u16, 12, 12> X2;
+        uint32_t horizontal_display_range;
+        BitField<uint32_t, uint16_t, 0, 12> X1;
+        BitField<uint32_t, uint16_t, 12, 12> X2;
       };
 
       union
       {
-        u32 vertical_display_range;
-        BitField<u32, u16, 0, 10> Y1;
-        BitField<u32, u16, 10, 10> Y2;
+        uint32_t vertical_display_range;
+        BitField<uint32_t, uint16_t, 0, 10> Y1;
+        BitField<uint32_t, uint16_t, 10, 10> Y2;
       };
     } regs;
 
-    u16 dot_clock_divider;
+    uint16_t dot_clock_divider;
 
     // Size of the simulated screen in pixels. Depending on crop mode, this may include overscan area.
-    u16 display_width;
-    u16 display_height;
+    uint16_t display_width;
+    uint16_t display_height;
 
     // Top-left corner in screen coordinates where the outputted portion of VRAM is first visible.
-    u16 display_origin_left;
-    u16 display_origin_top;
+    uint16_t display_origin_left;
+    uint16_t display_origin_top;
 
     // Rectangle in VRAM coordinates describing the area of VRAM that is visible on screen.
-    u16 display_vram_left;
-    u16 display_vram_top;
-    u16 display_vram_width;
-    u16 display_vram_height;
+    uint16_t display_vram_left;
+    uint16_t display_vram_top;
+    uint16_t display_vram_width;
+    uint16_t display_vram_height;
 
     // Visible range of the screen, in GPU ticks/lines. Clamped to lie within the active video region.
-    u16 horizontal_visible_start;
-    u16 horizontal_visible_end;
-    u16 vertical_visible_start;
-    u16 vertical_visible_end;
+    uint16_t horizontal_visible_start;
+    uint16_t horizontal_visible_end;
+    uint16_t vertical_visible_start;
+    uint16_t vertical_visible_end;
 
-    u16 horizontal_display_start;
-    u16 horizontal_display_end;
-    u16 vertical_display_start;
-    u16 vertical_display_end;
+    uint16_t horizontal_display_start;
+    uint16_t horizontal_display_end;
+    uint16_t vertical_display_start;
+    uint16_t vertical_display_end;
 
-    u16 horizontal_total;
-    u16 horizontal_sync_start; // <- not currently saved to state, so we don't have to bump the version
-    u16 vertical_total;
+    uint16_t horizontal_total;
+    uint16_t horizontal_sync_start; // <- not currently saved to state, so we don't have to bump the version
+    uint16_t vertical_total;
 
     TickCount fractional_ticks;
     TickCount current_tick_in_scanline;
-    u32 current_scanline;
+    uint32_t current_scanline;
 
     TickCount fractional_dot_ticks; // only used when timer0 is enabled
 
     bool in_hblank;
     bool in_vblank;
 
-    u8 interlaced_field; // 0 = odd, 1 = even
-    u8 interlaced_display_field;
-    u8 active_line_lsb;
+    uint8_t interlaced_field; // 0 = odd, 1 = even
+    uint8_t interlaced_display_field;
+    uint8_t active_line_lsb;
   } m_crtc_state = {};
 
   BlitterState m_blitter_state = BlitterState::Idle;
-  u32 m_command_total_words = 0;
+  uint32_t m_command_total_words = 0;
   TickCount m_pending_command_ticks = 0;
 
   /// GPUREAD value for non-VRAM-reads.
-  u32 m_GPUREAD_latch = 0;
+  uint32_t m_GPUREAD_latch = 0;
 
   /// True if currently executing/syncing.
   bool m_syncing = false;
@@ -486,25 +477,25 @@ protected:
 
   struct VRAMTransfer
   {
-    u16 x;
-    u16 y;
-    u16 width;
-    u16 height;
-    u16 col;
-    u16 row;
+    uint16_t x;
+    uint16_t y;
+    uint16_t width;
+    uint16_t height;
+    uint16_t col;
+    uint16_t row;
   } m_vram_transfer = {};
 
-  HeapFIFOQueue<u64, MAX_FIFO_SIZE> m_fifo;
-  std::vector<u32> m_blit_buffer;
-  u32 m_blit_remaining_words;
+  HeapFIFOQueue<uint64_t, MAX_FIFO_SIZE> m_fifo;
+  std::vector<uint32_t> m_blit_buffer;
+  uint32_t m_blit_remaining_words;
   GPURenderCommand m_render_command{};
 
-  ALWAYS_INLINE u32 FifoPop() { return Truncate32(m_fifo.Pop()); }
-  ALWAYS_INLINE u32 FifoPeek() { return Truncate32(m_fifo.Peek()); }
-  ALWAYS_INLINE u32 FifoPeek(u32 i) { return Truncate32(m_fifo.Peek(i)); }
+  ALWAYS_INLINE uint32_t FifoPop() { return static_cast<uint32_t>(m_fifo.Pop()); }
+  ALWAYS_INLINE uint32_t FifoPeek() { return static_cast<uint32_t>(m_fifo.Peek()); }
+  ALWAYS_INLINE uint32_t FifoPeek(uint32_t i) { return static_cast<uint32_t>(m_fifo.Peek(i)); }
 
   TickCount m_max_run_ahead = 128;
-  u32 m_fifo_size = 128;
+  uint32_t m_fifo_size = 128;
 
 private:
   using GP0CommandHandler = bool (GPU::*)();

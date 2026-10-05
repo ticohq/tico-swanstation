@@ -7,7 +7,7 @@
 #include <cmath>
 Log_SetChannel(AnalogJoystick);
 
-AnalogJoystick::AnalogJoystick(u32 index)
+AnalogJoystick::AnalogJoystick(uint32_t index)
 {
   m_index = index;
   m_axis_state.fill(0x80);
@@ -35,8 +35,8 @@ bool AnalogJoystick::DoState(StateWrapper& sw, bool apply_input_state)
 
   sw.Do(&m_analog_mode);
 
-  u16 button_state = m_button_state;
-  auto axis_state = m_axis_state;
+  uint16_t button_state = m_button_state;
+  std::array<uint8_t, static_cast<uint8_t>(Axis::Count)> axis_state = m_axis_state;
   sw.Do(&button_state);
   sw.Do(&axis_state);
 
@@ -59,24 +59,24 @@ bool AnalogJoystick::DoState(StateWrapper& sw, bool apply_input_state)
   return true;
 }
 
-void AnalogJoystick::SetAxisState(s32 axis_code, float value)
+void AnalogJoystick::SetAxisState(int32_t axis_code, float value)
 {
-  if (axis_code < 0 || axis_code >= static_cast<s32>(Axis::Count))
+  if (axis_code < 0 || axis_code >= static_cast<int32_t>(Axis::Count))
     return;
 
   // -1..1 -> 0..255
   const float scaled_value = std::clamp(value * m_axis_scale, -1.0f, 1.0f);
-  const u8 u8_value = static_cast<u8>(std::clamp(std::round(((scaled_value + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
+  const uint8_t u8_value = static_cast<uint8_t>(std::clamp(std::round(((scaled_value + 1.0f) / 2.0f) * 255.0f), 0.0f, 255.0f));
 
   SetAxisState(static_cast<Axis>(axis_code), u8_value);
 }
 
-void AnalogJoystick::SetAxisState(Axis axis, u8 value)
+void AnalogJoystick::SetAxisState(Axis axis, uint8_t value)
 {
-  if (m_axis_state[static_cast<u8>(axis)] != value)
+  if (m_axis_state[static_cast<uint8_t>(axis)] != value)
     System::SetRunaheadReplayFlag();
 
-  m_axis_state[static_cast<u8>(axis)] = value;
+  m_axis_state[static_cast<uint8_t>(axis)] = value;
 }
 
 void AnalogJoystick::SetButtonState(Button button, bool pressed)
@@ -89,7 +89,7 @@ void AnalogJoystick::SetButtonState(Button button, bool pressed)
     return;
   }
 
-  const u16 bit = u16(1) << static_cast<u8>(button);
+  const uint16_t bit = uint16_t(1) << static_cast<uint8_t>(button);
 
   if (pressed)
   {
@@ -107,20 +107,20 @@ void AnalogJoystick::SetButtonState(Button button, bool pressed)
   }
 }
 
-void AnalogJoystick::SetButtonState(s32 button_code, bool pressed)
+void AnalogJoystick::SetButtonState(int32_t button_code, bool pressed)
 {
-  if (button_code < 0 || button_code >= static_cast<s32>(Button::Count))
+  if (button_code < 0 || button_code >= static_cast<int32_t>(Button::Count))
     return;
 
   SetButtonState(static_cast<Button>(button_code), pressed);
 }
 
-u32 AnalogJoystick::GetButtonStateBits() const
+uint32_t AnalogJoystick::GetButtonStateBits() const
 {
   return m_button_state ^ 0xFFFF;
 }
 
-std::optional<u32> AnalogJoystick::GetAnalogInputBytes() const
+std::optional<uint32_t> AnalogJoystick::GetAnalogInputBytes() const
 {
   return m_axis_state[static_cast<size_t>(Axis::LeftY)] << 24 | m_axis_state[static_cast<size_t>(Axis::LeftX)] << 16 |
          m_axis_state[static_cast<size_t>(Axis::RightY)] << 8 | m_axis_state[static_cast<size_t>(Axis::RightX)];
@@ -131,10 +131,10 @@ void AnalogJoystick::ResetTransferState()
   m_transfer_state = TransferState::Idle;
 }
 
-u16 AnalogJoystick::GetID() const
+uint16_t AnalogJoystick::GetID() const
 {
-  static constexpr u16 DIGITAL_MODE_ID = 0x5A41;
-  static constexpr u16 ANALOG_MODE_ID = 0x5A53;
+  static constexpr uint16_t DIGITAL_MODE_ID = 0x5A41;
+  static constexpr uint16_t ANALOG_MODE_ID = 0x5A53;
 
   return m_analog_mode ? ANALOG_MODE_ID : DIGITAL_MODE_ID;
 }
@@ -151,7 +151,7 @@ void AnalogJoystick::ToggleAnalogMode()
     m_index + 1u);
 }
 
-bool AnalogJoystick::Transfer(const u8 data_in, u8* data_out)
+bool AnalogJoystick::Transfer(const uint8_t data_in, uint8_t* data_out)
 {
   switch (m_transfer_state)
   {
@@ -171,7 +171,7 @@ bool AnalogJoystick::Transfer(const u8 data_in, u8* data_out)
     {
       if (data_in == 0x42)
       {
-        *data_out = Truncate8(GetID());
+        *data_out = static_cast<uint8_t>(GetID());
         m_transfer_state = TransferState::IDMSB;
         return true;
       }
@@ -182,21 +182,21 @@ bool AnalogJoystick::Transfer(const u8 data_in, u8* data_out)
 
     case TransferState::IDMSB:
     {
-      *data_out = Truncate8(GetID() >> 8);
+      *data_out = static_cast<uint8_t>(GetID() >> 8);
       m_transfer_state = TransferState::ButtonsLSB;
       return true;
     }
 
     case TransferState::ButtonsLSB:
     {
-      *data_out = Truncate8(m_button_state);
+      *data_out = static_cast<uint8_t>(m_button_state);
       m_transfer_state = TransferState::ButtonsMSB;
       return true;
     }
 
     case TransferState::ButtonsMSB:
     {
-      *data_out = Truncate8(m_button_state >> 8);
+      *data_out = static_cast<uint8_t>(m_button_state >> 8);
 
       m_transfer_state = m_analog_mode ? TransferState::RightAxisX : TransferState::Idle;
       return m_analog_mode;
@@ -204,28 +204,28 @@ bool AnalogJoystick::Transfer(const u8 data_in, u8* data_out)
 
     case TransferState::RightAxisX:
     {
-      *data_out = Truncate8(m_axis_state[static_cast<u8>(Axis::RightX)]);
+      *data_out = static_cast<uint8_t>(m_axis_state[static_cast<uint8_t>(Axis::RightX)]);
       m_transfer_state = TransferState::RightAxisY;
       return true;
     }
 
     case TransferState::RightAxisY:
     {
-      *data_out = Truncate8(m_axis_state[static_cast<u8>(Axis::RightY)]);
+      *data_out = static_cast<uint8_t>(m_axis_state[static_cast<uint8_t>(Axis::RightY)]);
       m_transfer_state = TransferState::LeftAxisX;
       return true;
     }
 
     case TransferState::LeftAxisX:
     {
-      *data_out = Truncate8(m_axis_state[static_cast<u8>(Axis::LeftX)]);
+      *data_out = static_cast<uint8_t>(m_axis_state[static_cast<uint8_t>(Axis::LeftX)]);
       m_transfer_state = TransferState::LeftAxisY;
       return true;
     }
 
     case TransferState::LeftAxisY:
     {
-      *data_out = Truncate8(m_axis_state[static_cast<u8>(Axis::LeftY)]);
+      *data_out = static_cast<uint8_t>(m_axis_state[static_cast<uint8_t>(Axis::LeftY)]);
       m_transfer_state = TransferState::Idle;
       return false;
     }
@@ -235,18 +235,13 @@ bool AnalogJoystick::Transfer(const u8 data_in, u8* data_out)
   }
 }
 
-std::unique_ptr<AnalogJoystick> AnalogJoystick::Create(u32 index)
+std::unique_ptr<AnalogJoystick> AnalogJoystick::Create(uint32_t index)
 {
   return std::make_unique<AnalogJoystick>(index);
-}
-
-u32 AnalogJoystick::StaticGetVibrationMotorCount()
-{
-  return 0;
 }
 
 void AnalogJoystick::LoadSettings(const char* section)
 {
   Controller::LoadSettings(section);
-  m_axis_scale = std::clamp(g_host_interface->GetFloatSettingValue(section, "AxisScale", 1.00f), 0.01f, 1.50f);
+  m_axis_scale = std::clamp(g_host_interface->GetFloatSettingValue(section, "AxisScale", 1.33f), 0.01f, 1.50f);
 }

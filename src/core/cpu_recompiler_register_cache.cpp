@@ -1,12 +1,12 @@
 #include "cpu_recompiler_register_cache.h"
 #include "cpu_recompiler_code_generator.h"
 #include <cinttypes>
-
+#include <cstring>
 namespace CPU::Recompiler {
 
 Value::Value() = default;
 
-Value::Value(RegisterCache* regcache_, u64 constant_, RegSize size_, ValueFlags flags_)
+Value::Value(RegisterCache* regcache_, uint64_t constant_, RegSize size_, ValueFlags flags_)
   : regcache(regcache_), constant_value(constant_), size(size_), flags(flags_)
 {
 }
@@ -106,7 +106,7 @@ void RegisterCache::SetHostRegAllocationOrder(std::initializer_list<HostReg> reg
     m_state.host_reg_state[reg] = HostRegState::Usable;
     m_host_register_allocation_order[index++] = reg;
   }
-  m_state.available_count = static_cast<u32>(index);
+  m_state.available_count = static_cast<uint32_t>(index);
 }
 
 void RegisterCache::SetCallerSavedHostRegs(std::initializer_list<HostReg> regs)
@@ -126,11 +126,6 @@ void RegisterCache::SetCPUPtrHostReg(HostReg reg)
   m_cpu_ptr_host_register = reg;
 }
 
-bool RegisterCache::IsUsableHostReg(HostReg reg) const
-{
-  return (m_state.host_reg_state[reg] & HostRegState::Usable) != HostRegState::None;
-}
-
 bool RegisterCache::IsHostRegInUse(HostReg reg) const
 {
   return (m_state.host_reg_state[reg] & HostRegState::InUse) != HostRegState::None;
@@ -147,34 +142,10 @@ bool RegisterCache::HasFreeHostRegister() const
   return false;
 }
 
-u32 RegisterCache::GetUsedHostRegisters() const
-{
-  u32 count = 0;
-  for (const HostRegState state : m_state.host_reg_state)
-  {
-    if ((state & (HostRegState::Usable | HostRegState::InUse)) == (HostRegState::Usable | HostRegState::InUse))
-      count++;
-  }
-
-  return count;
-}
-
-u32 RegisterCache::GetFreeHostRegisters() const
-{
-  u32 count = 0;
-  for (const HostRegState state : m_state.host_reg_state)
-  {
-    if ((state & (HostRegState::Usable | HostRegState::InUse)) == (HostRegState::Usable))
-      count++;
-  }
-
-  return count;
-}
-
 HostReg RegisterCache::AllocateHostReg(HostRegState state /* = HostRegState::InUse */)
 {
   // try for a free register in allocation order
-  for (u32 i = 0; i < m_state.available_count; i++)
+  for (uint32_t i = 0; i < m_state.available_count; i++)
   {
     const HostReg reg = m_host_register_allocation_order[i];
     if ((m_state.host_reg_state[reg] & (HostRegState::Usable | HostRegState::InUse)) == HostRegState::Usable)
@@ -224,18 +195,6 @@ void RegisterCache::FreeHostReg(HostReg reg)
   m_state.host_reg_state[reg] &= ~HostRegState::InUse;
 }
 
-void RegisterCache::EnsureHostRegFree(HostReg reg)
-{
-  if (!IsHostRegInUse(reg))
-    return;
-
-  for (u8 i = 0; i < static_cast<u8>(Reg::count); i++)
-  {
-    if (m_state.guest_reg_state[i].IsInHostRegister() && m_state.guest_reg_state[i].GetHostRegister() == reg)
-      FlushGuestRegister(static_cast<Reg>(i), true, true);
-  }
-}
-
 Value RegisterCache::GetCPUPtr()
 {
   return Value::FromHostReg(this, m_cpu_ptr_host_register, HostPointerSize);
@@ -251,25 +210,11 @@ Value RegisterCache::AllocateScratch(RegSize size, HostReg reg /* = HostReg_Inva
   return Value::FromScratch(this, reg, size);
 }
 
-void RegisterCache::ReserveCallerSavedRegisters()
+uint32_t RegisterCache::PushCallerSavedRegisters() const
 {
-  for (u32 reg = 0; reg < HostReg_Count; reg++)
-  {
-    if ((m_state.host_reg_state[reg] & (HostRegState::CalleeSaved | HostRegState::CalleeSavedAllocated)) ==
-        HostRegState::CalleeSaved)
-    {
-      m_code_generator.EmitPushHostReg(static_cast<HostReg>(reg), GetActiveCalleeSavedRegisterCount());
-      m_state.callee_saved_order[m_state.callee_saved_order_count++] = static_cast<HostReg>(reg);
-      m_state.host_reg_state[reg] |= HostRegState::CalleeSavedAllocated;
-    }
-  }
-}
-
-u32 RegisterCache::PushCallerSavedRegisters() const
-{
-  u32 position = GetActiveCalleeSavedRegisterCount();
-  u32 count = 0;
-  for (u32 i = 0; i < HostReg_Count; i++)
+  uint32_t position = GetActiveCalleeSavedRegisterCount();
+  uint32_t count = 0;
+  for (uint32_t i = 0; i < HostReg_Count; i++)
   {
     if ((m_state.host_reg_state[i] & (HostRegState::CallerSaved | HostRegState::InUse | HostRegState::Discarded)) ==
         (HostRegState::CallerSaved | HostRegState::InUse))
@@ -282,10 +227,10 @@ u32 RegisterCache::PushCallerSavedRegisters() const
   return count;
 }
 
-u32 RegisterCache::PopCallerSavedRegisters() const
+uint32_t RegisterCache::PopCallerSavedRegisters() const
 {
-  u32 count = 0;
-  for (u32 i = 0; i < HostReg_Count; i++)
+  uint32_t count = 0;
+  for (uint32_t i = 0; i < HostReg_Count; i++)
   {
     if ((m_state.host_reg_state[i] & (HostRegState::CallerSaved | HostRegState::InUse | HostRegState::Discarded)) ==
         (HostRegState::CallerSaved | HostRegState::InUse))
@@ -296,14 +241,14 @@ u32 RegisterCache::PopCallerSavedRegisters() const
   if (count == 0)
     return 0;
 
-  u32 position = GetActiveCalleeSavedRegisterCount() + count - 1;
-  u32 i = (HostReg_Count - 1);
+  uint32_t position = GetActiveCalleeSavedRegisterCount() + count - 1;
+  uint32_t i = (HostReg_Count - 1);
   do
   {
     if ((m_state.host_reg_state[i] & (HostRegState::CallerSaved | HostRegState::InUse | HostRegState::Discarded)) ==
         (HostRegState::CallerSaved | HostRegState::InUse))
     {
-      u32 reg_pair;
+      uint32_t reg_pair;
       for (reg_pair = (i - 1); reg_pair > 0 && reg_pair < HostReg_Count; reg_pair--)
       {
         if ((m_state.host_reg_state[reg_pair] &
@@ -328,13 +273,13 @@ u32 RegisterCache::PopCallerSavedRegisters() const
   return count;
 }
 
-u32 RegisterCache::PopCalleeSavedRegisters(bool commit)
+uint32_t RegisterCache::PopCalleeSavedRegisters(bool commit)
 {
   if (m_state.callee_saved_order_count == 0)
     return 0;
 
-  u32 count = 0;
-  u32 i = m_state.callee_saved_order_count;
+  uint32_t count = 0;
+  uint32_t i = m_state.callee_saved_order_count;
   do
   {
     const HostReg reg = m_state.callee_saved_order[i - 1];
@@ -369,13 +314,13 @@ u32 RegisterCache::PopCalleeSavedRegisters(bool commit)
 
 void RegisterCache::ReserveCalleeSavedRegisters()
 {
-  for (u32 reg = 0; reg < HostReg_Count; reg++)
+  for (uint32_t reg = 0; reg < HostReg_Count; reg++)
   {
     if ((m_state.host_reg_state[reg] & (HostRegState::CalleeSaved | HostRegState::CalleeSavedAllocated)) ==
         HostRegState::CalleeSaved)
     {
       // can we find a paired register? (mainly for ARM)
-      u32 reg_pair;
+      uint32_t reg_pair;
       for (reg_pair = reg + 1; reg_pair < HostReg_Count; reg_pair++)
       {
         if ((m_state.host_reg_state[reg_pair] & (HostRegState::CalleeSaved | HostRegState::CalleeSavedAllocated)) ==
@@ -405,7 +350,7 @@ void RegisterCache::ReserveCalleeSavedRegisters()
 
 void RegisterCache::AssumeCalleeSavedRegistersAreSaved()
 {
-  for (u32 i = 0; i < HostReg_Count; i++)
+  for (uint32_t i = 0; i < HostReg_Count; i++)
   {
     if ((m_state.host_reg_state[i] & (HostRegState::CalleeSaved | HostRegState::CalleeSavedAllocated)) ==
         HostRegState::CalleeSaved)
@@ -467,7 +412,7 @@ Value RegisterCache::ReadGuestRegister(Reg guest_reg, bool cache /* = true */, b
     return Value::FromConstantU32(0);
   }
 
-  Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
+  Value& cache_value = m_state.guest_reg_state[static_cast<uint8_t>(guest_reg)];
   if (cache_value.IsValid())
   {
     if (cache_value.IsInHostRegister())
@@ -543,7 +488,7 @@ Value RegisterCache::ReadGuestRegisterToScratch(Reg guest_reg)
 {
   HostReg host_reg = AllocateHostReg();
 
-  Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
+  Value& cache_value = m_state.guest_reg_state[static_cast<uint8_t>(guest_reg)];
   if (cache_value.IsValid())
     m_code_generator.EmitCopyValue(host_reg, cache_value);
   else
@@ -565,7 +510,7 @@ Value RegisterCache::WriteGuestRegister(Reg guest_reg, Value&& value)
     m_state.load_delay_value.ReleaseAndClear();
   }
 
-  Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
+  Value& cache_value = m_state.guest_reg_state[static_cast<uint8_t>(guest_reg)];
   if (cache_value.IsInHostRegister() && value.IsInHostRegister() && cache_value.host_reg == value.host_reg)
   {
     // updating the register value.
@@ -690,7 +635,7 @@ void RegisterCache::FlushLoadDelay(bool clear)
 
 void RegisterCache::FlushGuestRegister(Reg guest_reg, bool invalidate, bool clear_dirty)
 {
-  Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
+  Value& cache_value = m_state.guest_reg_state[static_cast<uint8_t>(guest_reg)];
   if (cache_value.IsDirty())
   {
     m_code_generator.EmitStoreGuestRegister(guest_reg, cache_value);
@@ -704,7 +649,7 @@ void RegisterCache::FlushGuestRegister(Reg guest_reg, bool invalidate, bool clea
 
 void RegisterCache::InvalidateGuestRegister(Reg guest_reg)
 {
-  Value& cache_value = m_state.guest_reg_state[static_cast<u8>(guest_reg)];
+  Value& cache_value = m_state.guest_reg_state[static_cast<uint8_t>(guest_reg)];
   if (!cache_value.IsValid())
     return;
 
@@ -719,7 +664,7 @@ void RegisterCache::InvalidateGuestRegister(Reg guest_reg)
 
 void RegisterCache::InvalidateAllNonDirtyGuestRegisters()
 {
-  for (u8 reg = 0; reg < static_cast<u8>(Reg::count); reg++)
+  for (uint8_t reg = 0; reg < static_cast<uint8_t>(Reg::count); reg++)
   {
     Value& cache_value = m_state.guest_reg_state[reg];
     if (cache_value.IsValid() && !cache_value.IsDirty())
@@ -729,13 +674,13 @@ void RegisterCache::InvalidateAllNonDirtyGuestRegisters()
 
 void RegisterCache::FlushAllGuestRegisters(bool invalidate, bool clear_dirty)
 {
-  for (u8 reg = 0; reg < static_cast<u8>(Reg::count); reg++)
+  for (uint8_t reg = 0; reg < static_cast<uint8_t>(Reg::count); reg++)
     FlushGuestRegister(static_cast<Reg>(reg), invalidate, clear_dirty);
 }
 
 void RegisterCache::FlushCallerSavedGuestRegisters(bool invalidate, bool clear_dirty)
 {
-  for (u8 reg = 0; reg < static_cast<u8>(Reg::count); reg++)
+  for (uint8_t reg = 0; reg < static_cast<uint8_t>(Reg::count); reg++)
   {
     const Value& gr = m_state.guest_reg_state[reg];
     if (!gr.IsInHostRegister() ||
@@ -762,12 +707,12 @@ bool RegisterCache::EvictOneGuestRegister()
 
 void RegisterCache::ClearRegisterFromOrder(Reg reg)
 {
-  for (u32 i = 0; i < m_state.guest_reg_order_count; i++)
+  for (uint32_t i = 0; i < m_state.guest_reg_order_count; i++)
   {
     if (m_state.guest_reg_order[i] == reg)
     {
       // move the registers after backwards into this spot
-      const u32 count_after = m_state.guest_reg_order_count - i - 1;
+      const uint32_t count_after = m_state.guest_reg_order_count - i - 1;
       if (count_after > 0)
         std::memmove(&m_state.guest_reg_order[i], &m_state.guest_reg_order[i + 1], sizeof(Reg) * count_after);
       else
@@ -781,12 +726,12 @@ void RegisterCache::ClearRegisterFromOrder(Reg reg)
 
 void RegisterCache::PushRegisterToOrder(Reg reg)
 {
-  for (u32 i = 0; i < m_state.guest_reg_order_count; i++)
+  for (uint32_t i = 0; i < m_state.guest_reg_order_count; i++)
   {
     if (m_state.guest_reg_order[i] == reg)
     {
       // move the registers after backwards into this spot
-      const u32 count_before = i;
+      const uint32_t count_before = i;
       if (count_before > 0)
         std::memmove(&m_state.guest_reg_order[1], &m_state.guest_reg_order[0], sizeof(Reg) * count_before);
 

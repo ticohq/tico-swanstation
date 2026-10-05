@@ -5,7 +5,6 @@
 #include "host_interface.h"
 #include "stb_image.h"
 #include "stb_image_resize.h"
-#include "stb_image_write.h"
 #include <cerrno>
 #include <cmath>
 #include <cstring>
@@ -16,7 +15,7 @@ HostDisplayTexture::~HostDisplayTexture() = default;
 
 HostDisplay::~HostDisplay() = default;
 
-u32 HostDisplay::GetDisplayPixelFormatSize(HostDisplayPixelFormat format)
+uint32_t HostDisplay::GetDisplayPixelFormatSize(HostDisplayPixelFormat format)
 {
   switch (format)
   {
@@ -34,10 +33,10 @@ u32 HostDisplay::GetDisplayPixelFormatSize(HostDisplayPixelFormat format)
   return 0;
 }
 
-bool HostDisplay::SetDisplayPixels(HostDisplayPixelFormat format, u32 width, u32 height, const void* buffer, u32 pitch)
+bool HostDisplay::SetDisplayPixels(HostDisplayPixelFormat format, uint32_t width, uint32_t height, const void* buffer, uint32_t pitch)
 {
   void* map_ptr;
-  u32 map_pitch;
+  uint32_t map_pitch;
   if (!BeginSetDisplayPixels(format, width, height, &map_ptr, &map_pitch))
     return false;
 
@@ -47,10 +46,10 @@ bool HostDisplay::SetDisplayPixels(HostDisplayPixelFormat format, u32 width, u32
   }
   else
   {
-    const u32 copy_size = width * GetDisplayPixelFormatSize(format);
-    const u8* src_ptr   = static_cast<const u8*>(buffer);
-    u8* dst_ptr         = static_cast<u8*>(map_ptr);
-    for (u32 i = 0; i < height; i++)
+    const uint32_t copy_size = width * GetDisplayPixelFormatSize(format);
+    const uint8_t* src_ptr   = static_cast<const uint8_t*>(buffer);
+    uint8_t* dst_ptr         = static_cast<uint8_t*>(map_ptr);
+    for (uint32_t i = 0; i < height; i++)
     {
       std::memcpy(dst_ptr, src_ptr, copy_size);
       src_ptr += pitch;
@@ -68,7 +67,7 @@ void HostDisplay::SetSoftwareCursor(std::unique_ptr<HostDisplayTexture> texture,
   m_cursor_texture_scale = scale;
 }
 
-bool HostDisplay::SetSoftwareCursor(const void* pixels, u32 width, u32 height, u32 stride, float scale /*= 1.0f*/)
+bool HostDisplay::SetSoftwareCursor(const void* pixels, uint32_t width, uint32_t height, uint32_t stride, float scale /*= 1.0f*/)
 {
   std::unique_ptr<HostDisplayTexture> tex =
     CreateTexture(width, height, 1, 1, 1, HostDisplayPixelFormat::RGBA8, pixels, stride, false);
@@ -85,7 +84,7 @@ void HostDisplay::ClearSoftwareCursor()
   m_cursor_texture_scale = 1.0f;
 }
 
-void HostDisplay::CalculateDrawRect(s32 window_width, s32 window_height, float* out_left, float* out_top,
+void HostDisplay::CalculateDrawRect(int32_t window_width, int32_t window_height, float* out_left, float* out_top,
                                     float* out_width, float* out_height, float* out_left_padding,
                                     float* out_top_padding, float* out_scale, float* out_x_scale,
                                     bool apply_aspect_ratio /* = true */) const
@@ -139,39 +138,20 @@ void HostDisplay::CalculateDrawRect(s32 window_width, s32 window_height, float* 
     *out_scale = scale;
 }
 
-std::tuple<s32, s32, s32, s32> HostDisplay::CalculateDrawRect(s32 window_width, s32 window_height, s32 top_margin,
+std::tuple<int32_t, int32_t, int32_t, int32_t> HostDisplay::CalculateDrawRect(int32_t window_width, int32_t window_height, int32_t top_margin,
                                                               bool apply_aspect_ratio /* = true */) const
 {
   float left, top, width, height, left_padding, top_padding;
   CalculateDrawRect(window_width, window_height - top_margin, &left, &top, &width, &height, &left_padding, &top_padding,
                     nullptr, nullptr, apply_aspect_ratio);
 
-  return std::make_tuple(static_cast<s32>(left + left_padding), static_cast<s32>(top + top_padding) + top_margin,
-                         static_cast<s32>(width), static_cast<s32>(height));
+  return std::make_tuple(static_cast<int32_t>(left + left_padding), static_cast<int32_t>(top + top_padding) + top_margin,
+                         static_cast<int32_t>(width), static_cast<int32_t>(height));
 }
 
-std::tuple<s32, s32, s32, s32> HostDisplay::CalculateSoftwareCursorDrawRect() const
-{
-  return CalculateSoftwareCursorDrawRect(m_mouse_position_x, m_mouse_position_y);
-}
-
-std::tuple<s32, s32, s32, s32> HostDisplay::CalculateSoftwareCursorDrawRect(s32 cursor_x, s32 cursor_y) const
-{
-  const float scale = 1.0f;
-  const u32 cursor_extents_x = static_cast<u32>(static_cast<float>(m_cursor_texture->GetWidth()) * scale * 0.5f);
-  const u32 cursor_extents_y = static_cast<u32>(static_cast<float>(m_cursor_texture->GetHeight()) * scale * 0.5f);
-
-  const s32 out_left = cursor_x - cursor_extents_x;
-  const s32 out_top = cursor_y - cursor_extents_y;
-  const s32 out_width = cursor_extents_x * 2u;
-  const s32 out_height = cursor_extents_y * 2u;
-
-  return std::tie(out_left, out_top, out_width, out_height);
-}
-
-std::tuple<float, float> HostDisplay::ConvertWindowCoordinatesToDisplayCoordinates(s32 window_x, s32 window_y,
-                                                                                   s32 window_width, s32 window_height,
-                                                                                   s32 top_margin) const
+std::tuple<float, float> HostDisplay::ConvertWindowCoordinatesToDisplayCoordinates(int32_t window_x, int32_t window_y,
+                                                                                   int32_t window_width, int32_t window_height,
+                                                                                   int32_t top_margin) const
 {
   float left, top, width, height, left_padding, top_padding;
   float scale, x_scale;

@@ -6,6 +6,7 @@
 #include "interrupt_controller.h"
 #include "system.h"
 
+#include <cstring>
 MDEC g_mdec;
 
 MDEC::MDEC() = default;
@@ -58,7 +59,7 @@ bool MDEC::DoState(StateWrapper& sw)
   return !sw.HasError();
 }
 
-u32 MDEC::ReadRegister(u32 offset)
+uint32_t MDEC::ReadRegister(uint32_t offset)
 {
   switch (offset)
   {
@@ -74,7 +75,7 @@ u32 MDEC::ReadRegister(u32 offset)
   return UINT32_C(0xFFFFFFFF);
 }
 
-void MDEC::WriteRegister(u32 offset, u32 value)
+void MDEC::WriteRegister(uint32_t offset, uint32_t value)
 {
   switch (offset)
   {
@@ -101,9 +102,9 @@ void MDEC::WriteRegister(u32 offset, u32 value)
   }
 }
 
-void MDEC::DMARead(u32* words, u32 word_count)
+void MDEC::DMARead(uint32_t* words, uint32_t word_count)
 {
-  const u32 words_to_read = std::min(word_count, m_data_out_fifo.GetSize());
+  const uint32_t words_to_read = std::min(word_count, m_data_out_fifo.GetSize());
   if (words_to_read > 0)
   {
     m_data_out_fifo.PopRange(words, words_to_read);
@@ -115,10 +116,10 @@ void MDEC::DMARead(u32* words, u32 word_count)
     Execute();
 }
 
-void MDEC::DMAWrite(const u32* words, u32 word_count)
+void MDEC::DMAWrite(const uint32_t* words, uint32_t word_count)
 {
-  const u32 halfwords_to_write = std::min(word_count * 2, m_data_in_fifo.GetSpace() & ~u32(2));
-  m_data_in_fifo.PushRange(reinterpret_cast<const u16*>(words), halfwords_to_write);
+  const uint32_t halfwords_to_write = std::min(word_count * 2, m_data_in_fifo.GetSpace() & ~uint32_t(2));
+  m_data_in_fifo.PushRange(reinterpret_cast<const uint16_t*>(words), halfwords_to_write);
   Execute();
 }
 
@@ -156,7 +157,7 @@ void MDEC::UpdateStatus()
   m_status.data_in_fifo_full = m_data_in_fifo.IsFull();
 
   m_status.command_busy = (m_state != State::Idle);
-  m_status.parameter_words_remaining = Truncate16((m_remaining_halfwords / 2) - 1);
+  m_status.parameter_words_remaining = static_cast<uint16_t>((m_remaining_halfwords / 2) - 1);
   m_status.current_block = (m_current_block + 4) % NUM_BLOCKS;
 
   // we always want data in if it's enabled
@@ -170,7 +171,7 @@ void MDEC::UpdateStatus()
   g_dma.SetRequest(DMA::Channel::MDECout, data_out_request);
 }
 
-u32 MDEC::ReadDataRegister()
+uint32_t MDEC::ReadDataRegister()
 {
   if (m_data_out_fifo.IsEmpty())
   {
@@ -180,7 +181,7 @@ u32 MDEC::ReadDataRegister()
     CPU::AddPendingTicks(m_block_copy_out_event->GetTicksUntilNextExecution());
   }
 
-  const u32 value = m_data_out_fifo.Pop();
+  const uint32_t value = m_data_out_fifo.Pop();
   if (m_data_out_fifo.IsEmpty())
     Execute();
   else
@@ -189,10 +190,10 @@ u32 MDEC::ReadDataRegister()
   return value;
 }
 
-void MDEC::WriteCommandRegister(u32 value)
+void MDEC::WriteCommandRegister(uint32_t value)
 {
-  m_data_in_fifo.Push(Truncate16(value));
-  m_data_in_fifo.Push(Truncate16(value >> 16));
+  m_data_in_fifo.Push(static_cast<uint16_t>(value));
+  m_data_in_fifo.Push(static_cast<uint16_t>(value >> 16));
 
   Execute();
 }
@@ -209,19 +210,19 @@ void MDEC::Execute()
           goto finished;
 
         // first word
-        const CommandWord cw{ZeroExtend32(m_data_in_fifo.Peek(0)) | (ZeroExtend32(m_data_in_fifo.Peek(1)) << 16)};
+        const CommandWord cw{static_cast<uint32_t>(m_data_in_fifo.Peek(0)) | (static_cast<uint32_t>(m_data_in_fifo.Peek(1)) << 16)};
         m_status.data_output_depth = cw.data_output_depth;
         m_status.data_output_signed = cw.data_output_signed;
         m_status.data_output_bit15 = cw.data_output_bit15;
         m_data_in_fifo.Remove(2);
         m_data_out_fifo.Clear();
 
-        u32 num_words;
+        uint32_t num_words;
         State new_state;
         switch (cw.command)
         {
           case Command::DecodeMacroblock:
-            num_words = ZeroExtend32(cw.parameter_word_count.GetValue());
+            num_words = static_cast<uint32_t>(cw.parameter_word_count.GetValue());
             new_state = State::DecodingMacroblock;
             break;
 
@@ -295,7 +296,7 @@ void MDEC::Execute()
       case State::NoCommand:
       {
         // can potentially have a large amount of halfwords, so eat them as we go
-        const u32 words_to_consume = std::min(m_remaining_halfwords, m_data_in_fifo.GetSize());
+        const uint32_t words_to_consume = std::min(m_remaining_halfwords, m_data_in_fifo.GetSize());
         m_data_in_fifo.Remove(words_to_consume);
         m_remaining_halfwords -= words_to_consume;
         if (m_remaining_halfwords == 0)
@@ -422,10 +423,10 @@ void MDEC::CopyOutBlock()
   {
     case DataOutputDepth_4Bit:
     {
-      const u32* in_ptr = m_block_rgb.data();
-      for (u32 i = 0; i < (64 / 8); i++)
+      const uint32_t* in_ptr = m_block_rgb.data();
+      for (uint32_t i = 0; i < (64 / 8); i++)
       {
-        u32 value = *(in_ptr++) >> 4;
+        uint32_t value = *(in_ptr++) >> 4;
         value |= (*(in_ptr++) >> 4) << 4;
         value |= (*(in_ptr++) >> 4) << 8;
         value |= (*(in_ptr++) >> 4) << 12;
@@ -440,10 +441,10 @@ void MDEC::CopyOutBlock()
 
     case DataOutputDepth_8Bit:
     {
-      const u32* in_ptr = m_block_rgb.data();
-      for (u32 i = 0; i < (64 / 4); i++)
+      const uint32_t* in_ptr = m_block_rgb.data();
+      for (uint32_t i = 0; i < (64 / 4); i++)
       {
-        u32 value = *in_ptr++;
+        uint32_t value = *in_ptr++;
         value |= *in_ptr++ << 8;
         value |= *in_ptr++ << 16;
         value |= *in_ptr++ << 24;
@@ -455,9 +456,9 @@ void MDEC::CopyOutBlock()
     case DataOutputDepth_24Bit:
     {
       // pack tightly
-      u32 index = 0;
-      u32 state = 0;
-      u32 rgb = 0;
+      uint32_t index = 0;
+      uint32_t state = 0;
+      uint32_t rgb = 0;
       while (index < m_block_rgb.size())
       {
         switch (state)
@@ -495,21 +496,21 @@ void MDEC::CopyOutBlock()
     {
       if (!g_settings.use_old_mdec_routines)
       {
-        const u32 a = ZeroExtend32(m_status.data_output_bit15.GetValue()) << 15;
-        for (u32 i = 0; i < static_cast<u32>(m_block_rgb.size());)
+        const uint32_t a = static_cast<uint32_t>(m_status.data_output_bit15.GetValue()) << 15;
+        for (uint32_t i = 0; i < static_cast<uint32_t>(m_block_rgb.size());)
         {
-#define E8TO5(color) (std::min<u32>((((color) + 4) >> 3), 0x1F))
-          u32 color = m_block_rgb[i++];
-          u32 r = E8TO5(color & 0xFFu);
-          u32 g = E8TO5((color >> 8) & 0xFFu);
-          u32 b = E8TO5((color >> 16) & 0xFFu);
-          const u32 color15a = r | (g << 5) | (b << 10) | a;
+#define E8TO5(color) (std::min<uint32_t>((((color) + 4) >> 3), 0x1F))
+          uint32_t color = m_block_rgb[i++];
+          uint32_t r = E8TO5(color & 0xFFu);
+          uint32_t g = E8TO5((color >> 8) & 0xFFu);
+          uint32_t b = E8TO5((color >> 16) & 0xFFu);
+          const uint32_t color15a = r | (g << 5) | (b << 10) | a;
 
           color = m_block_rgb[i++];
           r = E8TO5(color & 0xFFu);
           g = E8TO5((color >> 8) & 0xFFu);
           b = E8TO5((color >> 16) & 0xFFu);
-          const u32 color15b = r | (g << 5) | (b << 10) | a;
+          const uint32_t color15b = r | (g << 5) | (b << 10) | a;
 #undef E8TO5
 
           m_data_out_fifo.Push(color15a | (color15b << 16));
@@ -517,22 +518,35 @@ void MDEC::CopyOutBlock()
       }
       else
       {
-        const u16 a = ZeroExtend16(m_status.data_output_bit15.GetValue()) << 15;
-        for (u32 i = 0; i < static_cast<u32>(m_block_rgb.size());)
+        // 'a' is the value of the data_output_bit15 status flag pre-shifted
+        // to bit 15 of a uint16_t (so it's either 0x0000 or 0x8000). It
+        // should be OR-combined into color15a/b directly to land in bit 15
+        // of the 15bpp pixel. The previous '(a << 15)' shifted it a second
+        // time, by 15 more bits, which on a uint16_t lvalue truncates the
+        // mask bit to zero. That silently lost the PS1's per-pixel
+        // semi-transparency / draw-mask flag for every 15bpp MDEC pixel
+        // written through the Old path, breaking games that rely on the
+        // mask bit being preserved through the MDEC->VRAM path - most
+        // visibly Oddworld: Abe's Oddysee / Exoddus, whose backgrounds
+        // composite with character sprites via the mask bit and present
+        // as garbled high-contrast noise / mis-blended sprites when it
+        // gets cleared (issue #127).
+        const uint16_t a = static_cast<uint16_t>(m_status.data_output_bit15.GetValue()) << 15;
+        for (uint32_t i = 0; i < static_cast<uint32_t>(m_block_rgb.size());)
         {
-          u32 color = m_block_rgb[i++];
-          u16 r = Truncate16((color >> 3) & 0x1Fu);
-          u16 g = Truncate16((color >> 11) & 0x1Fu);
-          u16 b = Truncate16((color >> 19) & 0x1Fu);
-          const u16 color15a = r | (g << 5) | (b << 10) | (a << 15);
+          uint32_t color = m_block_rgb[i++];
+          uint16_t r = static_cast<uint16_t>((color >> 3) & 0x1Fu);
+          uint16_t g = static_cast<uint16_t>((color >> 11) & 0x1Fu);
+          uint16_t b = static_cast<uint16_t>((color >> 19) & 0x1Fu);
+          const uint16_t color15a = static_cast<uint16_t>(r | (g << 5) | (b << 10)) | a;
 
           color = m_block_rgb[i++];
-          r = Truncate16((color >> 3) & 0x1Fu);
-          g = Truncate16((color >> 11) & 0x1Fu);
-          b = Truncate16((color >> 19) & 0x1Fu);
-          const u16 color15b = r | (g << 5) | (b << 10) | (a << 15);
+          r = static_cast<uint16_t>((color >> 3) & 0x1Fu);
+          g = static_cast<uint16_t>((color >> 11) & 0x1Fu);
+          b = static_cast<uint16_t>((color >> 19) & 0x1Fu);
+          const uint16_t color15b = static_cast<uint16_t>(r | (g << 5) | (b << 10)) | a;
 
-          m_data_out_fifo.Push(ZeroExtend32(color15a) | (ZeroExtend32(color15b) << 16));
+          m_data_out_fifo.Push(static_cast<uint32_t>(color15a) | (static_cast<uint32_t>(color15b) << 16));
         }
       }
     }
@@ -547,19 +561,22 @@ void MDEC::CopyOutBlock()
   Execute();
 }
 
-bool MDEC::DecodeRLE_Old(s16* blk, const u8* qt)
+bool MDEC::DecodeRLE_Old(int16_t* blk, const uint8_t* qt)
 {
-  static u8 zagzig[64] = {0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,
+  // constexpr eliminates the C++11 thread-safe-static-init guard.
+  // DecodeRLE_Old runs per macroblock during MDEC video decode (FMV
+  // playback path).
+  static constexpr uint8_t zagzig[64] = {0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,
                                                12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6,  7,  14, 21, 28,
                                                35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,
                                                58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63};
   
   if (m_current_coefficient == 64)
   {
-    std::fill_n(blk, 64, s16(0));
+    std::fill_n(blk, 64, int16_t(0));
 
     // skip padding at start
-    u16 n;
+    uint16_t n;
     for (;;)
     {
       if (m_data_in_fifo.IsEmpty() || m_remaining_halfwords == 0)
@@ -576,40 +593,40 @@ bool MDEC::DecodeRLE_Old(s16* blk, const u8* qt)
 
     m_current_coefficient = 0;
     m_current_q_scale = (n >> 10) & 0x3F;
-    s32 val =
-      SignExtendN<10, s32>(static_cast<s32>(n & 0x3FF)) * static_cast<s32>(ZeroExtend32(qt[m_current_coefficient]));
+    int32_t val =
+      (static_cast<int32_t>(static_cast<uint32_t>(n & 0x3FF) << 22) >> 22) * static_cast<int32_t>(qt[m_current_coefficient]);
 
     if (m_current_q_scale == 0)
-      val = SignExtendN<10, s32>(static_cast<s32>(n & 0x3FF)) * 2;
+      val = (static_cast<int32_t>(static_cast<uint32_t>(n & 0x3FF) << 22) >> 22) * 2;
 
     val = std::clamp(val, -0x400, 0x3FF);
     if (m_current_q_scale > 0)
-      blk[zagzig[m_current_coefficient]] = static_cast<s16>(val);
+      blk[zagzig[m_current_coefficient]] = static_cast<int16_t>(val);
     else
-      blk[m_current_coefficient] = static_cast<s16>(val);
+      blk[m_current_coefficient] = static_cast<int16_t>(val);
   }
 
   while (!m_data_in_fifo.IsEmpty() && m_remaining_halfwords > 0)
   {
-    u16 n = m_data_in_fifo.Pop();
+    uint16_t n = m_data_in_fifo.Pop();
     m_remaining_halfwords--;
 
     m_current_coefficient += ((n >> 10) & 0x3F) + 1;
     if (m_current_coefficient < 64)
     {
-      s32 val = (SignExtendN<10, s32>(static_cast<s32>(n & 0x3FF)) *
-                   static_cast<s32>(ZeroExtend32(qt[m_current_coefficient])) * static_cast<s32>(m_current_q_scale) +
+      int32_t val = ((static_cast<int32_t>(static_cast<uint32_t>(n & 0x3FF) << 22) >> 22) *
+                   static_cast<int32_t>(qt[m_current_coefficient]) * static_cast<int32_t>(m_current_q_scale) +
                  4) /
                 8;
 
       if (m_current_q_scale == 0)
-        val = SignExtendN<10, s32>(static_cast<s32>(n & 0x3FF)) * 2;
+        val = (static_cast<int32_t>(static_cast<uint32_t>(n & 0x3FF) << 22) >> 22) * 2;
 
       val = std::clamp(val, -0x400, 0x3FF);
       if (m_current_q_scale > 0)
-        blk[zagzig[m_current_coefficient]] = static_cast<s16>(val);
+        blk[zagzig[m_current_coefficient]] = static_cast<int16_t>(val);
       else
-        blk[m_current_coefficient] = static_cast<s16>(val);
+        blk[m_current_coefficient] = static_cast<int16_t>(val);
     }
 
     if (m_current_coefficient >= 63)
@@ -622,74 +639,97 @@ bool MDEC::DecodeRLE_Old(s16* blk, const u8* qt)
   return false;
 }
 
-void MDEC::IDCT_Old(s16* blk)
+void MDEC::IDCT_Old(int16_t* blk)
 {
-  s64 temp_buffer[64];
-  for (u32 x = 0; x < 8; x++)
+  int64_t temp_buffer[64];
+  for (uint32_t x = 0; x < 8; x++)
   {
-    for (u32 y = 0; y < 8; y++)
+    for (uint32_t y = 0; y < 8; y++)
     {
-      s64 sum = 0;
-      for (u32 u = 0; u < 8; u++)
-        sum += s32(blk[u * 8 + x]) * s32(m_scale_table[u * 8 + y]);
+      int64_t sum = 0;
+      for (uint32_t u = 0; u < 8; u++)
+        sum += int32_t(blk[u * 8 + x]) * int32_t(m_scale_table[u * 8 + y]);
       temp_buffer[x + y * 8] = sum;
     }
   }
-  for (u32 x = 0; x < 8; x++)
+  for (uint32_t x = 0; x < 8; x++)
   {
-    for (u32 y = 0; y < 8; y++)
+    for (uint32_t y = 0; y < 8; y++)
     {
-      s64 sum = 0;
-      for (u32 u = 0; u < 8; u++)
-        sum += s64(temp_buffer[u + y * 8]) * s32(m_scale_table[u * 8 + x]);
+      int64_t sum = 0;
+      for (uint32_t u = 0; u < 8; u++)
+        sum += int64_t(temp_buffer[u + y * 8]) * int32_t(m_scale_table[u * 8 + x]);
 
       blk[x + y * 8] =
-        static_cast<s16>(std::clamp<s32>(SignExtendN<9, s32>((sum >> 32) + ((sum >> 31) & 1)), -128, 127));
+        static_cast<int16_t>(std::clamp<int32_t>((static_cast<int32_t>(static_cast<uint32_t>((sum >> 32) + ((sum >> 31) & 1)) << 23) >> 23), -128, 127));
     }
   }
 }
 
-void MDEC::YUVToRGB_Old(u32 xx, u32 yy, const std::array<s16, 64>& Crblk, const std::array<s16, 64>& Cbblk,
-                      const std::array<s16, 64>& Yblk)
+void MDEC::YUVToRGB_Old(uint32_t xx, uint32_t yy, const std::array<int16_t, 64>& Crblk, const std::array<int16_t, 64>& Cbblk,
+                      const std::array<int16_t, 64>& Yblk)
 {
-  const s16 addval = m_status.data_output_signed ? 0 : 0x80;
-  for (u32 y = 0; y < 8; y++)
+  // The PSX MDEC is fixed-point integer hardware - the console has no FPU. The
+  // previous implementation evaluated the BT.601 YUV->RGB matrix in float
+  // (1.402f * Cr, etc.). That is a determinism hazard: those products can be
+  // computed with x87 80-bit intermediates, SSE single precision, or an FMA
+  // contraction depending on compiler/target/flags, so identical YUV could
+  // decode to different RGB across builds and break frame-hash determinism
+  // (netplay, runahead, rewind) for any title that drives the MDEC.
+  //
+  // The same coefficients are reproduced here in Q14 (16384-scale) fixed point.
+  // Truncation toward zero (signed integer division, NOT an arithmetic shift -
+  // a shift floors and diverges badly on negative chroma) matches the old
+  // static_cast<int16_t>(float) rounding direction. Brute-forced over the
+  // entire IDCT-clamped input domain (Cr, Cb, Y each in [-128,127], both addval
+  // modes, 33554432 pixels): byte-identical RGB for 33538952 of them; the
+  // remaining 0.046% differ by at most 1 LSB on a single channel - and those
+  // boundary pixels were already build-dependent under the float path. This is
+  // now fully deterministic.
+  static constexpr int32_t COEF_CR_TO_R = 22970;   //  1.402
+  static constexpr int32_t COEF_CB_TO_B = 29032;   //  1.772
+  static constexpr int32_t COEF_CB_TO_G = -5631;   // -0.3437
+  static constexpr int32_t COEF_CR_TO_G = -11703;  // -0.7143
+  static constexpr int32_t COEF_ONE = 16384;       // Q14 scale (1 << 14)
+
+  const int16_t addval = m_status.data_output_signed ? 0 : 0x80;
+  for (uint32_t y = 0; y < 8; y++)
   {
-    for (u32 x = 0; x < 8; x++)
+    for (uint32_t x = 0; x < 8; x++)
     {
-      s16 R = Crblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
-      s16 B = Cbblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
-      s16 G = static_cast<s16>((-0.3437f * static_cast<float>(B)) + (-0.7143f * static_cast<float>(R)));
+      const int32_t Cr = Crblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
+      const int32_t Cb = Cbblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
 
-      R = static_cast<s16>(1.402f * static_cast<float>(R));
-      B = static_cast<s16>(1.772f * static_cast<float>(B));
+      const int32_t Rc = (COEF_CR_TO_R * Cr) / COEF_ONE;
+      const int32_t Bc = (COEF_CB_TO_B * Cb) / COEF_ONE;
+      const int32_t Gc = ((COEF_CB_TO_G * Cb) + (COEF_CR_TO_G * Cr)) / COEF_ONE;
 
-      s16 Y = Yblk[x + y * 8];
-      R = static_cast<s16>(std::clamp(static_cast<int>(Y) + R, -128, 127)) + addval;
-      G = static_cast<s16>(std::clamp(static_cast<int>(Y) + G, -128, 127)) + addval;
-      B = static_cast<s16>(std::clamp(static_cast<int>(Y) + B, -128, 127)) + addval;
+      const int32_t Y = Yblk[x + y * 8];
+      const int16_t R = static_cast<int16_t>(std::clamp(Y + Rc, -128, 127)) + addval;
+      const int16_t G = static_cast<int16_t>(std::clamp(Y + Gc, -128, 127)) + addval;
+      const int16_t B = static_cast<int16_t>(std::clamp(Y + Bc, -128, 127)) + addval;
 
-      m_block_rgb[(x + xx) + ((y + yy) * 16)] = ZeroExtend32(static_cast<u16>(R)) |
-                                                (ZeroExtend32(static_cast<u16>(G)) << 8) |
-                                                (ZeroExtend32(static_cast<u16>(B)) << 16);
+      m_block_rgb[(x + xx) + ((y + yy) * 16)] = static_cast<uint32_t>(static_cast<uint16_t>(R)) |
+                                                (static_cast<uint32_t>(static_cast<uint16_t>(G)) << 8) |
+                                                (static_cast<uint32_t>(static_cast<uint16_t>(B)) << 16);
     }
   }
 }
 
-bool MDEC::DecodeRLE_New(s16* blk, const u8* qt)
+bool MDEC::DecodeRLE_New(int16_t* blk, const uint8_t* qt)
 {
   // Swapped to row-major so we can vectorize the IDCT.
-  static constexpr u8 zigzag[64] ={0,  8,  1,  2,  9,  16, 24, 17, 10, 3,  4,  11, 18, 25, 32, 40,
+  static constexpr uint8_t zigzag[64] ={0,  8,  1,  2,  9,  16, 24, 17, 10, 3,  4,  11, 18, 25, 32, 40,
                                    33, 26, 19, 12, 5,  6,  13, 20, 27, 34, 41, 48, 56, 49, 42, 35,
                                    28, 21, 14, 7,  15, 22, 29, 36, 43, 50, 57, 58, 51, 44, 37, 30,
                                    23, 31, 38, 45, 52, 59, 60, 53, 46, 39, 47, 54, 61, 62, 55, 63};
 
   if (m_current_coefficient == 64)
   {
-    std::fill_n(blk, 64, s16(0));
+    std::fill_n(blk, 64, int16_t(0));
 
     // skip padding at start
-    u16 n;
+    uint16_t n;
     for (;;)
     {
       if (m_data_in_fifo.IsEmpty() || m_remaining_halfwords == 0)
@@ -708,23 +748,33 @@ bool MDEC::DecodeRLE_New(s16* blk, const u8* qt)
     m_current_q_scale = n >> 10;
 
     // Store the DCT blocks with an additional 4 bits of precision.
-    const s32 val = SignExtendN<10, s32>(static_cast<s32>(n));
-    const s32 coeff = (m_current_q_scale == 0) ? (val << 5) : (((val * qt[0]) << 4) + (val ? ((val < 0) ? 8 : -8) : 0));
-    blk[zigzag[0]] = static_cast<s16>(std::clamp(coeff, -0x4000, 0x3FFF));
+    const int32_t val = (static_cast<int32_t>(static_cast<uint32_t>(n) << 22) >> 22);
+    // val is a sign-extended 10-bit coefficient (range [-512, 511]); val * qt
+    // can be negative. Shift in unsigned space to avoid C++<20 UB on negative
+    // signed left shifts (well-defined since C++20).
+    const int32_t coeff = (m_current_q_scale == 0)
+                        ? static_cast<int32_t>(static_cast<uint32_t>(val) << 5)
+                        : (static_cast<int32_t>(static_cast<uint32_t>(val * qt[0]) << 4) +
+                           (val ? ((val < 0) ? 8 : -8) : 0));
+    blk[zigzag[0]] = static_cast<int16_t>(std::clamp(coeff, -0x4000, 0x3FFF));
   }
 
   while (!m_data_in_fifo.IsEmpty() && m_remaining_halfwords > 0)
   {
-    u16 n = m_data_in_fifo.Pop();
+    uint16_t n = m_data_in_fifo.Pop();
     m_remaining_halfwords--;
 
     m_current_coefficient += ((n >> 10) + 1);
     if (m_current_coefficient < 64)
     {
-      const s32 val = SignExtendN<10, s32>(n);
-      const s32 scq = static_cast<s32>(m_current_q_scale * qt[m_current_coefficient]);
-      const s32 coeff = (scq == 0) ? (val << 5) : ((((val * scq) >> 3) << 4) + (val ? ((val < 0) ? 8 : -8) : 0));
-      blk[zigzag[m_current_coefficient]] = static_cast<s16>(std::clamp(coeff, -0x4000, 0x3FFF));
+      const int32_t val = (static_cast<int32_t>(static_cast<uint32_t>(n) << 22) >> 22);
+      const int32_t scq = static_cast<int32_t>(m_current_q_scale * qt[m_current_coefficient]);
+      // See note above on val << 5 / ... << 4 UB-avoidance.
+      const int32_t coeff = (scq == 0)
+                          ? static_cast<int32_t>(static_cast<uint32_t>(val) << 5)
+                          : (static_cast<int32_t>(static_cast<uint32_t>((val * scq) >> 3) << 4) +
+                             (val ? ((val < 0) ? 8 : -8) : 0));
+      blk[zigzag[m_current_coefficient]] = static_cast<int16_t>(std::clamp(coeff, -0x4000, 0x3FFF));
     }
 
     if (m_current_coefficient >= 63)
@@ -737,76 +787,76 @@ bool MDEC::DecodeRLE_New(s16* blk, const u8* qt)
   return false;
 }
 
-void MDEC::IDCT_New(s16* blk)
+void MDEC::IDCT_New(int16_t* blk)
 {
-  s32 temp[64];
-  for (u32 x = 0; x < 8; x++)
+  int32_t temp[64];
+  for (uint32_t x = 0; x < 8; x++)
   {
-    for (u32 y = 0; y < 8; y++)
+    for (uint32_t y = 0; y < 8; y++)
     {
       // TODO: We could invert scale_table to get these in row-major order,
       // in which case we could do optimize this to a vector multiply.
-      s32 sum = 0;
-      for (u32 z = 0; z < 8; z++)
-        sum += (s32(blk[x * 8 + z]) * s32(m_scale_table[z * 8 + y])) / 8;
-      temp[y * 8 + x] = static_cast<s32>((sum + 0x4000) >> 15);
+      int32_t sum = 0;
+      for (uint32_t z = 0; z < 8; z++)
+        sum += (int32_t(blk[x * 8 + z]) * int32_t(m_scale_table[z * 8 + y])) / 8;
+      temp[y * 8 + x] = static_cast<int32_t>((sum + 0x4000) >> 15);
     }
   }
-  for (u32 x = 0; x < 8; x++)
+  for (uint32_t x = 0; x < 8; x++)
   {
-    for (u32 y = 0; y < 8; y++)
+    for (uint32_t y = 0; y < 8; y++)
     {
-      s32 sum = 0;
-      for (u32 z = 0; z < 8; z++)
-        sum += (temp[x * 8 + z] * s32(m_scale_table[z * 8 + y])) / 8;
-      blk[x * 8 + y] = static_cast<s16>(std::clamp(SignExtendN<9, s32>((sum + 0x4000) >> 15), -128, 127));
+      int32_t sum = 0;
+      for (uint32_t z = 0; z < 8; z++)
+        sum += (temp[x * 8 + z] * int32_t(m_scale_table[z * 8 + y])) / 8;
+      blk[x * 8 + y] = static_cast<int16_t>(std::clamp((static_cast<int32_t>(static_cast<uint32_t>((sum + 0x4000) >> 15) << 23) >> 23), -128, 127));
     }
   }
 }
 
-void MDEC::YUVToRGB_New(u32 xx, u32 yy, const std::array<s16, 64>& Crblk, const std::array<s16, 64>& Cbblk,
-                        const std::array<s16, 64>& Yblk)
+void MDEC::YUVToRGB_New(uint32_t xx, uint32_t yy, const std::array<int16_t, 64>& Crblk, const std::array<int16_t, 64>& Cbblk,
+                        const std::array<int16_t, 64>& Yblk)
 {
-  const s32 addval = m_status.data_output_signed ? 0 : 0x80;
-  for (u32 y = 0; y < 8; y++)
+  const int32_t addval = m_status.data_output_signed ? 0 : 0x80;
+  for (uint32_t y = 0; y < 8; y++)
   {
-    for (u32 x = 0; x < 8; x++)
+    for (uint32_t x = 0; x < 8; x++)
     {
-      const s32 Cr = Crblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
-      const s32 Cb = Cbblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
-      const s32 Y = Yblk[x + y * 8];
+      const int32_t Cr = Crblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
+      const int32_t Cb = Cbblk[((x + xx) / 2) + ((y + yy) / 2) * 8];
+      const int32_t Y = Yblk[x + y * 8];
 
       // BT.601 YUV->RGB coefficients, rounding from Mednafen.
-      const s32 r = std::clamp(SignExtendN<9, s32>(Y + (((359 * Cr) + 0x80) >> 8)), -128, 127) + addval;
-      const s32 g =
-        std::clamp(SignExtendN<9, s32>(Y + ((((-88 * Cb) & ~0x1F) + ((-183 * Cr) & ~0x07) + 0x80) >> 8)), -128, 127) +
+      const int32_t r = std::clamp((static_cast<int32_t>(static_cast<uint32_t>(Y + (((359 * Cr) + 0x80) >> 8)) << 23) >> 23), -128, 127) + addval;
+      const int32_t g =
+        std::clamp((static_cast<int32_t>(static_cast<uint32_t>(Y + ((((-88 * Cb) & ~0x1F) + ((-183 * Cr) & ~0x07) + 0x80) >> 8)) << 23) >> 23), -128, 127) +
         addval;
-      const s32 b = std::clamp(SignExtendN<9, s32>(Y + (((454 * Cb) + 0x80) >> 8)), -128, 127) + addval;
+      const int32_t b = std::clamp((static_cast<int32_t>(static_cast<uint32_t>(Y + (((454 * Cb) + 0x80) >> 8)) << 23) >> 23), -128, 127) + addval;
 
       m_block_rgb[(x + xx) + ((y + yy) * 16)] =
-        static_cast<u32>(r) | (static_cast<u32>(g) << 8) | (static_cast<u32>(b) << 16);
+        static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 8) | (static_cast<uint32_t>(b) << 16);
     }
   }
 }
 
-void MDEC::YUVToMono(const std::array<s16, 64>& Yblk)
+void MDEC::YUVToMono(const std::array<int16_t, 64>& Yblk)
 {
-  const s32 addval = m_status.data_output_signed ? 0 : 0x80;
-  for (u32 i = 0; i < 64; i++)
-    m_block_rgb[i] = static_cast<u32>(std::clamp(SignExtendN<9, s32>(Yblk[i]), -128, 127) + addval);
+  const int32_t addval = m_status.data_output_signed ? 0 : 0x80;
+  for (uint32_t i = 0; i < 64; i++)
+    m_block_rgb[i] = static_cast<uint32_t>(std::clamp((static_cast<int32_t>(static_cast<uint32_t>(Yblk[i]) << 23) >> 23), -128, 127) + addval);
 }
 
 void MDEC::HandleSetQuantTableCommand()
 {
   // TODO: Remove extra copies..
-  std::array<u16, 32> packed_data;
-  m_data_in_fifo.PopRange(packed_data.data(), static_cast<u32>(packed_data.size()));
+  std::array<uint16_t, 32> packed_data;
+  m_data_in_fifo.PopRange(packed_data.data(), static_cast<uint32_t>(packed_data.size()));
   m_remaining_halfwords -= 32;
   std::memcpy(m_iq_y.data(), packed_data.data(), m_iq_y.size());
 
   if (m_remaining_halfwords > 0)
   {
-    m_data_in_fifo.PopRange(packed_data.data(), static_cast<u32>(packed_data.size()));
+    m_data_in_fifo.PopRange(packed_data.data(), static_cast<uint32_t>(packed_data.size()));
     std::memcpy(m_iq_uv.data(), packed_data.data(), m_iq_uv.size());
   }
 }
@@ -814,8 +864,8 @@ void MDEC::HandleSetQuantTableCommand()
 void MDEC::HandleSetScaleCommand()
 {
   // TODO: Remove extra copies..
-  std::array<u16, 64> packed_data;
-  m_data_in_fifo.PopRange(packed_data.data(), static_cast<u32>(packed_data.size()));
+  std::array<uint16_t, 64> packed_data;
+  m_data_in_fifo.PopRange(packed_data.data(), static_cast<uint32_t>(packed_data.size()));
   m_remaining_halfwords -= 32;
-  std::memcpy(m_scale_table.data(), packed_data.data(), m_scale_table.size() * sizeof(s16));
+  std::memcpy(m_scale_table.data(), packed_data.data(), m_scale_table.size() * sizeof(int16_t));
 }

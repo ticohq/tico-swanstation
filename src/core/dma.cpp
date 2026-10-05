@@ -12,7 +12,8 @@
 #include "spu.h"
 #include "system.h"
 
-static u32 GetAddressMask()
+#include <cstring>
+static uint32_t GetAddressMask()
 {
   return Bus::g_ram_mask & 0xFFFFFFFCu;
 }
@@ -51,7 +52,7 @@ void DMA::Reset()
 
 void DMA::ClearState()
 {
-  for (u32 i = 0; i < NUM_CHANNELS; i++)
+  for (uint32_t i = 0; i < NUM_CHANNELS; i++)
   {
     ChannelState& cs = m_state[i];
     cs.base_address = 0;
@@ -70,7 +71,7 @@ bool DMA::DoState(StateWrapper& sw)
 {
   sw.Do(&m_halt_ticks_remaining);
 
-  for (u32 i = 0; i < NUM_CHANNELS; i++)
+  for (uint32_t i = 0; i < NUM_CHANNELS; i++)
   {
     ChannelState& cs = m_state[i];
     sw.Do(&cs.base_address);
@@ -93,9 +94,9 @@ bool DMA::DoState(StateWrapper& sw)
   return !sw.HasError();
 }
 
-u32 DMA::ReadRegister(u32 offset)
+uint32_t DMA::ReadRegister(uint32_t offset)
 {
-  const u32 channel_index = offset >> 4;
+  const uint32_t channel_index = offset >> 4;
   if (channel_index < 7)
   {
     switch (offset & UINT32_C(0x0F))
@@ -121,9 +122,9 @@ u32 DMA::ReadRegister(u32 offset)
   return UINT32_C(0xFFFFFFFF);
 }
 
-void DMA::WriteRegister(u32 offset, u32 value)
+void DMA::WriteRegister(uint32_t offset, uint32_t value)
 {
-  const u32 channel_index = offset >> 4;
+  const uint32_t channel_index = offset >> 4;
   if (channel_index < 7)
   {
     ChannelState& state = m_state[channel_index];
@@ -172,7 +173,7 @@ void DMA::WriteRegister(u32 offset, u32 value)
       {
         m_DPCR.bits = value;
 
-        for (u32 i = 0; i < NUM_CHANNELS; i++)
+        for (uint32_t i = 0; i < NUM_CHANNELS; i++)
         {
           if (CanTransferChannel(static_cast<Channel>(i), false))
           {
@@ -200,7 +201,7 @@ void DMA::WriteRegister(u32 offset, u32 value)
 
 void DMA::SetRequest(Channel channel, bool request)
 {
-  ChannelState& cs = m_state[static_cast<u32>(channel)];
+  ChannelState& cs = m_state[static_cast<uint32_t>(channel)];
   if (cs.request == request)
     return;
 
@@ -214,7 +215,7 @@ bool DMA::CanTransferChannel(Channel channel, bool ignore_halt) const
   if (!m_DPCR.GetMasterEnable(channel))
     return false;
 
-  const ChannelState& cs = m_state[static_cast<u32>(channel)];
+  const ChannelState& cs = m_state[static_cast<uint32_t>(channel)];
   if (!cs.channel_control.enable_busy)
     return false;
 
@@ -254,8 +255,8 @@ TickCount DMA::GetTransferHaltTicks() const
 
 bool DMA::TransferChannel(Channel channel)
 {
-  ChannelState& cs = m_state[static_cast<u32>(channel)];
-  const u32 mask = GetAddressMask();
+  ChannelState& cs = m_state[static_cast<uint32_t>(channel)];
+  const uint32_t mask = GetAddressMask();
 
   const bool copy_to_device = cs.channel_control.copy_to_device;
 
@@ -263,12 +264,12 @@ bool DMA::TransferChannel(Channel channel)
   cs.channel_control.start_trigger = false;
 
   PhysicalMemoryAddress current_address = cs.base_address;
-  const PhysicalMemoryAddress increment = cs.channel_control.address_step_reverse ? static_cast<u32>(-4) : UINT32_C(4);
+  const PhysicalMemoryAddress increment = cs.channel_control.address_step_reverse ? static_cast<uint32_t>(-4) : UINT32_C(4);
   switch (cs.channel_control.sync_mode)
   {
     case SyncMode::Manual:
     {
-      const u32 word_count = cs.block_control.manual.GetWordCount();
+      const uint32_t word_count = cs.block_control.manual.GetWordCount();
       TickCount used_ticks;
       if (copy_to_device)
         used_ticks = TransferMemoryToDevice(channel, current_address & mask, increment, word_count);
@@ -284,17 +285,17 @@ bool DMA::TransferChannel(Channel channel)
       if (!copy_to_device)
         return true;
 
-      u8* ram_pointer = Bus::g_ram;
+      uint8_t* ram_pointer = Bus::g_ram;
       TickCount remaining_ticks = GetTransferSliceTicks();
       while (cs.request && remaining_ticks > 0)
       {
-        u32 header;
+        uint32_t header;
         std::memcpy(&header, &ram_pointer[current_address & mask], sizeof(header));
         CPU::AddPendingTicks(10);
         remaining_ticks -= 10;
 
-        const u32 word_count = header >> 24;
-        const u32 next_address = header & UINT32_C(0x00FFFFFF);
+        const uint32_t word_count = header >> 24;
+        const uint32_t next_address = header & UINT32_C(0x00FFFFFF);
         if (word_count > 0)
         {
           CPU::AddPendingTicks(5);
@@ -328,8 +329,8 @@ bool DMA::TransferChannel(Channel channel)
 
     case SyncMode::Request:
     {
-      const u32 block_size = cs.block_control.request.GetBlockSize();
-      u32 blocks_remaining = cs.block_control.request.GetBlockCount();
+      const uint32_t block_size = cs.block_control.request.GetBlockSize();
+      uint32_t blocks_remaining = cs.block_control.request.GetBlockCount();
       TickCount ticks_remaining = GetTransferSliceTicks();
 
       if (copy_to_device)
@@ -408,7 +409,7 @@ void DMA::UnhaltTransfer(TickCount ticks)
 
   // TODO: Use channel priority. But doing it in ascending order is probably good enough.
   // Main thing is that OTC happens after GPU, because otherwise it'll wipe out the LL.
-  for (u32 i = 0; i < NUM_CHANNELS; i++)
+  for (uint32_t i = 0; i < NUM_CHANNELS; i++)
   {
     if (CanTransferChannel(static_cast<Channel>(i), false))
     {
@@ -421,22 +422,22 @@ void DMA::UnhaltTransfer(TickCount ticks)
   m_halt_ticks_remaining = 0;
 }
 
-TickCount DMA::TransferMemoryToDevice(Channel channel, u32 address, u32 increment, u32 word_count)
+TickCount DMA::TransferMemoryToDevice(Channel channel, uint32_t address, uint32_t increment, uint32_t word_count)
 {
-  const u32* src_pointer = reinterpret_cast<u32*>(Bus::g_ram + address);
-  const u32 mask = GetAddressMask();
+  const uint32_t* src_pointer = reinterpret_cast<uint32_t*>(Bus::g_ram + address);
+  const uint32_t mask = GetAddressMask();
   if (channel != Channel::GPU &&
-      (static_cast<s32>(increment) < 0 || ((address + (increment * word_count)) & mask) <= address))
+      (static_cast<int32_t>(increment) < 0 || ((address + (increment * word_count)) & mask) <= address))
   {
     // Use temp buffer if it's wrapping around
     if (m_transfer_buffer.size() < word_count)
       m_transfer_buffer.resize(word_count);
     src_pointer = m_transfer_buffer.data();
 
-    u8* ram_pointer = Bus::g_ram;
-    for (u32 i = 0; i < word_count; i++)
+    uint8_t* ram_pointer = Bus::g_ram;
+    for (uint32_t i = 0; i < word_count; i++)
     {
-      std::memcpy(&m_transfer_buffer[i], &ram_pointer[address], sizeof(u32));
+      std::memcpy(&m_transfer_buffer[i], &ram_pointer[address], sizeof(uint32_t));
       address = (address + increment) & mask;
     }
   }
@@ -447,11 +448,11 @@ TickCount DMA::TransferMemoryToDevice(Channel channel, u32 address, u32 incremen
     {
       if (g_gpu->BeginDMAWrite())
       {
-        u8* ram_pointer = Bus::g_ram;
-        for (u32 i = 0; i < word_count; i++)
+        uint8_t* ram_pointer = Bus::g_ram;
+        for (uint32_t i = 0; i < word_count; i++)
         {
-          u32 value;
-          std::memcpy(&value, &ram_pointer[address], sizeof(u32));
+          uint32_t value;
+          std::memcpy(&value, &ram_pointer[address], sizeof(uint32_t));
           g_gpu->DMAWrite(address, value);
           address = (address + increment) & mask;
         }
@@ -478,30 +479,30 @@ TickCount DMA::TransferMemoryToDevice(Channel channel, u32 address, u32 incremen
   return Bus::GetDMARAMTickCount(word_count);
 }
 
-TickCount DMA::TransferDeviceToMemory(Channel channel, u32 address, u32 increment, u32 word_count)
+TickCount DMA::TransferDeviceToMemory(Channel channel, uint32_t address, uint32_t increment, uint32_t word_count)
 {
-  const u32 mask = GetAddressMask();
+  const uint32_t mask = GetAddressMask();
 
   if (channel == Channel::OTC)
   {
     // clear ordering table
-    u8* ram_pointer = Bus::g_ram;
-    const u32 word_count_less_1 = word_count - 1;
-    for (u32 i = 0; i < word_count_less_1; i++)
+    uint8_t* ram_pointer = Bus::g_ram;
+    const uint32_t word_count_less_1 = word_count - 1;
+    for (uint32_t i = 0; i < word_count_less_1; i++)
     {
-      u32 value = ((address - 4) & mask);
+      uint32_t value = ((address - 4) & mask);
       std::memcpy(&ram_pointer[address], &value, sizeof(value));
       address = (address - 4) & mask;
     }
 
-    const u32 terminator = UINT32_C(0xFFFFFF);
+    const uint32_t terminator = UINT32_C(0xFFFFFF);
     std::memcpy(&ram_pointer[address], &terminator, sizeof(terminator));
     CPU::CodeCache::InvalidateCodePages(address, word_count);
     return Bus::GetDMARAMTickCount(word_count);
   }
 
-  u32* dest_pointer = reinterpret_cast<u32*>(&Bus::g_ram[address]);
-  if (static_cast<s32>(increment) < 0 || ((address + (increment * word_count)) & mask) <= address)
+  uint32_t* dest_pointer = reinterpret_cast<uint32_t*>(&Bus::g_ram[address]);
+  if (static_cast<int32_t>(increment) < 0 || ((address + (increment * word_count)) & mask) <= address)
   {
     // Use temp buffer if it's wrapping around
     if (m_transfer_buffer.size() < word_count)
@@ -535,10 +536,10 @@ TickCount DMA::TransferDeviceToMemory(Channel channel, u32 address, u32 incremen
 
   if (dest_pointer == m_transfer_buffer.data())
   {
-    u8* ram_pointer = Bus::g_ram;
-    for (u32 i = 0; i < word_count; i++)
+    uint8_t* ram_pointer = Bus::g_ram;
+    for (uint32_t i = 0; i < word_count; i++)
     {
-      std::memcpy(&ram_pointer[address], &m_transfer_buffer[i], sizeof(u32));
+      std::memcpy(&ram_pointer[address], &m_transfer_buffer[i], sizeof(uint32_t));
       address = (address + increment) & mask;
     }
   }

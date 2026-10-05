@@ -14,9 +14,7 @@ public:
 
   std::string GenerateScreenQuadVertexShader();
   std::string GenerateUVQuadVertexShader();
-  std::string GenerateFillFragmentShader();
   std::string GenerateCopyFragmentShader();
-  std::string GenerateSampleFragmentShader();
 
 protected:
   ALWAYS_INLINE bool IsVulkan() const { return (m_render_api == HostDisplay::RenderAPI::Vulkan); }
@@ -30,16 +28,16 @@ protected:
   void WriteUniformBufferDeclaration(std::stringstream& ss, bool push_constant_on_vulkan);
   void DeclareUniformBuffer(std::stringstream& ss, const std::initializer_list<const char*>& members,
                             bool push_constant_on_vulkan);
-  void DeclareTexture(std::stringstream& ss, const char* name, u32 index, bool multisampled = false);
-  void DeclareTextureBuffer(std::stringstream& ss, const char* name, u32 index, bool is_int, bool is_unsigned);
+  void DeclareTexture(std::stringstream& ss, const char* name, uint32_t index, bool multisampled = false);
+  void DeclareTextureBuffer(std::stringstream& ss, const char* name, uint32_t index, bool is_int, bool is_unsigned);
   void DeclareVertexEntryPoint(std::stringstream& ss, const std::initializer_list<const char*>& attributes,
-                               u32 num_color_outputs, u32 num_texcoord_outputs,
+                               uint32_t num_color_outputs, uint32_t num_texcoord_outputs,
                                const std::initializer_list<std::pair<const char*, const char*>>& additional_outputs,
                                bool declare_vertex_id = false, const char* output_block_suffix = "", bool msaa = false,
                                bool ssaa = false, bool noperspective_color = false);
-  void DeclareFragmentEntryPoint(std::stringstream& ss, u32 num_color_inputs, u32 num_texcoord_inputs,
+  void DeclareFragmentEntryPoint(std::stringstream& ss, uint32_t num_color_inputs, uint32_t num_texcoord_inputs,
                                  const std::initializer_list<std::pair<const char*, const char*>>& additional_inputs,
-                                 bool declare_fragcoord = false, u32 num_color_outputs = 1, bool depth_output = false,
+                                 bool declare_fragcoord = false, uint32_t num_color_outputs = 1, bool depth_output = false,
                                  bool msaa = false, bool ssaa = false, bool declare_sample_id = false,
                                  bool noperspective_color = false);
 

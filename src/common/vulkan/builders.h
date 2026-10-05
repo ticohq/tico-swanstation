@@ -8,7 +8,7 @@ namespace Vulkan {
 class DescriptorSetLayoutBuilder
 {
 public:
-  static constexpr u32 MAX_BINDINGS = 16;
+  static constexpr uint32_t MAX_BINDINGS = 16;
 
   DescriptorSetLayoutBuilder();
 
@@ -16,7 +16,7 @@ public:
 
   VkDescriptorSetLayout Create(VkDevice device);
 
-  void AddBinding(u32 binding, VkDescriptorType dtype, u32 dcount, VkShaderStageFlags stages);
+  void AddBinding(uint32_t binding, VkDescriptorType dtype, uint32_t dcount, VkShaderStageFlags stages);
 
 private:
   VkDescriptorSetLayoutCreateInfo m_ci{};
@@ -26,7 +26,7 @@ private:
 class PipelineLayoutBuilder
 {
 public:
-  static constexpr u32 MAX_SETS = 8, MAX_PUSH_CONSTANTS = 1;
+  static constexpr uint32_t MAX_SETS = 8, MAX_PUSH_CONSTANTS = 1;
 
   PipelineLayoutBuilder();
 
@@ -36,7 +36,7 @@ public:
 
   void AddDescriptorSet(VkDescriptorSetLayout layout);
 
-  void AddPushConstants(VkShaderStageFlags stages, u32 offset, u32 size);
+  void AddPushConstants(VkShaderStageFlags stages, uint32_t offset, uint32_t size);
 
 private:
   VkPipelineLayoutCreateInfo m_ci{};
@@ -47,7 +47,7 @@ private:
 class GraphicsPipelineBuilder
 {
 public:
-  static constexpr u32 MAX_SHADER_STAGES = 3, MAX_VERTEX_ATTRIBUTES = 16, MAX_VERTEX_BUFFERS = 8, MAX_ATTACHMENTS = 2,
+  static constexpr uint32_t MAX_SHADER_STAGES = 3, MAX_VERTEX_ATTRIBUTES = 16, MAX_VERTEX_BUFFERS = 8, MAX_ATTACHMENTS = 2,
                        MAX_DYNAMIC_STATE = 8;
 
   GraphicsPipelineBuilder();
@@ -56,29 +56,30 @@ public:
 
   VkPipeline Create(VkDevice device, VkPipelineCache pipeline_cache = VK_NULL_HANDLE, bool clear = true);
 
-  void SetShaderStage(VkShaderStageFlagBits stage, VkShaderModule module, const char* entry_point);
-  void SetVertexShader(VkShaderModule module) { SetShaderStage(VK_SHADER_STAGE_VERTEX_BIT, module, "main"); }
-  void SetGeometryShader(VkShaderModule module) { SetShaderStage(VK_SHADER_STAGE_GEOMETRY_BIT, module, "main"); }
-  void SetFragmentShader(VkShaderModule module) { SetShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, module, "main"); }
+  void SetShaderStage(VkShaderStageFlagBits stage, VkShaderModule module, const char* entry_point,
+                      const VkSpecializationInfo* spec_info = nullptr);
+  void SetVertexShader(VkShaderModule module, const VkSpecializationInfo* spec_info = nullptr)
+  {
+    SetShaderStage(VK_SHADER_STAGE_VERTEX_BIT, module, "main", spec_info);
+  }
+  void SetFragmentShader(VkShaderModule module, const VkSpecializationInfo* spec_info = nullptr)
+  {
+    SetShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, module, "main", spec_info);
+  }
 
-  void AddVertexBuffer(u32 binding, u32 stride, VkVertexInputRate input_rate = VK_VERTEX_INPUT_RATE_VERTEX);
-  void AddVertexAttribute(u32 location, u32 binding, VkFormat format, u32 offset);
+  void AddVertexBuffer(uint32_t binding, uint32_t stride, VkVertexInputRate input_rate = VK_VERTEX_INPUT_RATE_VERTEX);
+  void AddVertexAttribute(uint32_t location, uint32_t binding, VkFormat format, uint32_t offset);
 
   void SetPrimitiveTopology(VkPrimitiveTopology topology, bool enable_primitive_restart = false);
 
   void SetRasterizationState(VkPolygonMode polygon_mode, VkCullModeFlags cull_mode, VkFrontFace front_face);
-  void SetLineWidth(float width);
-  void SetMultisamples(u32 multisamples, bool per_sample_shading);
+  void SetMultisamples(uint32_t multisamples, bool per_sample_shading);
   void SetNoCullRasterizationState();
 
   void SetDepthState(bool depth_test, bool depth_write, VkCompareOp compare_op);
   void SetNoDepthTestState();
 
-  void AddBlendAttachment(bool blend_enable, VkBlendFactor src_factor, VkBlendFactor dst_factor, VkBlendOp op,
-                          VkBlendFactor alpha_src_factor, VkBlendFactor alpha_dst_factor, VkBlendOp alpha_op,
-                          VkColorComponentFlags write_mask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                                             VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
-  void SetBlendAttachment(u32 attachment, bool blend_enable, VkBlendFactor src_factor, VkBlendFactor dst_factor,
+  void SetBlendAttachment(uint32_t attachment, bool blend_enable, VkBlendFactor src_factor, VkBlendFactor dst_factor,
                           VkBlendOp op, VkBlendFactor alpha_src_factor, VkBlendFactor alpha_dst_factor,
                           VkBlendOp alpha_op,
                           VkColorComponentFlags write_mask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -92,12 +93,12 @@ public:
 
   void SetDynamicViewportAndScissorState();
   void SetViewport(float x, float y, float width, float height, float min_depth, float max_depth);
-  void SetScissorRect(s32 x, s32 y, u32 width, u32 height);
+  void SetScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height);
 
   void SetMultisamples(VkSampleCountFlagBits samples);
 
   void SetPipelineLayout(VkPipelineLayout layout);
-  void SetRenderPass(VkRenderPass render_pass, u32 subpass);
+  void SetRenderPass(VkRenderPass render_pass, uint32_t subpass);
 
 private:
   VkGraphicsPipelineCreateInfo m_ci;
@@ -146,7 +147,7 @@ private:
 
 class DescriptorSetUpdateBuilder
 {
-  static constexpr u32 MAX_WRITES = 16, MAX_INFOS = 16;
+  static constexpr uint32_t MAX_WRITES = 16, MAX_INFOS = 16;
 
 public:
   DescriptorSetUpdateBuilder();
@@ -155,14 +156,11 @@ public:
 
   void Update(VkDevice device, bool clear = true);
 
-  void AddImageDescriptorWrite(VkDescriptorSet set, u32 binding, VkImageView view,
-                               VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-  void AddSamplerDescriptorWrite(VkDescriptorSet set, u32 binding, VkSampler sampler);
-  void AddCombinedImageSamplerDescriptorWrite(VkDescriptorSet set, u32 binding, VkImageView view, VkSampler sampler,
+  void AddCombinedImageSamplerDescriptorWrite(VkDescriptorSet set, uint32_t binding, VkImageView view, VkSampler sampler,
                                               VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-  void AddBufferDescriptorWrite(VkDescriptorSet set, u32 binding, VkDescriptorType dtype, VkBuffer buffer, u32 offset,
-                                u32 size);
-  void AddBufferViewDescriptorWrite(VkDescriptorSet set, u32 binding, VkDescriptorType dtype, VkBufferView view);
+  void AddBufferDescriptorWrite(VkDescriptorSet set, uint32_t binding, VkDescriptorType dtype, VkBuffer buffer, uint32_t offset,
+                                uint32_t size);
+  void AddBufferViewDescriptorWrite(VkDescriptorSet set, uint32_t binding, VkDescriptorType dtype, VkBufferView view);
 
 private:
   union InfoUnion
@@ -173,15 +171,15 @@ private:
   };
 
   std::array<VkWriteDescriptorSet, MAX_WRITES> m_writes;
-  u32 m_num_writes = 0;
+  uint32_t m_num_writes = 0;
 
   std::array<InfoUnion, MAX_INFOS> m_infos;
-  u32 m_num_infos = 0;
+  uint32_t m_num_infos = 0;
 };
 
 class FramebufferBuilder
 {
-  static constexpr u32 MAX_ATTACHMENTS = 2;
+  static constexpr uint32_t MAX_ATTACHMENTS = 2;
 
 public:
   FramebufferBuilder();
@@ -192,7 +190,7 @@ public:
 
   void AddAttachment(VkImageView image);
 
-  void SetSize(u32 width, u32 height, u32 layers);
+  void SetSize(uint32_t width, uint32_t height, uint32_t layers);
 
   void SetRenderPass(VkRenderPass render_pass);
 
@@ -210,10 +208,61 @@ public:
 
   VkBufferView Create(VkDevice device, bool clear = true);
 
-  void Set(VkBuffer buffer, VkFormat format, u32 offset, u32 size);
+  void Set(VkBuffer buffer, VkFormat format, uint32_t offset, uint32_t size);
 
 private:
   VkBufferViewCreateInfo m_ci;
+};
+
+// Builder for VkSpecializationInfo passed to a pipeline shader stage.
+//
+// Specialization constants let a single SPIR-V blob serve multiple runtime
+// configurations by baking integer / bool / float values at pipeline-
+// creation time. This is what lets us pre-bake shaders whose source used
+// to vary by emulator settings (RESOLUTION_SCALE, PGXP_DEPTH, FIRST_PASS,
+// etc.) without exploding the on-disk blob count.
+//
+// Lifetime: GetInfo() returns a pointer into this object's storage, so the
+// SpecConstants instance must outlive the vkCreateGraphicsPipelines call
+// that consumes the VkSpecializationInfo. The typical pattern is a local
+// SpecConstants variable on the same stack frame as the GraphicsPipelineBuilder.
+//
+// Each entry occupies exactly 4 bytes of payload; supports up to MAX_ENTRIES
+// constants per stage. uint, int, float, and bool fit; double / vector
+// constants do not and would need a wider payload type.
+//
+// Constant-id allocation convention (used across the Vulkan backend):
+//   0-99   reserved for common knobs shared across shaders (RESOLUTION_SCALE,
+//          MULTISAMPLES, PER_SAMPLE_SHADING, PGXP_DEPTH).
+//   100+   shader-specific (e.g. FIRST_PASS for the adaptive-downsample
+//          mip FS).
+class SpecConstants
+{
+public:
+  static constexpr uint32_t MAX_ENTRIES = 16;
+  static constexpr uint32_t SLOT_SIZE = 4u;
+
+  SpecConstants() = default;
+
+  void Clear();
+
+  void AddBool(uint32_t constant_id, bool value);
+  void AddUInt(uint32_t constant_id, uint32_t value);
+  void AddInt(uint32_t constant_id, int32_t value);
+  void AddFloat(uint32_t constant_id, float value);
+
+  // Returns nullptr if no entries have been added. Otherwise returns a
+  // pointer to an internal VkSpecializationInfo whose lifetime is tied to
+  // this object.
+  const VkSpecializationInfo* GetInfo();
+
+private:
+  void Add(uint32_t constant_id, uint32_t bits);
+
+  std::array<VkSpecializationMapEntry, MAX_ENTRIES> m_entries{};
+  std::array<uint32_t, MAX_ENTRIES> m_data{};
+  uint32_t m_count = 0;
+  VkSpecializationInfo m_info{};
 };
 
 } // namespace Vulkan

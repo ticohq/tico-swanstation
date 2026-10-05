@@ -9,10 +9,10 @@ namespace TimingEvents {
 static TimingEvent* s_active_events_head;
 static TimingEvent* s_active_events_tail;
 static TimingEvent* s_current_event = nullptr;
-static u32 s_active_event_count = 0;
-static u32 s_global_tick_counter = 0;
+static uint32_t s_active_event_count = 0;
+static uint32_t s_global_tick_counter = 0;
 
-u32 GetGlobalTickCounter()
+uint32_t GetGlobalTickCounter()
 {
   return s_global_tick_counter;
 }
@@ -247,7 +247,7 @@ void RunEvents()
   while (pending_ticks > 0)
   {
     const TickCount time = std::min(pending_ticks, s_active_events_head->GetDowncount());
-    s_global_tick_counter += static_cast<u32>(time);
+    s_global_tick_counter += static_cast<uint32_t>(time);
     pending_ticks -= time;
 
     // Apply downcount to all events.
@@ -290,10 +290,10 @@ bool DoState(StateWrapper& sw)
   {
     // Load timestamps for the clock events.
     // Any oneshot events should be recreated by the load state method, so we can fix up their times here.
-    u32 event_count = 0;
+    uint32_t event_count = 0;
     sw.Do(&event_count);
 
-    for (u32 i = 0; i < event_count; i++)
+    for (uint32_t i = 0; i < event_count; i++)
     {
       std::string event_name;
       TickCount downcount, time_since_last_run, period, interval;
@@ -318,7 +318,7 @@ bool DoState(StateWrapper& sw)
 
     if (sw.GetVersion() < 43)
     {
-      u32 last_event_run_time = 0;
+      uint32_t last_event_run_time = 0;
       sw.Do(&last_event_run_time);
     }
 

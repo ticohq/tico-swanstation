@@ -3,16 +3,17 @@
 #include "log.h"
 #include "string_util.h"
 #include <array>
+#include <cstring>
 Log_SetChannel(CDImage);
 
 CDImage::CDImage(OpenFlags open_flags) : m_open_flags(open_flags) {}
 
 CDImage::~CDImage() = default;
 
-u32 CDImage::GetBytesPerSector(TrackMode mode)
+uint32_t CDImage::GetBytesPerSector(TrackMode mode)
 {
-  static constexpr std::array<u32, 8> sizes = {{2352, 2048, 2352, 2336, 2048, 2324, 2332, 2352}};
-  return sizes[static_cast<u32>(mode)];
+  static constexpr std::array<uint32_t, 8> sizes = {{2352, 2048, 2352, 2336, 2048, 2324, 2332, 2352}};
+  return sizes[static_cast<uint32_t>(mode)];
 }
 
 std::unique_ptr<CDImage> CDImage::Open(const char* filename, OpenFlags open_flags, Common::Error* error)
@@ -71,49 +72,27 @@ std::unique_ptr<CDImage> CDImage::Open(const char* filename, OpenFlags open_flag
   return nullptr;
 }
 
-CDImage::Position CDImage::GetTrackStartMSFPosition(u8 track) const
+CDImage::Position CDImage::GetTrackStartMSFPosition(uint8_t track) const
 {
   return Position::FromLBA(m_tracks[track - 1].start_lba);
 }
 
-CDImage::LBA CDImage::GetTrackLength(u8 track) const
+CDImage::LBA CDImage::GetTrackLength(uint8_t track) const
 {
   return m_tracks[track - 1].length;
 }
 
-CDImage::TrackMode CDImage::GetTrackMode(u8 track) const
+CDImage::TrackMode CDImage::GetTrackMode(uint8_t track) const
 {
   return m_tracks[track - 1].mode;
 }
 
-CDImage::LBA CDImage::GetTrackIndexPosition(u8 track, u8 index) const
-{
-  for (const Index& current_index : m_indices)
-  {
-    if (current_index.track_number == track && current_index.index_number == index)
-      return current_index.start_lba_on_disc;
-  }
-
-  return m_lba_count;
-}
-
-CDImage::LBA CDImage::GetTrackIndexLength(u8 track, u8 index) const
-{
-  for (const Index& current_index : m_indices)
-  {
-    if (current_index.track_number == track && current_index.index_number == index)
-      return current_index.length;
-  }
-
-  return 0;
-}
-
-const CDImage::CDImage::Track& CDImage::GetTrack(u32 track) const
+const CDImage::CDImage::Track& CDImage::GetTrack(uint32_t track) const
 {
   return m_tracks[track - 1];
 }
 
-const CDImage::CDImage::Index& CDImage::GetIndex(u32 i) const
+const CDImage::CDImage::Index& CDImage::GetIndex(uint32_t i) const
 {
   return m_indices[i];
 }
@@ -140,11 +119,10 @@ bool CDImage::Seek(LBA lba)
   m_current_index = new_index;
   m_position_on_disc = lba;
   m_position_in_index = new_index_offset;
-  m_position_in_track = new_index->start_lba_in_track + new_index_offset;
   return true;
 }
 
-bool CDImage::Seek(u32 track_number, const Position& pos_in_track)
+bool CDImage::Seek(uint32_t track_number, const Position& pos_in_track)
 {
   if (track_number < 1 || track_number > m_tracks.size())
     return false;
@@ -157,12 +135,7 @@ bool CDImage::Seek(u32 track_number, const Position& pos_in_track)
   return Seek(track.start_lba + pos_lba);
 }
 
-bool CDImage::Seek(const Position& pos)
-{
-  return Seek(pos.ToLBA());
-}
-
-bool CDImage::Seek(u32 track_number, LBA lba)
+bool CDImage::Seek(uint32_t track_number, LBA lba)
 {
   if (track_number < 1 || track_number > m_tracks.size())
     return false;
@@ -171,14 +144,14 @@ bool CDImage::Seek(u32 track_number, LBA lba)
   return Seek(track.start_lba + lba);
 }
 
-u32 CDImage::Read(ReadMode read_mode, u32 sector_count, void* buffer)
+uint32_t CDImage::Read(ReadMode read_mode, uint32_t sector_count, void* buffer)
 {
-  u8* buffer_ptr = static_cast<u8*>(buffer);
-  u32 sectors_read = 0;
+  uint8_t* buffer_ptr = static_cast<uint8_t*>(buffer);
+  uint32_t sectors_read = 0;
   for (; sectors_read < sector_count; sectors_read++)
   {
     // get raw sector
-    u8 raw_sector[RAW_SECTOR_SIZE];
+    uint8_t raw_sector[RAW_SECTOR_SIZE];
     if (!ReadRawSector(raw_sector, nullptr))
       break;
 
@@ -232,12 +205,12 @@ bool CDImage::ReadRawSector(void* buffer, SubChannelQ* subq)
       if (m_current_index->track_number == LEAD_OUT_TRACK_NUMBER)
       {
         // Lead-out area.
-        std::fill(static_cast<u8*>(buffer), static_cast<u8*>(buffer) + RAW_SECTOR_SIZE, u8(0xAA));
+        std::fill(static_cast<uint8_t*>(buffer), static_cast<uint8_t*>(buffer) + RAW_SECTOR_SIZE, uint8_t(0xAA));
       }
       else
       {
         // This in an implicit pregap. Return silence.
-        std::fill(static_cast<u8*>(buffer), static_cast<u8*>(buffer) + RAW_SECTOR_SIZE, u8(0));
+        std::fill(static_cast<uint8_t*>(buffer), static_cast<uint8_t*>(buffer) + RAW_SECTOR_SIZE, uint8_t(0));
       }
     }
   }
@@ -251,7 +224,6 @@ bool CDImage::ReadRawSector(void* buffer, SubChannelQ* subq)
 
   m_position_on_disc++;
   m_position_in_index++;
-  m_position_in_track++;
   return true;
 }
 
@@ -283,22 +255,22 @@ bool CDImage::HasSubImages() const
   return false;
 }
 
-u32 CDImage::GetSubImageCount() const
+uint32_t CDImage::GetSubImageCount() const
 {
   return 0;
 }
 
-u32 CDImage::GetCurrentSubImage() const
+uint32_t CDImage::GetCurrentSubImage() const
 {
   return 0;
 }
 
-bool CDImage::SwitchSubImage(u32 index, Common::Error* error)
+bool CDImage::SwitchSubImage(uint32_t index, Common::Error* error)
 {
   return false;
 }
 
-std::string CDImage::GetSubImageMetadata(u32 index, const std::string_view& type) const
+std::string CDImage::GetSubImageMetadata(uint32_t index, const std::string_view& type) const
 {
   return {};
 }
@@ -310,34 +282,16 @@ void CDImage::ClearTOC()
   m_tracks.clear();
   m_current_index = nullptr;
   m_position_in_index = 0;
-  m_position_in_track = 0;
   m_position_on_disc = 0;
 }
 
 void CDImage::CopyTOC(const CDImage* image)
 {
   m_lba_count = image->m_lba_count;
-  decltype(m_indices)().swap(m_indices);
-  decltype(m_tracks)().swap(m_tracks);
-  m_indices.reserve(image->m_indices.size());
-  m_tracks.reserve(image->m_tracks.size());
-
-  // Damn bitfield copy constructor...
-  for (const Index& index : image->m_indices)
-  {
-    Index new_index;
-    std::memcpy(&new_index, &index, sizeof(new_index));
-    m_indices.push_back(new_index);
-  }
-  for (const Track& track : image->m_tracks)
-  {
-    Track new_track;
-    std::memcpy(&new_track, &track, sizeof(new_track));
-    m_tracks.push_back(new_track);
-  }
+  m_indices = image->m_indices;
+  m_tracks = image->m_tracks;
   m_current_index = nullptr;
   m_position_in_index = 0;
-  m_position_in_track = 0;
   m_position_on_disc = 0;
 }
 
@@ -358,7 +312,7 @@ const CDImage::Index* CDImage::GetIndexForDiscPosition(LBA pos)
   return nullptr;
 }
 
-const CDImage::Index* CDImage::GetIndexForTrackPosition(u32 track_number, LBA track_pos)
+const CDImage::Index* CDImage::GetIndexForTrackPosition(uint32_t track_number, LBA track_pos)
 {
   if (track_number < 1 || track_number > m_tracks.size())
     return nullptr;
@@ -376,17 +330,17 @@ bool CDImage::GenerateSubChannelQ(SubChannelQ* subq, LBA lba)
   if (!index)
     return false;
 
-  const u32 index_offset = index->start_lba_on_disc - lba;
+  const uint32_t index_offset = index->start_lba_on_disc - lba;
   GenerateSubChannelQ(subq, *index, index_offset);
   return true;
 }
 
-void CDImage::GenerateSubChannelQ(SubChannelQ* subq, const Index& index, u32 index_offset)
+void CDImage::GenerateSubChannelQ(SubChannelQ* subq, const Index& index, uint32_t index_offset)
 {
   subq->control_bits = index.control.bits;
-  subq->track_number_bcd = (index.track_number <= m_tracks.size() ? BinaryToBCD(static_cast<u8>(index.track_number)) :
-                                                                    static_cast<u8>(index.track_number));
-  subq->index_number_bcd = BinaryToBCD(static_cast<u8>(index.index_number));
+  subq->track_number_bcd = (index.track_number <= m_tracks.size() ? BinaryToBCD(static_cast<uint8_t>(index.track_number)) :
+                                                                    static_cast<uint8_t>(index.track_number));
+  subq->index_number_bcd = BinaryToBCD(static_cast<uint8_t>(index.index_number));
 
   Position relative_position;
   if (index.is_pregap)
@@ -422,9 +376,9 @@ void CDImage::AddLeadOutIndex()
   m_indices.push_back(index);
 }
 
-u16 CDImage::SubChannelQ::ComputeCRC(const Data& data)
+uint16_t CDImage::SubChannelQ::ComputeCRC(const Data& data)
 {
-  static constexpr std::array<u16, 256> crc16_table = {
+  static constexpr std::array<uint16_t, 256> crc16_table = {
     {0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD,
      0xE1CE, 0xF1EF, 0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6, 0x9339, 0x8318, 0xB37B, 0xA35A,
      0xD3BD, 0xC39C, 0xF3FF, 0xE3DE, 0x2462, 0x3443, 0x0420, 0x1401, 0x64E6, 0x74C7, 0x44A4, 0x5485, 0xA56A, 0xB54B,
@@ -445,8 +399,8 @@ u16 CDImage::SubChannelQ::ComputeCRC(const Data& data)
      0x1CE0, 0x0CC1, 0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8, 0x6E17, 0x7E36, 0x4E55, 0x5E74,
      0x2E93, 0x3EB2, 0x0ED1, 0x1EF0}};
 
-  u16 value = 0;
-  for (u32 i = 0; i < 10; i++)
+  uint16_t value = 0;
+  for (uint32_t i = 0; i < 10; i++)
     value = crc16_table[(value >> 8) ^ data[i]] ^ (value << 8);
 
   return ~(value >> 8) | (~(value) << 8);

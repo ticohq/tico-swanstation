@@ -8,7 +8,7 @@
 class NeGconRumble final : public Controller
 {
 public:
-  enum class Axis : u8
+  enum class Axis : uint8_t
   {
     Steering = 0,
     I = 1,
@@ -17,7 +17,7 @@ public:
     Count
   };
 
-  enum class Button : u8
+  enum class Button : uint8_t
   {
     Start = 0,
     Up = 1,
@@ -31,39 +31,37 @@ public:
     Count
   };
 
-  static constexpr u8 NUM_MOTORS = 2;
+  static constexpr uint8_t NUM_MOTORS = 2;
 
-  NeGconRumble(u32 index);
+  NeGconRumble(uint32_t index);
   ~NeGconRumble() override;
 
-  static std::unique_ptr<NeGconRumble> Create(u32 index);
-  static u32 StaticGetVibrationMotorCount();
+  static std::unique_ptr<NeGconRumble> Create(uint32_t index);
 
   ControllerType GetType() const override;
 
   void Reset() override;
   bool DoState(StateWrapper& sw, bool ignore_input_state) override;
 
-  void SetAxisState(s32 axis_code, float value) override;
-  void SetButtonState(s32 button_code, bool pressed) override;
-  u32 GetButtonStateBits() const override;
-  std::optional<u32> GetAnalogInputBytes() const override;
+  void SetAxisState(int32_t axis_code, float value) override;
+  void SetButtonState(int32_t button_code, bool pressed) override;
+  uint32_t GetButtonStateBits() const override;
+  std::optional<uint32_t> GetAnalogInputBytes() const override;
 
   void ResetTransferState() override;
-  bool Transfer(const u8 data_in, u8* data_out) override;
+  bool Transfer(const uint8_t data_in, uint8_t* data_out) override;
 
-  void SetAxisState(Axis axis, u8 value);
+  void SetAxisState(Axis axis, uint8_t value);
   void SetButtonState(Button button, bool pressed);
 
-  u32 GetVibrationMotorCount() const override;
-  float GetVibrationMotorStrength(u32 motor) override;
+  float GetVibrationMotorStrength(uint32_t motor) override;
 
   void LoadSettings(const char* section) override;
 
 private:
-  using MotorState = std::array<u8, NUM_MOTORS>;
+  using MotorState = std::array<uint8_t, NUM_MOTORS>;
 
-  enum class Command : u8
+  enum class Command : uint8_t
   {
     Idle,
     Ready,
@@ -81,46 +79,46 @@ private:
   int m_command_step = 0;
 
   // Transmit and receive buffers, not including the first Hi-Z/ack response byte
-  static constexpr u32 MAX_RESPONSE_LENGTH = 8;
-  std::array<u8, MAX_RESPONSE_LENGTH> m_rx_buffer;
-  std::array<u8, MAX_RESPONSE_LENGTH> m_tx_buffer;
-  u32 m_response_length = 0;
+  static constexpr uint32_t MAX_RESPONSE_LENGTH = 8;
+  std::array<uint8_t, MAX_RESPONSE_LENGTH> m_rx_buffer;
+  std::array<uint8_t, MAX_RESPONSE_LENGTH> m_tx_buffer;
+  uint32_t m_response_length = 0;
 
   // Get number of response halfwords (excluding the initial controller info halfword)
-  u8 GetResponseNumHalfwords() const;
+  uint8_t GetResponseNumHalfwords() const;
 
-  u8 GetModeID() const;
-  u8 GetIDByte() const;
+  uint8_t GetModeID() const;
+  uint8_t GetIDByte() const;
 
   void SetAnalogMode(bool enabled);
   void ProcessAnalogModeToggle();
-  void SetMotorState(u8 motor, u8 value);
-  u8 GetExtraButtonMaskLSB() const;
+  void SetMotorState(uint8_t motor, uint8_t value);
+  uint8_t GetExtraButtonMaskLSB() const;
   void ResetRumbleConfig();
-  void SetMotorStateForConfigIndex(int index, u8 value);
+  void SetMotorStateForConfigIndex(int index, uint8_t value);
 
-  u32 m_index;
+  uint32_t m_index;
 
-  u8 m_rumble_bias = 8;
+  uint8_t m_rumble_bias = 8;
 
   bool m_analog_mode = false;
   bool m_analog_locked = false;
   bool m_dualshock_enabled = false;
   bool m_configuration_mode = false;
 
-  std::array<u8, static_cast<u8>(Axis::Count)> m_axis_state{};
+  std::array<uint8_t, static_cast<uint8_t>(Axis::Count)> m_axis_state{};
 
-  static constexpr u8 LargeMotor = 0, SmallMotor = 1;
+  static constexpr uint8_t LargeMotor = 0, SmallMotor = 1;
 
-  std::array<u8, 6> m_rumble_config{};
+  std::array<uint8_t, 6> m_rumble_config{};
   int m_rumble_config_large_motor_index = -1;
   int m_rumble_config_small_motor_index = -1;
 
   bool m_analog_toggle_queued = false;
-  u8 m_status_byte = 0x5A;
+  uint8_t m_status_byte = 0x5A;
 
   // buttons are active low
-  u16 m_button_state = UINT16_C(0xFFFF);
+  uint16_t m_button_state = UINT16_C(0xFFFF);
 
   MotorState m_motor_state{};
 

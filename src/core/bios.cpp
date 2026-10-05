@@ -1,16 +1,17 @@
 #include "bios.h"
 #include "common/file_system.h"
 #include "common/md5_digest.h"
+#include <algorithm>
 #include <array>
 #include <cerrno>
-
+#include <cstring>
 namespace BIOS {
 static constexpr Hash MakeHashFromString(const char str[])
 {
   Hash h{};
   for (int i = 0; str[i] != '\0'; i++)
   {
-    u8 nibble = 0;
+    uint8_t nibble = 0;
     char ch = str[i];
     if (ch >= '0' && ch <= '9')
       nibble = str[i] - '0';
@@ -24,7 +25,7 @@ static constexpr Hash MakeHashFromString(const char str[])
   return h;
 }
 
-static ImageInfo s_image_infos[27] = {
+static const ImageInfo s_image_infos[27] = {
   {"SCPH-1000, DTL-H1000 (v1.0)", ConsoleRegion::NTSC_J, MakeHashFromString("239665b1a3dade1b5a52c06338011044"), true},
    {"SCPH-1001, 5003, DTL-H1201, H3001 (v2.2 12-04-95 A)", ConsoleRegion::NTSC_U,
     MakeHashFromString("924e392ed05558ffdb115408c263dccf"), true},
@@ -69,11 +70,11 @@ static ImageInfo s_image_infos[27] = {
    {"PS3 (v5.0 06-23-03 A)", ConsoleRegion::Auto, MakeHashFromString("c02a6fbb1b27359f84e92fae8bc21316"), false},
    {"PS3 (v5.0 06-23-03 A)", ConsoleRegion::Auto, MakeHashFromString("81bbe60ba7a3d1cea1d48c14cbcc647b"), false}};
 
-Hash GetHash(const Image& image)
+Hash GetHash(const uint8_t *image, size_t image_size)
 {
   Hash hash;
   MD5Digest digest;
-  digest.Update(image.data(), static_cast<u32>(image.size()));
+  digest.Update(image, image_size);
   digest.Final(hash.bytes);
   return hash;
 }
@@ -86,7 +87,7 @@ std::optional<Image> LoadImageFromFile(const char* filename)
     return std::nullopt;
 
   rfseek(fp, 0, SEEK_END);
-  const u32 size = static_cast<u32>(rftell(fp));
+  const uint32_t size = static_cast<uint32_t>(rftell(fp));
   rfseek(fp, 0, SEEK_SET);
 
   if (size != BIOS_SIZE && size != BIOS_SIZE_PS2 && size != BIOS_SIZE_PS3)
@@ -115,37 +116,30 @@ const ImageInfo* GetImageInfoForHash(const Hash& hash)
   return nullptr;
 }
 
-bool IsValidHashForRegion(ConsoleRegion region, const Hash& hash)
+const ImageInfo* GetImageInfo(const Image& image)
 {
-  const ImageInfo* ii = GetImageInfoForHash(hash);
-  if (!ii)
-    return false;
+  // Hashes do not make sense for ever-evolving software such as OpenBIOS,
+  // so instead it is detected by searching for a magic number.
+  static const ImageInfo openbios_info = {"OpenBIOS", ConsoleRegion::Auto, {}, false};
+  static const std::array<uint8_t, 8> openbios_magic = {'O', 'p', 'e', 'n', 'B', 'I', 'O', 'S'};
 
-  return (ii->region == ConsoleRegion::Auto || ii->region == region);
+  if (std::equal(openbios_magic.begin(), openbios_magic.end(), image.begin() + 0x78))
+    return &openbios_info;
+
+  return GetImageInfoForHash(GetHash(image.data(), image.size()));
 }
 
-void PatchBIOS(u8* image, u32 image_size, u32 address, u32 value, u32 mask /*= UINT32_C(0xFFFFFFFF)*/)
+void PatchBIOS(uint8_t* image, uint32_t image_size, uint32_t address, uint32_t value, uint32_t mask /*= UINT32_C(0xFFFFFFFF)*/)
 {
-  const u32 phys_address = address & UINT32_C(0x1FFFFFFF);
-  const u32 offset = phys_address - BIOS_BASE;
-  u32 existing_value;
+  const uint32_t phys_address = address & UINT32_C(0x1FFFFFFF);
+  const uint32_t offset = phys_address - BIOS_BASE;
+  uint32_t existing_value;
   std::memcpy(&existing_value, &image[offset], sizeof(existing_value));
-  u32 new_value = (existing_value & ~mask) | value;
+  uint32_t new_value = (existing_value & ~mask) | value;
   std::memcpy(&image[offset], &new_value, sizeof(new_value));
 }
 
-bool PatchBIOSEnableTTY(u8* image, u32 image_size, const Hash& hash)
-{
-  const ImageInfo* ii = GetImageInfoForHash(hash);
-  if (!ii || !ii->patch_compatible)
-    return false;
-
-  PatchBIOS(image, image_size, 0x1FC06F0C, 0x24010001);
-  PatchBIOS(image, image_size, 0x1FC06F14, 0xAF81A9C0);
-  return true;
-}
-
-bool PatchBIOSFastBoot(u8* image, u32 image_size, const Hash& hash)
+bool PatchBIOSFastBoot(uint8_t* image, uint32_t image_size, const Hash& hash)
 {
   const ImageInfo* ii = GetImageInfoForHash(hash);
   if (!ii || !ii->patch_compatible)
@@ -160,7 +154,7 @@ bool PatchBIOSFastBoot(u8* image, u32 image_size, const Hash& hash)
   return true;
 }
 
-bool PatchBIOSForEXE(u8* image, u32 image_size, u32 r_pc, u32 r_gp, u32 r_sp, u32 r_fp)
+bool PatchBIOSForEXE(uint8_t* image, uint32_t image_size, uint32_t r_pc, uint32_t r_gp, uint32_t r_sp, uint32_t r_fp)
 {
 #define PATCH(offset, value) PatchBIOS(image, image_size, (offset), (value))
 
@@ -198,7 +192,7 @@ bool PatchBIOSForEXE(u8* image, u32 image_size, u32 r_pc, u32 r_gp, u32 r_sp, u3
   return true;
 }
 
-bool IsValidPSExeHeader(const PSEXEHeader& header, u32 file_size)
+bool IsValidPSExeHeader(const PSEXEHeader& header, uint32_t file_size)
 {
   static constexpr char expected_id[] = {'P', 'S', '-', 'X', ' ', 'E', 'X', 'E'};
   if (std::memcmp(header.id, expected_id, sizeof(expected_id)) != 0)

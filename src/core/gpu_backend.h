@@ -19,7 +19,7 @@ public:
   GPUBackend();
   virtual ~GPUBackend();
 
-  ALWAYS_INLINE u16* GetVRAM() const { return m_vram_ptr; }
+  ALWAYS_INLINE uint16_t* GetVRAM() const { return m_vram_ptr; }
 
   virtual bool Initialize(bool force_thread);
   virtual void UpdateSettings();
@@ -27,30 +27,21 @@ public:
   virtual void Shutdown();
 
   GPUBackendFillVRAMCommand* NewFillVRAMCommand();
-  GPUBackendUpdateVRAMCommand* NewUpdateVRAMCommand(u32 num_words);
+  GPUBackendUpdateVRAMCommand* NewUpdateVRAMCommand(uint32_t num_words);
   GPUBackendCopyVRAMCommand* NewCopyVRAMCommand();
   GPUBackendSetDrawingAreaCommand* NewSetDrawingAreaCommand();
-  GPUBackendDrawPolygonCommand* NewDrawPolygonCommand(u32 num_vertices);
+  GPUBackendDrawPolygonCommand* NewDrawPolygonCommand(uint32_t num_vertices);
   GPUBackendDrawRectangleCommand* NewDrawRectangleCommand();
-  GPUBackendDrawLineCommand* NewDrawLineCommand(u32 num_vertices);
+  GPUBackendDrawLineCommand* NewDrawLineCommand(uint32_t num_vertices);
 
   void PushCommand(GPUBackendCommand* cmd);
   void Sync(bool allow_sleep);
 
-  /// Processes all pending GPU commands.
-  void RunGPULoop();
-
 protected:
-  void* AllocateCommand(GPUBackendCommandType command, u32 size);
-  u32 GetPendingCommandSize() const;
-  void WakeGPUThread();
-  void StartGPUThread();
-  void StopGPUThread();
-
-  virtual void FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color, GPUBackendCommandParameters params) = 0;
-  virtual void UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data,
+  virtual void FillVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color, GPUBackendCommandParameters params) = 0;
+  virtual void UpdateVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data,
                           GPUBackendCommandParameters params) = 0;
-  virtual void CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height,
+  virtual void CopyVRAM(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height,
                         GPUBackendCommandParameters params) = 0;
   virtual void DrawPolygon(const GPUBackendDrawPolygonCommand* cmd) = 0;
   virtual void DrawRectangle(const GPUBackendDrawRectangleCommand* cmd) = 0;
@@ -59,9 +50,9 @@ protected:
 
   void HandleCommand(const GPUBackendCommand* cmd);
 
-  u16* m_vram_ptr = nullptr;
+  uint16_t* m_vram_ptr = nullptr;
 
-  Common::Rectangle<u32> m_drawing_area{};
+  Common::Rectangle<uint32_t> m_drawing_area{};
 
   Common::Event m_sync_event;
   std::atomic_bool m_gpu_thread_sleeping{false};
@@ -72,11 +63,22 @@ protected:
   std::mutex m_sync_mutex;
   std::condition_variable m_wake_gpu_thread_cv;
 
-  static constexpr u32 COMMAND_QUEUE_SIZE = 4 * 1024 * 1024, THRESHOLD_TO_WAKE_GPU = 256;
+  static constexpr uint32_t COMMAND_QUEUE_SIZE = 4 * 1024 * 1024, THRESHOLD_TO_WAKE_GPU = 256;
 
-  HeapArray<u8, COMMAND_QUEUE_SIZE> m_command_fifo_data;
-  alignas(64) std::atomic<u32> m_command_fifo_read_ptr{0};
-  alignas(64) std::atomic<u32> m_command_fifo_write_ptr{0};
+  HeapArray<uint8_t, COMMAND_QUEUE_SIZE> m_command_fifo_data;
+  alignas(64) std::atomic<uint32_t> m_command_fifo_read_ptr{0};
+  alignas(64) std::atomic<uint32_t> m_command_fifo_write_ptr{0};
+
+private:
+  /// Thread entry point for the GPU worker. Drains the command FIFO until
+  /// m_gpu_loop_done is set.
+  void RunGPULoop();
+
+  void* AllocateCommand(GPUBackendCommandType command, uint32_t size);
+  uint32_t GetPendingCommandSize() const;
+  void WakeGPUThread();
+  void StartGPUThread();
+  void StopGPUThread();
 };
 
 #ifdef _MSC_VER

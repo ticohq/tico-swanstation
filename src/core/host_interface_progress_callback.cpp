@@ -29,9 +29,9 @@ void HostInterfaceProgressCallback::SetStatusText(const char* text)
   Redraw(true);
 }
 
-void HostInterfaceProgressCallback::SetProgressRange(u32 range)
+void HostInterfaceProgressCallback::SetProgressRange(uint32_t range)
 {
-  u32 last_range = m_progress_range;
+  uint32_t last_range = m_progress_range;
 
   BaseProgressCallback::SetProgressRange(range);
 
@@ -39,9 +39,9 @@ void HostInterfaceProgressCallback::SetProgressRange(u32 range)
     Redraw(false);
 }
 
-void HostInterfaceProgressCallback::SetProgressValue(u32 value)
+void HostInterfaceProgressCallback::SetProgressValue(uint32_t value)
 {
-  u32 lastValue = m_progress_value;
+  uint32_t lastValue = m_progress_value;
 
   BaseProgressCallback::SetProgressValue(value);
 

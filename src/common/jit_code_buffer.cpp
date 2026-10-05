@@ -3,6 +3,7 @@
 #include "platform.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 
 #if defined(_WIN32)
 #include "windows_headers.h"
@@ -18,31 +19,25 @@
 #include <pthread.h>
 #endif
 
+#if defined(__APPLE__)
+#include <libkern/OSCacheControl.h>
+#endif
+
 JitCodeBuffer::JitCodeBuffer() = default;
-
-JitCodeBuffer::JitCodeBuffer(u32 size, u32 far_code_size)
-{
-  Allocate(size, far_code_size);
-}
-
-JitCodeBuffer::JitCodeBuffer(void* buffer, u32 size, u32 far_code_size, u32 guard_pages)
-{
-  Initialize(buffer, size, far_code_size);
-}
 
 JitCodeBuffer::~JitCodeBuffer()
 {
   Destroy();
 }
 
-bool JitCodeBuffer::Allocate(u32 size /* = 64 * 1024 * 1024 */, u32 far_code_size /* = 0 */)
+bool JitCodeBuffer::Allocate(uint32_t size /* = 64 * 1024 * 1024 */, uint32_t far_code_size /* = 0 */)
 {
   Destroy();
 
   m_total_size = size + far_code_size;
 
 #if defined(_WIN32)
-  m_code_ptr = static_cast<u8*>(VirtualAlloc(nullptr, m_total_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+  m_code_ptr = static_cast<uint8_t*>(VirtualAlloc(nullptr, m_total_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
   if (!m_code_ptr)
     return false;
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
@@ -55,8 +50,8 @@ bool JitCodeBuffer::Allocate(u32 size /* = 64 * 1024 * 1024 */, u32 far_code_siz
     return false;
   }
 
-  m_code_ptr = static_cast<u8*>(jitGetRwAddr(&m_jit));
-  m_rx_ptr = static_cast<u8*>(jitGetRxAddr(&m_jit));
+  m_code_ptr = static_cast<uint8_t*>(jitGetRwAddr(&m_jit));
+  m_rx_ptr = static_cast<uint8_t*>(jitGetRxAddr(&m_jit));
 
   if (!m_code_ptr || !m_rx_ptr)
   {
@@ -79,7 +74,7 @@ bool JitCodeBuffer::Allocate(u32 size /* = 64 * 1024 * 1024 */, u32 far_code_siz
   flags |= MAP_JIT;
 #endif
 
-  m_code_ptr = static_cast<u8*>(mmap(nullptr, m_total_size, PROT_READ | PROT_WRITE | PROT_EXEC, flags, -1, 0));
+  m_code_ptr = static_cast<uint8_t*>(mmap(nullptr, m_total_size, PROT_READ | PROT_WRITE | PROT_EXEC, flags, -1, 0));
   if (!m_code_ptr)
     return false;
 #else
@@ -90,7 +85,7 @@ bool JitCodeBuffer::Allocate(u32 size /* = 64 * 1024 * 1024 */, u32 far_code_siz
   m_code_size = size;
   m_code_used = 0;
 
-  m_far_code_ptr = static_cast<u8*>(m_code_ptr) + size;
+  m_far_code_ptr = static_cast<uint8_t*>(m_code_ptr) + size;
   m_free_far_code_ptr = m_far_code_ptr;
   m_far_code_size = far_code_size;
   m_far_code_used = 0;
@@ -100,7 +95,7 @@ bool JitCodeBuffer::Allocate(u32 size /* = 64 * 1024 * 1024 */, u32 far_code_siz
   return true;
 }
 
-bool JitCodeBuffer::Initialize(void* buffer, u32 size, u32 far_code_size /* = 0 */, u32 guard_size /* = 0 */)
+bool JitCodeBuffer::Initialize(void* buffer, uint32_t size, uint32_t far_code_size /* = 0 */, uint32_t guard_size /* = 0 */)
 {
   Destroy();
 
@@ -115,27 +110,27 @@ bool JitCodeBuffer::Initialize(void* buffer, u32 size, u32 far_code_size /* = 0 
   if (guard_size > 0)
   {
     DWORD old_guard_protect = 0;
-    u8* guard_at_end = (static_cast<u8*>(buffer) + size) - guard_size;
+    uint8_t* guard_at_end = (static_cast<uint8_t*>(buffer) + size) - guard_size;
     if (!VirtualProtect(buffer, guard_size, PAGE_NOACCESS, &old_guard_protect) ||
         !VirtualProtect(guard_at_end, guard_size, PAGE_NOACCESS, &old_guard_protect))
       return false;
   }
 
-  m_code_ptr = static_cast<u8*>(buffer);
-  m_old_protection = static_cast<u32>(old_protect);
+  m_code_ptr = static_cast<uint8_t*>(buffer);
+  m_old_protection = static_cast<uint32_t>(old_protect);
 #elif defined(__linux__) || defined(__ANDROID__) || defined(__APPLE__) || defined(__HAIKU__) || defined(__FreeBSD__)
   if (mprotect(buffer, size, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
     return false;
 
   if (guard_size > 0)
   {
-    u8* guard_at_end = (static_cast<u8*>(buffer) + size) - guard_size;
+    uint8_t* guard_at_end = (static_cast<uint8_t*>(buffer) + size) - guard_size;
     if (mprotect(buffer, guard_size, PROT_NONE) != 0 || mprotect(guard_at_end, guard_size, PROT_NONE) != 0)
       return false;
   }
 
   // reasonable default?
-  m_code_ptr = static_cast<u8*>(buffer);
+  m_code_ptr = static_cast<uint8_t*>(buffer);
   m_old_protection = PROT_READ | PROT_WRITE;
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
   m_code_ptr = nullptr;
@@ -151,7 +146,7 @@ bool JitCodeBuffer::Initialize(void* buffer, u32 size, u32 far_code_size /* = 0 
   m_code_size = size - far_code_size - (guard_size * 2);
   m_code_used = 0;
 
-  m_far_code_ptr = static_cast<u8*>(m_code_ptr) + m_code_size;
+  m_far_code_ptr = static_cast<uint8_t*>(m_code_ptr) + m_code_size;
   m_free_far_code_ptr = m_far_code_ptr;
   m_far_code_size = far_code_size - guard_size;
   m_far_code_used = 0;
@@ -200,14 +195,14 @@ void JitCodeBuffer::Destroy()
   m_owns_buffer = false;
 }
 
-void JitCodeBuffer::ReserveCode(u32 size)
+void JitCodeBuffer::ReserveCode(uint32_t size)
 {
   m_code_reserve_size += size;
   m_free_code_ptr += size;
   m_code_size -= size;
 }
 
-void JitCodeBuffer::CommitCode(u32 length)
+void JitCodeBuffer::CommitCode(uint32_t length)
 {
   if (length == 0)
     return;
@@ -226,7 +221,7 @@ void JitCodeBuffer::CommitCode(u32 length)
   m_code_used += length;
 }
 
-void JitCodeBuffer::CommitFarCode(u32 length)
+void JitCodeBuffer::CommitFarCode(uint32_t length)
 {
   if (length == 0)
     return;
@@ -278,10 +273,10 @@ void JitCodeBuffer::Reset()
   WriteProtect(true);
 }
 
-void JitCodeBuffer::Align(u32 alignment, u8 padding_value)
+void JitCodeBuffer::Align(uint32_t alignment, uint8_t padding_value)
 {
-  const u32 num_padding_bytes =
-    std::min(static_cast<u32>(Common::AlignUpPow2(reinterpret_cast<uintptr_t>(m_free_code_ptr), alignment) -
+  const uint32_t num_padding_bytes =
+    std::min(static_cast<uint32_t>(Common::AlignUpPow2(reinterpret_cast<uintptr_t>(m_free_code_ptr), alignment) -
                               reinterpret_cast<uintptr_t>(m_free_code_ptr)),
              GetFreeCodeSpace());
   std::memset(m_free_code_ptr, padding_value, num_padding_bytes);
@@ -289,10 +284,16 @@ void JitCodeBuffer::Align(u32 alignment, u8 padding_value)
   m_code_used += num_padding_bytes;
 }
 
-void JitCodeBuffer::FlushInstructionCache(void* address, u32 size)
+void JitCodeBuffer::FlushInstructionCache(void* address, uint32_t size)
 {
 #if defined(_WIN32)
   ::FlushInstructionCache(GetCurrentProcess(), address, size);
+#elif defined(__APPLE__)
+  // Apple's own call for this, and the one clang lowers __builtin___clear_cache
+  // to on macOS anyway. Not on iOS or tvOS, where the builtin becomes a call to
+  // ___clear_cache instead - a compiler-rt symbol those SDKs do not ship, so
+  // the link ends in "Undefined symbols for architecture arm64".
+  sys_icache_invalidate(address, size);
 #elif defined(__GNUC__) || defined(__clang__)
   __builtin___clear_cache(reinterpret_cast<char*>(address), reinterpret_cast<char*>(address) + size);
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
@@ -305,7 +306,7 @@ void JitCodeBuffer::FlushInstructionCache(void* address, u32 size)
 #endif
 }
 
-#if defined(__APPLE__) && defined(__aarch64__)
+#if defined(__APPLE__) && defined(__aarch64__) && TARGET_OS_OSX
 
 void JitCodeBuffer::WriteProtect(bool enabled)
 {

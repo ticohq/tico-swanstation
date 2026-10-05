@@ -33,54 +33,54 @@ bool SIO::DoState(StateWrapper& sw)
   return !sw.HasError();
 }
 
-u32 SIO::ReadRegister(u32 offset)
+uint32_t SIO::ReadRegister(uint32_t offset)
 {
   switch (offset)
   {
     case 0x00: // SIO_DATA
     {
-      const u8 value = 0xFF;
-      return (ZeroExtend32(value) | (ZeroExtend32(value) << 8) | (ZeroExtend32(value) << 16) |
-              (ZeroExtend32(value) << 24));
+      const uint8_t value = 0xFF;
+      return (static_cast<uint32_t>(value) | (static_cast<uint32_t>(value) << 8) | (static_cast<uint32_t>(value) << 16) |
+              (static_cast<uint32_t>(value) << 24));
     }
 
     case 0x04: // SIO_STAT
     {
-      const u32 bits = m_SIO_STAT.bits;
+      const uint32_t bits = m_SIO_STAT.bits;
       return bits;
     }
 
     case 0x08: // SIO_MODE
-      return ZeroExtend32(m_SIO_MODE.bits);
+      return static_cast<uint32_t>(m_SIO_MODE.bits);
 
     case 0x0A: // SIO_CTRL
-      return ZeroExtend32(m_SIO_CTRL.bits);
+      return static_cast<uint32_t>(m_SIO_CTRL.bits);
 
     case 0x0E: // SIO_BAUD
-      return ZeroExtend32(m_SIO_BAUD);
+      return static_cast<uint32_t>(m_SIO_BAUD);
 
     default:
       return UINT32_C(0xFFFFFFFF);
   }
 }
 
-void SIO::WriteRegister(u32 offset, u32 value)
+void SIO::WriteRegister(uint32_t offset, uint32_t value)
 {
   switch (offset)
   {
     case 0x0A: // SIO_CTRL
-      m_SIO_CTRL.bits = Truncate16(value);
+      m_SIO_CTRL.bits = static_cast<uint16_t>(value);
       if (m_SIO_CTRL.RESET)
         SoftReset();
 
       break;
 
     case 0x08: // SIO_MODE
-      m_SIO_MODE.bits = Truncate16(value);
+      m_SIO_MODE.bits = static_cast<uint16_t>(value);
       break;
 
     case 0x0E:
-      m_SIO_BAUD = Truncate16(value);
+      m_SIO_BAUD = static_cast<uint16_t>(value);
       break;
 
     case 0x00: // SIO_DATA

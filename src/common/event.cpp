@@ -1,5 +1,7 @@
 #include "event.h"
 
+#include <cassert>
+
 #if defined(_WIN32)
 #include "windows_headers.h"
 #include <malloc.h>
@@ -83,43 +85,62 @@ void Event::Reset()
 
 Event::Event(bool auto_reset /* = false */) : m_auto_reset(auto_reset)
 {
-  pthread_mutex_init(&m_mutex, nullptr);
-  pthread_cond_init(&m_cv, nullptr);
+  int res = pthread_mutex_init(&m_mutex, nullptr);
+  assert(res == 0);
+  res = pthread_cond_init(&m_cv, nullptr);
+  assert(res == 0);
+  (void)res;
 }
 
 Event::~Event()
 {
-  pthread_cond_destroy(&m_cv);
-  pthread_mutex_destroy(&m_mutex);
+  int res = pthread_cond_destroy(&m_cv);
+  assert(res == 0);
+  res = pthread_mutex_destroy(&m_mutex);
+  assert(res == 0);
+  (void)res;
 }
 
 void Event::Signal()
 {
-  pthread_mutex_lock(&m_mutex);
+  int res = pthread_mutex_lock(&m_mutex);
+  assert(res == 0);
   m_signaled.store(true);
-  pthread_cond_broadcast(&m_cv);
-  pthread_mutex_unlock(&m_mutex);
+  res = pthread_cond_broadcast(&m_cv);
+  assert(res == 0);
+  res = pthread_mutex_unlock(&m_mutex);
+  assert(res == 0);
+  (void)res;
 }
 
 void Event::Wait()
 {
   m_waiters.fetch_add(1);
 
-  pthread_mutex_lock(&m_mutex);
+  int res = pthread_mutex_lock(&m_mutex);
+  assert(res == 0);
   while (!m_signaled.load())
-    pthread_cond_wait(&m_cv, &m_mutex);
+  {
+    res = pthread_cond_wait(&m_cv, &m_mutex);
+    assert(res == 0);
+  }
 
   if (m_waiters.fetch_sub(1) == 1 && m_auto_reset)
     m_signaled.store(false);
 
-  pthread_mutex_unlock(&m_mutex);
+  res = pthread_mutex_unlock(&m_mutex);
+  assert(res == 0);
+  (void)res;
 }
 
 void Event::Reset()
 {
-  pthread_mutex_lock(&m_mutex);
+  int res = pthread_mutex_lock(&m_mutex);
+  assert(res == 0);
   m_signaled.store(false);
-  pthread_mutex_unlock(&m_mutex);
+  res = pthread_mutex_unlock(&m_mutex);
+  assert(res == 0);
+  (void)res;
 }
 
 #elif defined(__SWITCH__)

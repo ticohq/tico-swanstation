@@ -2,7 +2,7 @@
 
 namespace Resources {
 
-const std::array<u32, CROSSHAIR_IMAGE_WIDTH* CROSSHAIR_IMAGE_HEIGHT> CROSSHAIR_IMAGE_DATA = {
+const std::array<uint32_t, CROSSHAIR_IMAGE_WIDTH* CROSSHAIR_IMAGE_HEIGHT> CROSSHAIR_IMAGE_DATA = {
   {0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff,
    0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff,
    0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff,

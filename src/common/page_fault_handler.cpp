@@ -30,7 +30,7 @@ struct RegisteredHandler
   Callback callback;
   const void* owner;
   void* start_pc;
-  u32 code_size;
+  uint32_t code_size;
 };
 static std::vector<RegisteredHandler> m_handlers;
 static std::mutex m_handler_lock;
@@ -39,7 +39,7 @@ static thread_local bool s_in_handler;
 #if defined(CPU_AARCH32)
 static bool IsStoreInstruction(const void* ptr)
 {
-  u32 bits;
+  uint32_t bits;
   std::memcpy(&bits, ptr, sizeof(bits));
 
   // TODO
@@ -49,7 +49,7 @@ static bool IsStoreInstruction(const void* ptr)
 #elif defined(CPU_AARCH64)
 static bool IsStoreInstruction(const void* ptr)
 {
-  u32 bits;
+  uint32_t bits;
   std::memcpy(&bits, ptr, sizeof(bits));
 
   // Based on vixl's disassembler Instruction::IsStore().
@@ -119,7 +119,7 @@ static LONG ExceptionHandler(PEXCEPTION_POINTERS exi)
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
-u32 GetHandlerCodeSize()
+uint32_t GetHandlerCodeSize()
 {
   return 0;
 }
@@ -214,7 +214,7 @@ static void SIGSEGVHandler(int sig, siginfo_t* info, void* ctx)
     sa.sa_handler(sig);
 }
 
-u32 GetHandlerCodeSize()
+uint32_t GetHandlerCodeSize()
 {
   return 0;
 }
@@ -259,21 +259,21 @@ extern "C" void swanstation_nx_exception_handler(ThreadExceptionDump* ctx)
   // which is the expected behavior when an unhandled fault occurs
 }
 
-u32 GetHandlerCodeSize()
+uint32_t GetHandlerCodeSize()
 {
   return 0;
 }
 
 #else
 
-u32 GetHandlerCodeSize()
+uint32_t GetHandlerCodeSize()
 {
   return 0;
 }
 
 #endif
 
-bool InstallHandler(const void* owner, void* start_pc, u32 code_size, Callback callback)
+bool InstallHandler(const void* owner, void* start_pc, uint32_t code_size, Callback callback)
 {
   bool was_empty;
   {

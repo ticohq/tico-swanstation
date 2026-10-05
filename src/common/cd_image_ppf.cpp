@@ -2,13 +2,15 @@
 #include "cd_subchannel_replacement.h"
 #include "file_system.h"
 #include "log.h"
+#include <formats/data_transfer.h>
 #include <algorithm>
 #include <cerrno>
+#include <cstring>
 #include <map>
 #include <unordered_map>
 Log_SetChannel(CDImagePPF);
 
-static constexpr u32 DESC_SIZE = 50, BLOCKCHECK_SIZE = 1024;
+static constexpr uint32_t DESC_SIZE = 50, BLOCKCHECK_SIZE = 1024;
 
 class CDImagePPF : public CDImage
 {
@@ -22,23 +24,23 @@ public:
   bool HasNonStandardSubchannel() const override;
 
   std::string GetMetadata(const std::string_view& type) const override;
-  std::string GetSubImageMetadata(u32 index, const std::string_view& type) const override;
+  std::string GetSubImageMetadata(uint32_t index, const std::string_view& type) const override;
 
 protected:
   bool ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index) override;
 
 private:
-  bool ReadV1Patch(RFILE* fp);
-  bool ReadV2Patch(RFILE* fp);
-  bool ReadV3Patch(RFILE* fp);
-  u32 ReadFileIDDiz(RFILE* fp, u32 version);
+  bool ReadV1Patch(const uint8_t* data, uint32_t len);
+  bool ReadV2Patch(const uint8_t* data, uint32_t len);
+  bool ReadV3Patch(const uint8_t* data, uint32_t len);
+  uint32_t ReadFileIDDiz(const uint8_t* data, uint32_t len, uint32_t version);
 
-  bool AddPatch(u64 offset, const u8* patch, u32 patch_size);
+  bool AddPatch(uint64_t offset, const uint8_t* patch, uint32_t patch_size);
 
   std::unique_ptr<CDImage> m_parent_image;
-  std::vector<u8> m_replacement_data;
-  std::unordered_map<u32, u32> m_replacement_map;
-  u32 m_replacement_offset = 0;
+  std::vector<uint8_t> m_replacement_data;
+  std::unordered_map<uint32_t, uint32_t> m_replacement_map;
+  uint32_t m_replacement_offset = 0;
 };
 
 CDImagePPF::CDImagePPF(OpenFlags open_flags) : CDImage(open_flags) {}
@@ -47,20 +49,43 @@ CDImagePPF::~CDImagePPF() = default;
 
 bool CDImagePPF::Open(const char* filename, std::unique_ptr<CDImage> parent_image)
 {
-  RFILE *fp = FileSystem::OpenRFile(filename, "rb");
-  if (!fp)
+  // A PPF is thousands of 5-9 byte entry headers followed by short
+  // payloads; parsed through the stream API that was three unbuffered
+  // VFS reads per entry.  Pull the whole patch through a
+  // data_transfer prefix instead - one open, a few large reads - and
+  // parse from the base pointer with explicit bounds.  The transfer
+  // reports a short file as failure with an honest byte count rather
+  // than as completion, and on reserve-capable platforms the
+  // uncommitted tail past avail() is hardware-protected, so a parser
+  // overrun faults instead of consuming garbage.
+  data_transfer_t* dt = data_transfer_open_prefix(filename, 0);
+  if (!dt)
   {
     Log_ErrorPrintf("Failed to open '%s'", filename);
     return false;
   }
 
-  u32 magic;
-  if (rfread(&magic, sizeof(magic), 1, fp) != 1)
+  data_transfer_iterate(dt, 0);
+  if (!data_transfer_complete(dt))
   {
-    Log_ErrorPrintf("Failed to read magic from '%s'", filename);
-    rfclose(fp);
+    Log_ErrorPrintf("Failed to read '%s'", filename);
+    data_transfer_free(dt);
     return false;
   }
+
+  size_t data_len_sz = 0;
+  const uint8_t* data = data_transfer_ptr(dt, &data_len_sz);
+  if (!data || data_len_sz < sizeof(uint32_t) || data_len_sz > UINT32_MAX)
+  {
+    Log_ErrorPrintf("Invalid ppf file '%s'", filename);
+    data_transfer_free(dt);
+    return false;
+  }
+
+  const uint32_t data_len = static_cast<uint32_t>(data_len_sz);
+
+  uint32_t magic;
+  std::memcpy(&magic, data, sizeof(magic));
 
   // work out the offset from the start of the parent image which we need to patch
   // i.e. the two second implicit pregap on data sectors
@@ -73,165 +98,129 @@ bool CDImagePPF::Open(const char* filename, std::unique_ptr<CDImage> parent_imag
   m_indices = parent_image->GetIndices();
   m_parent_image = std::move(parent_image);
 
+  bool result = false;
   if (magic == 0x33465050) // PPF3
-  {
-    if (ReadV3Patch(fp))
-    {
-	    rfclose(fp);
-	    return true;
-    }
-  }
+    result = ReadV3Patch(data, data_len);
   else if (magic == 0x32465050) // PPF2
-  {
-   if (ReadV2Patch(fp))
-   {
-	    rfclose(fp);
-	    return true;
-   }
-  }
+    result = ReadV2Patch(data, data_len);
   else if (magic == 0x31465050) // PPF1
-  {
-    if (ReadV1Patch(fp))
-    {
-	    rfclose(fp);
-	    return true;
-    }
-  }
+    result = ReadV1Patch(data, data_len);
+  else
+    Log_ErrorPrintf("Unknown PPF magic %08X", magic);
 
-  Log_ErrorPrintf("Unknown PPF magic %08X", magic);
-  rfclose(fp);
-  return false;
+  data_transfer_free(dt);
+  return result;
 }
 
-u32 CDImagePPF::ReadFileIDDiz(RFILE* fp, u32 version)
+uint32_t CDImagePPF::ReadFileIDDiz(const uint8_t* data, uint32_t len, uint32_t version)
 {
-  const int lenidx = (version == 2) ? 4 : 2;
+  const uint32_t lenidx = (version == 2) ? 4 : 2;
 
-  u32 magic;
-  if (rfseek(fp, -(lenidx + 4), SEEK_END) != 0 || rfread(&magic, sizeof(magic), 1, fp) != 1)
+  uint32_t magic = 0;
+  if (len < (lenidx + 4))
   {
     Log_WarningPrintf("Failed to read diz magic");
     return 0;
   }
+  std::memcpy(&magic, &data[len - (lenidx + 4)], sizeof(magic));
 
   if (magic != 0x5A49442E) // .DIZ
     return 0;
 
-  u32 dlen = 0;
-  if (rfseek(fp, -lenidx, SEEK_END) != 0 || rfread(&dlen, lenidx, 1, fp) != 1)
-  {
-    Log_WarningPrintf("Failed to read diz length");
-    return 0;
-  }
+  uint32_t dlen = 0;
+  std::memcpy(&dlen, &data[len - lenidx], lenidx);
 
-  if (dlen > static_cast<u32>(rftell(fp)))
+  if (dlen > len)
   {
     Log_WarningPrintf("diz length out of range");
     return 0;
   }
 
-  std::string fdiz;
-  fdiz.resize(dlen);
-  if (rfseek(fp, -(lenidx + 16 + static_cast<int>(dlen)), SEEK_END) != 0 ||
-      rfread(fdiz.data(), 1, dlen, fp) != dlen)
+  const uint32_t diz_tail = lenidx + 16 + dlen;
+  if (diz_tail > len)
   {
     Log_WarningPrintf("Failed to read fdiz");
     return 0;
   }
 
+  std::string fdiz(reinterpret_cast<const char*>(&data[len - diz_tail]), dlen);
   Log_InfoPrintf("File_Id.diz: %s", fdiz.c_str());
   return dlen;
 }
 
-bool CDImagePPF::ReadV1Patch(RFILE* fp)
+bool CDImagePPF::ReadV1Patch(const uint8_t* data, uint32_t len)
 {
-  u32 filelen;
   char desc[DESC_SIZE + 1] = {};
-  if (rfseek(fp, 6, SEEK_SET) != 0 || rfread(desc, sizeof(char), DESC_SIZE, fp) != DESC_SIZE)
-  {
-    Log_ErrorPrintf("Failed to read description");
-    return false;
-  }
-
-  if (rfseek(fp, 0, SEEK_END) != 0 || (filelen = static_cast<u32>(rftell(fp))) == 0 || filelen < 56)
+  if (len < 56)
   {
     Log_ErrorPrintf("Invalid ppf file");
     return false;
   }
+  std::memcpy(desc, &data[6], DESC_SIZE);
 
-  u32 count = filelen - 56;
-  if (count <= 0)
+  uint32_t count = len - 56;
+  if (count == 0)
     return false;
 
-  if (rfseek(fp, 56, SEEK_SET) != 0)
-    return false;
-
-  std::vector<u8> temp;
+  uint32_t pos = 56;
   while (count > 0)
   {
-    u32 offset;
-    u8 chunk_size;
-    if (   rfread(&offset, sizeof(offset), 1, fp) != 1 
-	|| rfread(&chunk_size, sizeof(chunk_size), 1, fp) != 1)
+    uint32_t offset;
+    uint8_t chunk_size;
+    if (count < (sizeof(offset) + sizeof(chunk_size)))
     {
       Log_ErrorPrintf("Incomplete ppf");
       return false;
     }
 
-    temp.resize(chunk_size);
-    if (rfread(temp.data(), 1, chunk_size, fp) != chunk_size)
+    std::memcpy(&offset, &data[pos], sizeof(offset));
+    chunk_size = data[pos + sizeof(offset)];
+    pos += sizeof(offset) + sizeof(chunk_size);
+    count -= sizeof(offset) + sizeof(chunk_size);
+
+    if (count < chunk_size)
     {
       Log_ErrorPrintf("Failed to read patch data");
       return false;
     }
 
-    if (!AddPatch(offset, temp.data(), chunk_size))
+    if (!AddPatch(offset, &data[pos], chunk_size))
       return false;
 
-    count -= sizeof(offset) + sizeof(chunk_size) + chunk_size;
+    pos += chunk_size;
+    count -= chunk_size;
   }
 
   Log_InfoPrintf("Loaded %zu replacement sectors from version 1 PPF", m_replacement_map.size());
   return true;
 }
 
-bool CDImagePPF::ReadV2Patch(RFILE* fp)
+bool CDImagePPF::ReadV2Patch(const uint8_t* data, uint32_t len)
 {
-  u32 origlen;
+  uint32_t origlen;
   char desc[DESC_SIZE + 1] = {};
-  if (rfseek(fp, 6, SEEK_SET) != 0 || rfread(desc, sizeof(char), DESC_SIZE, fp) != DESC_SIZE)
+  if (len < 1084)
   {
-    Log_ErrorPrintf("Failed to read description");
+    Log_ErrorPrintf("Invalid ppf file");
     return false;
   }
+  std::memcpy(desc, &data[6], DESC_SIZE);
 
   Log_InfoPrintf("Patch description: %s", desc);
 
-  const u32 idlen = ReadFileIDDiz(fp, 2);
+  const uint32_t idlen = ReadFileIDDiz(data, len, 2);
 
-  if (rfseek(fp, 56, SEEK_SET) != 0 || rfread(&origlen, sizeof(origlen), 1, fp) != 1)
-  {
-    Log_ErrorPrintf("Failed to read size");
-    return false;
-  }
-
-  std::vector<u8> temp;
-  temp.resize(BLOCKCHECK_SIZE);
-  if (rfread(temp.data(), 1, BLOCKCHECK_SIZE, fp) != BLOCKCHECK_SIZE)
-  {
-    Log_ErrorPrintf("Failed to read blockcheck data");
-    return false;
-  }
+  std::memcpy(&origlen, &data[56], sizeof(origlen));
 
   // do blockcheck
   {
-    u32 blockcheck_src_sector = 16 + m_replacement_offset;
-    u32 blockcheck_src_offset = 32;
+    uint32_t blockcheck_src_sector = 16 + m_replacement_offset;
+    uint32_t blockcheck_src_offset = 32;
 
-    std::vector<u8> src_sector(RAW_SECTOR_SIZE);
+    std::vector<uint8_t> src_sector(RAW_SECTOR_SIZE);
     if (m_parent_image->Seek(blockcheck_src_sector) && m_parent_image->ReadRawSector(src_sector.data(), nullptr))
     {
-      if (std::memcmp(&src_sector[blockcheck_src_offset], temp.data(), BLOCKCHECK_SIZE) != 0)
+      if (std::memcmp(&src_sector[blockcheck_src_offset], &data[60], BLOCKCHECK_SIZE) != 0)
         Log_WarningPrintf("Blockcheck failed. The patch may not apply correctly.");
     }
     else
@@ -240,79 +229,74 @@ bool CDImagePPF::ReadV2Patch(RFILE* fp)
     }
   }
 
-  u32 filelen;
-  if (rfseek(fp, 0, SEEK_END) != 0 || (filelen = static_cast<u32>(rftell(fp))) == 0 || filelen < 1084)
+  uint32_t count = len - 1084;
+  if (idlen > 0)
   {
-    Log_ErrorPrintf("Invalid ppf file");
-    return false;
+    if ((idlen + 38) > count)
+    {
+      Log_ErrorPrintf("File is too short (diz)");
+      return false;
+    }
+    count -= (idlen + 38);
   }
 
-  u32 count = filelen - 1084;
-  if (idlen > 0)
-    count -= (idlen + 38);
-
-  if (count <= 0)
+  if (count == 0)
     return false;
 
-  if (rfseek(fp, 1084, SEEK_SET) != 0)
-    return false;
-
+  uint32_t pos = 1084;
   while (count > 0)
   {
-    u32 offset;
-    u8 chunk_size;
-    if (rfread(&offset, sizeof(offset), 1, fp) != 1 || rfread(&chunk_size, sizeof(chunk_size), 1, fp) != 1)
+    uint32_t offset;
+    uint8_t chunk_size;
+    if (count < (sizeof(offset) + sizeof(chunk_size)))
     {
       Log_ErrorPrintf("Incomplete ppf");
       return false;
     }
 
-    temp.resize(chunk_size);
-    if (rfread(temp.data(), 1, chunk_size, fp) != chunk_size)
+    std::memcpy(&offset, &data[pos], sizeof(offset));
+    chunk_size = data[pos + sizeof(offset)];
+    pos += sizeof(offset) + sizeof(chunk_size);
+    count -= sizeof(offset) + sizeof(chunk_size);
+
+    if (count < chunk_size)
     {
       Log_ErrorPrintf("Failed to read patch data");
       return false;
     }
 
-    if (!AddPatch(offset, temp.data(), chunk_size))
+    if (!AddPatch(offset, &data[pos], chunk_size))
       return false;
 
-    count -= sizeof(offset) + sizeof(chunk_size) + chunk_size;
+    pos += chunk_size;
+    count -= chunk_size;
   }
 
   Log_InfoPrintf("Loaded %zu replacement sectors from version 2 PPF", m_replacement_map.size());
   return true;
 }
 
-bool CDImagePPF::ReadV3Patch(RFILE* fp)
+bool CDImagePPF::ReadV3Patch(const uint8_t* data, uint32_t len)
 {
   char desc[DESC_SIZE + 1] = {};
-  if (rfseek(fp, 6, SEEK_SET) != 0 || rfread(desc, sizeof(char), DESC_SIZE, fp) != DESC_SIZE)
-  {
-    Log_ErrorPrintf("Failed to read description");
-    return false;
-  }
-
-  Log_InfoPrintf("Patch description: %s", desc);
-
-  u32 idlen = ReadFileIDDiz(fp, 3);
-
-  u8 image_type;
-  u8 block_check;
-  u8 undo;
-  if (rfseek(fp, 56, SEEK_SET) != 0 || rfread(&image_type, sizeof(image_type), 1, fp) != 1 ||
-      rfread(&block_check, sizeof(block_check), 1, fp) != 1 || rfread(&undo, sizeof(undo), 1, fp) != 1)
+  if (len < 59)
   {
     Log_ErrorPrintf("Failed to read headers");
     return false;
   }
+  std::memcpy(desc, &data[6], DESC_SIZE);
+
+  Log_InfoPrintf("Patch description: %s", desc);
+
+  uint32_t idlen = ReadFileIDDiz(data, len, 3);
+
+  const uint8_t block_check = data[57];
 
   // TODO: Blockcheck
 
-  rfseek(fp, 0, SEEK_END);
-  u32 count = static_cast<u32>(rftell(fp));
+  uint32_t count = len;
 
-  u32 seekpos = (block_check) ? 1084 : 60;
+  uint32_t seekpos = (block_check) ? 1084 : 60;
   if (seekpos >= count)
   {
     Log_ErrorPrintf("File is too short");
@@ -322,7 +306,7 @@ bool CDImagePPF::ReadV3Patch(RFILE* fp)
   count -= seekpos;
   if (idlen > 0)
   {
-    const u32 extralen = idlen + 18 + 16 + 2;
+    const uint32_t extralen = idlen + 18 + 16 + 2;
     if (count < extralen)
     {
       Log_ErrorPrintf("File is too short (diz)");
@@ -332,56 +316,57 @@ bool CDImagePPF::ReadV3Patch(RFILE* fp)
     count -= extralen;
   }
 
-  if (rfseek(fp, seekpos, SEEK_SET) != 0)
-    return false;
-
-  std::vector<u8> temp;
-
+  uint32_t pos = seekpos;
   while (count > 0)
   {
-    u64 offset;
-    u8 chunk_size;
-    if (rfread(&offset, sizeof(offset), 1, fp) != 1 || rfread(&chunk_size, sizeof(chunk_size), 1, fp) != 1)
+    uint64_t offset;
+    uint8_t chunk_size;
+    if (count < (sizeof(offset) + sizeof(chunk_size)))
     {
       Log_ErrorPrintf("Incomplete ppf");
       return false;
     }
 
-    temp.resize(chunk_size);
-    if (rfread(temp.data(), 1, chunk_size, fp) != chunk_size)
+    std::memcpy(&offset, &data[pos], sizeof(offset));
+    chunk_size = data[pos + sizeof(offset)];
+    pos += sizeof(offset) + sizeof(chunk_size);
+    count -= sizeof(offset) + sizeof(chunk_size);
+
+    if (count < chunk_size)
     {
       Log_ErrorPrintf("Failed to read patch data");
       return false;
     }
 
-    if (!AddPatch(offset, temp.data(), chunk_size))
+    if (!AddPatch(offset, &data[pos], chunk_size))
       return false;
 
-    count -= sizeof(offset) + sizeof(chunk_size) + chunk_size;
+    pos += chunk_size;
+    count -= chunk_size;
   }
 
   Log_InfoPrintf("Loaded %zu replacement sectors from version 3 PPF", m_replacement_map.size());
   return true;
 }
 
-bool CDImagePPF::AddPatch(u64 offset, const u8* patch, u32 patch_size)
+bool CDImagePPF::AddPatch(uint64_t offset, const uint8_t* patch, uint32_t patch_size)
 {
   while (patch_size > 0)
   {
-    const u32 sector_index = Truncate32(offset / RAW_SECTOR_SIZE) + m_replacement_offset;
-    const u32 sector_offset = Truncate32(offset % RAW_SECTOR_SIZE);
+    const uint32_t sector_index = static_cast<uint32_t>(offset / RAW_SECTOR_SIZE) + m_replacement_offset;
+    const uint32_t sector_offset = static_cast<uint32_t>(offset % RAW_SECTOR_SIZE);
     if (sector_index >= m_parent_image->GetLBACount())
     {
       Log_ErrorPrintf("Sector %u in patch is out of range", sector_index);
       return false;
     }
 
-    const u32 bytes_to_patch = std::min(patch_size, RAW_SECTOR_SIZE - sector_offset);
+    const uint32_t bytes_to_patch = std::min(patch_size, RAW_SECTOR_SIZE - sector_offset);
 
     auto iter = m_replacement_map.find(sector_index);
     if (iter == m_replacement_map.end())
     {
-      const u32 replacement_buffer_start = static_cast<u32>(m_replacement_data.size());
+      const uint32_t replacement_buffer_start = static_cast<uint32_t>(m_replacement_data.size());
       m_replacement_data.resize(m_replacement_data.size() + RAW_SECTOR_SIZE);
       if (!m_parent_image->Seek(sector_index) ||
           !m_parent_image->ReadRawSector(&m_replacement_data[replacement_buffer_start], nullptr))
@@ -418,7 +403,7 @@ std::string CDImagePPF::GetMetadata(const std::string_view& type) const
   return m_parent_image->GetMetadata(type);
 }
 
-std::string CDImagePPF::GetSubImageMetadata(u32 index, const std::string_view& type) const
+std::string CDImagePPF::GetSubImageMetadata(uint32_t index, const std::string_view& type) const
 {
   // We only support a single sub-image for patched games.
   std::string ret;
@@ -430,7 +415,7 @@ std::string CDImagePPF::GetSubImageMetadata(u32 index, const std::string_view& t
 
 bool CDImagePPF::ReadSectorFromIndex(void* buffer, const Index& index, LBA lba_in_index)
 {
-  const u32 sector_number = index.start_lba_on_disc + lba_in_index;
+  const uint32_t sector_number = index.start_lba_on_disc + lba_in_index;
   const auto it = m_replacement_map.find(sector_number);
   if (it == m_replacement_map.end())
     return m_parent_image->ReadSectorFromIndex(buffer, index, lba_in_index);

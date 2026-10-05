@@ -2,17 +2,18 @@
 #include "file_system.h"
 #include "log.h"
 #include <algorithm>
+#include <cstring>
 #include <memory>
 Log_SetChannel(CDSubChannelReplacement);
 
 #pragma pack(push, 1)
 struct SBIFileEntry
 {
-  u8 minute_bcd;
-  u8 second_bcd;
-  u8 frame_bcd;
-  u8 type;
-  u8 data[10];
+  uint8_t minute_bcd;
+  uint8_t second_bcd;
+  uint8_t frame_bcd;
+  uint8_t type;
+  uint8_t data[10];
 };
 #pragma pack(pop)
 
@@ -20,13 +21,13 @@ CDSubChannelReplacement::CDSubChannelReplacement() = default;
 
 CDSubChannelReplacement::~CDSubChannelReplacement() = default;
 
-static constexpr u32 MSFToLBA(u8 minute_bcd, u8 second_bcd, u8 frame_bcd)
+static constexpr uint32_t MSFToLBA(uint8_t minute_bcd, uint8_t second_bcd, uint8_t frame_bcd)
 {
-  const u8 minute = PackedBCDToBinary(minute_bcd);
-  const u8 second = PackedBCDToBinary(second_bcd);
-  const u8 frame = PackedBCDToBinary(frame_bcd);
+  const uint8_t minute = PackedBCDToBinary(minute_bcd);
+  const uint8_t second = PackedBCDToBinary(second_bcd);
+  const uint8_t frame = PackedBCDToBinary(frame_bcd);
 
-  return (ZeroExtend32(minute) * 60 * 75) + (ZeroExtend32(second) * 75) + ZeroExtend32(frame);
+  return (static_cast<uint32_t>(minute) * 60 * 75) + (static_cast<uint32_t>(second) * 75) + static_cast<uint32_t>(frame);
 }
 
 bool CDSubChannelReplacement::LoadSBI(const char* path)
@@ -70,15 +71,15 @@ bool CDSubChannelReplacement::LoadSBI(const char* path)
       return false;
     }
 
-    const u32 lba = MSFToLBA(entry.minute_bcd, entry.second_bcd, entry.frame_bcd);
+    const uint32_t lba = MSFToLBA(entry.minute_bcd, entry.second_bcd, entry.frame_bcd);
 
     CDImage::SubChannelQ subq;
     std::copy_n(entry.data, countof(entry.data), subq.data.data());
 
     // generate an invalid crc by flipping all bits from the valid crc (will never collide)
-    const u16 crc = subq.ComputeCRC(subq.data) ^ 0xFFFF;
-    subq.data[10] = Truncate8(crc);
-    subq.data[11] = Truncate8(crc >> 8);
+    const uint16_t crc = subq.ComputeCRC(subq.data) ^ 0xFFFF;
+    subq.data[10] = static_cast<uint8_t>(crc);
+    subq.data[11] = static_cast<uint8_t>(crc >> 8);
 
     m_replacement_subq.emplace(lba, subq);
   }
@@ -93,22 +94,7 @@ bool CDSubChannelReplacement::LoadSBIFromImagePath(const char* image_path)
   return LoadSBI(FileSystem::ReplaceExtension(image_path, "sbi").c_str());
 }
 
-void CDSubChannelReplacement::AddReplacementSubChannelQ(u32 lba, const CDImage::SubChannelQ& subq)
-{
-  auto iter = m_replacement_subq.find(lba);
-  if (iter != m_replacement_subq.end())
-    iter->second.data = subq.data;
-  else
-    m_replacement_subq.emplace(lba, subq);
-}
-
-bool CDSubChannelReplacement::GetReplacementSubChannelQ(u8 minute_bcd, u8 second_bcd, u8 frame_bcd,
-                                                        CDImage::SubChannelQ* subq) const
-{
-  return GetReplacementSubChannelQ(MSFToLBA(minute_bcd, second_bcd, frame_bcd), subq);
-}
-
-bool CDSubChannelReplacement::GetReplacementSubChannelQ(u32 lba, CDImage::SubChannelQ* subq) const
+bool CDSubChannelReplacement::GetReplacementSubChannelQ(uint32_t lba, CDImage::SubChannelQ* subq) const
 {
   const auto iter = m_replacement_subq.find(lba);
   if (iter == m_replacement_subq.cend())

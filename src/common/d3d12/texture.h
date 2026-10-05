@@ -26,16 +26,16 @@ public:
   ALWAYS_INLINE const DescriptorHandle& GetRTVOrDSVDescriptor() const { return m_rtv_or_dsv_descriptor; }
   ALWAYS_INLINE D3D12_RESOURCE_STATES GetState() const { return m_state; }
 
-  ALWAYS_INLINE u32 GetWidth() const { return m_width; }
-  ALWAYS_INLINE u32 GetHeight() const { return m_height; }
-  ALWAYS_INLINE u32 GetSamples() const { return m_samples; }
+  ALWAYS_INLINE uint32_t GetWidth() const { return m_width; }
+  ALWAYS_INLINE uint32_t GetHeight() const { return m_height; }
+  ALWAYS_INLINE uint32_t GetSamples() const { return m_samples; }
   ALWAYS_INLINE DXGI_FORMAT GetFormat() const { return m_format; }
   ALWAYS_INLINE bool IsMultisampled() const { return m_samples > 1; }
 
   ALWAYS_INLINE operator ID3D12Resource*() const { return m_resource.Get(); }
   ALWAYS_INLINE operator bool() const { return static_cast<bool>(m_resource); }
 
-  bool Create(u32 width, u32 height, u32 samples, DXGI_FORMAT format, DXGI_FORMAT srv_format, DXGI_FORMAT rtv_format,
+  bool Create(uint32_t width, uint32_t height, uint32_t samples, DXGI_FORMAT format, DXGI_FORMAT srv_format, DXGI_FORMAT rtv_format,
               DXGI_FORMAT dsv_format, D3D12_RESOURCE_FLAGS flags);
 
   D3D12_RESOURCE_DESC GetDesc() const;
@@ -47,13 +47,13 @@ public:
   Texture& operator=(const Texture&) = delete;
   Texture& operator=(Texture&& texture);
 
-  bool BeginStreamUpdate(u32 x, u32 y, u32 width, u32 height, void** out_data, u32* out_data_pitch);
-  void EndStreamUpdate(u32 x, u32 y, u32 width, u32 height);
+  bool BeginStreamUpdate(uint32_t x, uint32_t y, uint32_t width, uint32_t height, void** out_data, uint32_t* out_data_pitch);
+  void EndStreamUpdate(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
-  bool LoadData(u32 x, u32 y, u32 width, u32 height, const void* data, u32 pitch);
+  bool LoadData(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, uint32_t pitch);
 
-  static void CopyToUploadBuffer(const void* src_data, u32 src_pitch, u32 height, void* dst_data, u32 dst_pitch);
-  void CopyFromBuffer(u32 x, u32 y, u32 width, u32 height, u32 pitch, ID3D12Resource* buffer, u32 buffer_offset);
+  static void CopyToUploadBuffer(const void* src_data, uint32_t src_pitch, uint32_t height, void* dst_data, uint32_t dst_pitch);
+  void CopyFromBuffer(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t pitch, ID3D12Resource* buffer, uint32_t buffer_offset);
 
 private:
   static bool CreateSRVDescriptor(ID3D12Resource* resource, DXGI_FORMAT format, bool multisampled,
@@ -66,9 +66,9 @@ private:
   ComPtr<ID3D12Resource> m_resource;
   DescriptorHandle m_srv_descriptor = {};
   DescriptorHandle m_rtv_or_dsv_descriptor = {};
-  u32 m_width = 0;
-  u32 m_height = 0;
-  u32 m_samples = 0;
+  uint32_t m_width = 0;
+  uint32_t m_height = 0;
+  uint32_t m_samples = 0;
   DXGI_FORMAT m_format = DXGI_FORMAT_UNKNOWN;
 
   mutable D3D12_RESOURCE_STATES m_state = D3D12_RESOURCE_STATE_COMMON;

@@ -7,11 +7,10 @@
 #include "host_interface.h"
 #include "interrupt_controller.h"
 #include "settings.h"
-#include "stb_image_write.h"
 #include "system.h"
 #include "timers.h"
 #include <cmath>
-
+#include <cstring>
 std::unique_ptr<GPU> g_gpu;
 
 const GPU::GP0CommandHandlerTable GPU::s_GP0_command_handler_table = GPU::GenerateGP0CommandHandlerTable();
@@ -55,12 +54,6 @@ void GPU::UpdateSettings()
 
   // Crop mode calls this, so recalculate the display area
   UpdateCRTCDisplayParameters();
-}
-
-bool GPU::IsHardwareRenderer()
-{
-  const GPURenderer renderer = GetRendererType();
-  return (renderer != GPURenderer::Software);
 }
 
 void GPU::CPUClockChanged()
@@ -236,14 +229,14 @@ bool GPU::DoState(StateWrapper& sw, HostDisplayTexture** host_texture, bool upda
     if (sw.IsReading())
     {
       // Still need a temporary here.
-      HeapArray<u16, VRAM_WIDTH * VRAM_HEIGHT> temp;
-      sw.DoBytes(temp.data(), VRAM_WIDTH * VRAM_HEIGHT * sizeof(u16));
+      HeapArray<uint16_t, VRAM_WIDTH * VRAM_HEIGHT> temp;
+      sw.DoBytes(temp.data(), VRAM_WIDTH * VRAM_HEIGHT * sizeof(uint16_t));
       UpdateVRAM(0, 0, VRAM_WIDTH, VRAM_HEIGHT, temp.data(), false, false);
     }
     else
     {
       ReadVRAM(0, 0, VRAM_WIDTH, VRAM_HEIGHT);
-      sw.DoBytes(m_vram_ptr, VRAM_WIDTH * VRAM_HEIGHT * sizeof(u16));
+      sw.DoBytes(m_vram_ptr, VRAM_WIDTH * VRAM_HEIGHT * sizeof(uint16_t));
     }
   }
 
@@ -281,6 +274,15 @@ void GPU::UpdateDMARequest()
     case BlitterState::ReadingVRAM:
       m_GPUSTAT.ready_to_send_vram = true;
       m_GPUSTAT.ready_to_recieve_dma = m_fifo.IsEmpty();
+      break;
+
+    case BlitterState::DrawingPolyLine:
+      // Polyline draw drains FIFO words for vertices/colours and is not
+      // exposing readable VRAM. From the DMA controller's perspective this
+      // is equivalent to Idle - keep accepting words until the terminator
+      // word (0x50005000) is seen by ExecuteCommands.
+      m_GPUSTAT.ready_to_send_vram = false;
+      m_GPUSTAT.ready_to_recieve_dma = (m_fifo.IsEmpty() || m_fifo.GetSize() < m_command_total_words);
       break;
   }
 
@@ -326,10 +328,16 @@ void GPU::UpdateGPUIdle()
     case BlitterState::ReadingVRAM:
       m_GPUSTAT.gpu_idle = false;
       break;
+
+    case BlitterState::DrawingPolyLine:
+      // Mid-polyline: the GPU is actively consuming FIFO words for the
+      // current draw, so it is not idle.
+      m_GPUSTAT.gpu_idle = false;
+      break;
   }
 }
 
-u32 GPU::ReadRegister(u32 offset)
+uint32_t GPU::ReadRegister(uint32_t offset)
 {
   switch (offset)
   {
@@ -355,7 +363,7 @@ u32 GPU::ReadRegister(u32 offset)
   return UINT32_C(0xFFFFFFFF);
 }
 
-void GPU::WriteRegister(u32 offset, u32 value)
+void GPU::WriteRegister(uint32_t offset, uint32_t value)
 {
   switch (offset)
   {
@@ -374,7 +382,7 @@ void GPU::WriteRegister(u32 offset, u32 value)
   }
 }
 
-void GPU::DMARead(u32* words, u32 word_count)
+void GPU::DMARead(uint32_t* words, uint32_t word_count)
 {
   if (m_GPUSTAT.dma_direction != DMADirection::GPUREADtoCPU)
   {
@@ -382,7 +390,7 @@ void GPU::DMARead(u32* words, u32 word_count)
     return;
   }
 
-  for (u32 i = 0; i < word_count; i++)
+  for (uint32_t i = 0; i < word_count; i++)
     words[i] = ReadGPUREAD();
 }
 
@@ -418,19 +426,19 @@ TickCount GPU::CRTCTicksToSystemTicks(TickCount gpu_ticks, TickCount fractional_
 {
   // convert to master clock, rounding up as we want to overshoot not undershoot
   if (!m_console_is_pal)
-    return static_cast<TickCount>((u64(gpu_ticks) * u64(451584) + fractional_ticks + u64(715908)) / u64(715909));
+    return static_cast<TickCount>((uint64_t(gpu_ticks) * uint64_t(451584) + fractional_ticks + uint64_t(715908)) / uint64_t(715909));
   else
-    return static_cast<TickCount>((u64(gpu_ticks) * u64(451584) + fractional_ticks + u64(709378)) / u64(709379));
+    return static_cast<TickCount>((uint64_t(gpu_ticks) * uint64_t(451584) + fractional_ticks + uint64_t(709378)) / uint64_t(709379));
 }
 
 TickCount GPU::SystemTicksToCRTCTicks(TickCount sysclk_ticks, TickCount* fractional_ticks) const
 {
-  u64 mul = u64(sysclk_ticks);
-  mul *= !m_console_is_pal ? u64(715909) : u64(709379);
-  mul += u64(*fractional_ticks);
+  uint64_t mul = uint64_t(sysclk_ticks);
+  mul *= !m_console_is_pal ? uint64_t(715909) : uint64_t(709379);
+  mul += uint64_t(*fractional_ticks);
 
-  const TickCount ticks = static_cast<TickCount>(mul / u64(451584));
-  *fractional_ticks = static_cast<TickCount>(mul % u64(451584));
+  const TickCount ticks = static_cast<TickCount>(mul / uint64_t(451584));
+  *fractional_ticks = static_cast<TickCount>(mul % uint64_t(451584));
   return ticks;
 }
 
@@ -442,15 +450,6 @@ void GPU::AddCommandTicks(TickCount ticks)
 void GPU::SynchronizeCRTC()
 {
   m_crtc_tick_event->InvokeEarly();
-}
-
-float GPU::ComputeHorizontalFrequency() const
-{
-  const CRTCState& cs = m_crtc_state;
-  TickCount fractional_ticks = 0;
-  return static_cast<float>(
-    static_cast<double>(SystemTicksToCRTCTicks(System::g_ticks_per_second, &fractional_ticks)) /
-    static_cast<double>(cs.horizontal_total));
 }
 
 float GPU::ComputeVerticalFrequency() const
@@ -506,7 +505,7 @@ float GPU::GetDisplayAspectRatio() const
 
 void GPU::UpdateCRTCConfig()
 {
-  static u16 dot_clock_dividers[8] = {10, 8, 5, 4, 7, 7, 7, 7};
+  static uint16_t dot_clock_dividers[8] = {10, 8, 5, 4, 7, 7, 7, 7};
   CRTCState& cs = m_crtc_state;
 
   if (m_GPUSTAT.pal_mode)
@@ -528,27 +527,27 @@ void GPU::UpdateCRTCConfig()
 
   cs.in_hblank = (cs.current_tick_in_scanline >= cs.horizontal_sync_start);
 
-  const u8 horizontal_resolution_index = m_GPUSTAT.horizontal_resolution_1 | (m_GPUSTAT.horizontal_resolution_2 << 2);
+  const uint8_t horizontal_resolution_index = m_GPUSTAT.horizontal_resolution_1 | (m_GPUSTAT.horizontal_resolution_2 << 2);
   cs.dot_clock_divider = dot_clock_dividers[horizontal_resolution_index];
   cs.horizontal_display_start =
-    (std::min<u16>(cs.regs.X1, cs.horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
+    (std::min<uint16_t>(cs.regs.X1, cs.horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
   cs.horizontal_display_end =
-    (std::min<u16>(cs.regs.X2, cs.horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
-  cs.vertical_display_start = std::min<u16>(cs.regs.Y1, cs.vertical_total);
-  cs.vertical_display_end = std::min<u16>(cs.regs.Y2, cs.vertical_total);
+    (std::min<uint16_t>(cs.regs.X2, cs.horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
+  cs.vertical_display_start = std::min<uint16_t>(cs.regs.Y1, cs.vertical_total);
+  cs.vertical_display_end = std::min<uint16_t>(cs.regs.Y2, cs.vertical_total);
 
   if (m_GPUSTAT.pal_mode && m_force_ntsc_timings)
   {
     // scale to NTSC parameters
     cs.horizontal_display_start =
-      static_cast<u16>((static_cast<u32>(cs.horizontal_display_start) * NTSC_TICKS_PER_LINE) / PAL_TICKS_PER_LINE);
-    cs.horizontal_display_end = static_cast<u16>(
-      ((static_cast<u32>(cs.horizontal_display_end) * NTSC_TICKS_PER_LINE) + (PAL_TICKS_PER_LINE - 1)) /
+      static_cast<uint16_t>((static_cast<uint32_t>(cs.horizontal_display_start) * NTSC_TICKS_PER_LINE) / PAL_TICKS_PER_LINE);
+    cs.horizontal_display_end = static_cast<uint16_t>(
+      ((static_cast<uint32_t>(cs.horizontal_display_end) * NTSC_TICKS_PER_LINE) + (PAL_TICKS_PER_LINE - 1)) /
       PAL_TICKS_PER_LINE);
     cs.vertical_display_start =
-      static_cast<u16>((static_cast<u32>(cs.vertical_display_start) * NTSC_TOTAL_LINES) / PAL_TOTAL_LINES);
-    cs.vertical_display_end = static_cast<u16>(
-      ((static_cast<u32>(cs.vertical_display_end) * NTSC_TOTAL_LINES) + (PAL_TOTAL_LINES - 1)) / PAL_TOTAL_LINES);
+      static_cast<uint16_t>((static_cast<uint32_t>(cs.vertical_display_start) * NTSC_TOTAL_LINES) / PAL_TOTAL_LINES);
+    cs.vertical_display_end = static_cast<uint16_t>(
+      ((static_cast<uint32_t>(cs.vertical_display_end) * NTSC_TOTAL_LINES) + (PAL_TOTAL_LINES - 1)) / PAL_TOTAL_LINES);
 
     cs.vertical_total = NTSC_TOTAL_LINES;
     cs.current_scanline %= NTSC_TOTAL_LINES;
@@ -557,12 +556,12 @@ void GPU::UpdateCRTCConfig()
   }
 
   cs.horizontal_display_start =
-    static_cast<u16>(System::ScaleTicksToOverclock(static_cast<TickCount>(cs.horizontal_display_start)));
+    static_cast<uint16_t>(System::ScaleTicksToOverclock(static_cast<TickCount>(cs.horizontal_display_start)));
   cs.horizontal_display_end =
-    static_cast<u16>(System::ScaleTicksToOverclock(static_cast<TickCount>(cs.horizontal_display_end)));
-  cs.horizontal_total = static_cast<u16>(System::ScaleTicksToOverclock(static_cast<TickCount>(cs.horizontal_total)));
+    static_cast<uint16_t>(System::ScaleTicksToOverclock(static_cast<TickCount>(cs.horizontal_display_end)));
+  cs.horizontal_total = static_cast<uint16_t>(System::ScaleTicksToOverclock(static_cast<TickCount>(cs.horizontal_total)));
 
-  System::SetThrottleFrequency(ComputeVerticalFrequency());
+  System::SetVerticalFrequency(ComputeVerticalFrequency());
 
   UpdateCRTCDisplayParameters();
   UpdateCRTCTickEvent();
@@ -573,14 +572,14 @@ void GPU::UpdateCRTCDisplayParameters()
   CRTCState& cs = m_crtc_state;
   const DisplayCropMode crop_mode = g_settings.display_crop_mode;
 
-  const u16 horizontal_total = m_GPUSTAT.pal_mode ? PAL_TICKS_PER_LINE : NTSC_TICKS_PER_LINE;
-  const u16 vertical_total = m_GPUSTAT.pal_mode ? PAL_TOTAL_LINES : NTSC_TOTAL_LINES;
-  const u16 horizontal_display_start =
-    (std::min<u16>(cs.regs.X1, horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
-  const u16 horizontal_display_end =
-    (std::min<u16>(cs.regs.X2, horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
-  const u16 vertical_display_start = std::min<u16>(cs.regs.Y1, vertical_total);
-  const u16 vertical_display_end = std::min<u16>(cs.regs.Y2, vertical_total);
+  const uint16_t horizontal_total = m_GPUSTAT.pal_mode ? PAL_TICKS_PER_LINE : NTSC_TICKS_PER_LINE;
+  const uint16_t vertical_total = m_GPUSTAT.pal_mode ? PAL_TOTAL_LINES : NTSC_TOTAL_LINES;
+  const uint16_t horizontal_display_start =
+    (std::min<uint16_t>(cs.regs.X1, horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
+  const uint16_t horizontal_display_end =
+    (std::min<uint16_t>(cs.regs.X2, horizontal_total) / cs.dot_clock_divider) * cs.dot_clock_divider;
+  const uint16_t vertical_display_start = std::min<uint16_t>(cs.regs.Y1, vertical_total);
+  const uint16_t vertical_display_end = std::min<uint16_t>(cs.regs.Y2, vertical_total);
 
   if (m_GPUSTAT.pal_mode)
   {
@@ -595,12 +594,12 @@ void GPU::UpdateCRTCDisplayParameters()
         break;
 
       case DisplayCropMode::Overscan:
-        cs.horizontal_visible_start = static_cast<u16>(std::max<int>(0, 628 + g_settings.display_active_start_offset));
+        cs.horizontal_visible_start = static_cast<uint16_t>(std::max<int>(0, 628 + g_settings.display_active_start_offset));
         cs.horizontal_visible_end =
-          static_cast<u16>(std::max<int>(cs.horizontal_visible_start, 3188 + g_settings.display_active_end_offset));
-        cs.vertical_visible_start = static_cast<u16>(std::max<int>(0, 30 + g_settings.display_line_start_offset));
+          static_cast<uint16_t>(std::max<int>(cs.horizontal_visible_start, 3188 + g_settings.display_active_end_offset));
+        cs.vertical_visible_start = static_cast<uint16_t>(std::max<int>(0, 30 + g_settings.display_line_start_offset));
         cs.vertical_visible_end =
-          static_cast<u16>(std::max<int>(cs.vertical_visible_start, 298 + g_settings.display_line_end_offset));
+          static_cast<uint16_t>(std::max<int>(cs.vertical_visible_start, 298 + g_settings.display_line_end_offset));
         break;
 
       case DisplayCropMode::Borders:
@@ -612,13 +611,13 @@ void GPU::UpdateCRTCDisplayParameters()
         break;
     }
     cs.horizontal_visible_start =
-      std::clamp<u16>(cs.horizontal_visible_start, PAL_HORIZONTAL_ACTIVE_START, PAL_HORIZONTAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.horizontal_visible_start, PAL_HORIZONTAL_ACTIVE_START, PAL_HORIZONTAL_ACTIVE_END);
     cs.horizontal_visible_end =
-      std::clamp<u16>(cs.horizontal_visible_end, cs.horizontal_visible_start, PAL_HORIZONTAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.horizontal_visible_end, cs.horizontal_visible_start, PAL_HORIZONTAL_ACTIVE_END);
     cs.vertical_visible_start =
-      std::clamp<u16>(cs.vertical_visible_start, PAL_VERTICAL_ACTIVE_START, PAL_VERTICAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.vertical_visible_start, PAL_VERTICAL_ACTIVE_START, PAL_VERTICAL_ACTIVE_END);
     cs.vertical_visible_end =
-      std::clamp<u16>(cs.vertical_visible_end, cs.vertical_visible_start, PAL_VERTICAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.vertical_visible_end, cs.vertical_visible_start, PAL_VERTICAL_ACTIVE_END);
   }
   else
   {
@@ -632,12 +631,12 @@ void GPU::UpdateCRTCDisplayParameters()
         break;
 
       case DisplayCropMode::Overscan:
-        cs.horizontal_visible_start = static_cast<u16>(std::max<int>(0, 608 + g_settings.display_active_start_offset));
+        cs.horizontal_visible_start = static_cast<uint16_t>(std::max<int>(0, 608 + g_settings.display_active_start_offset));
         cs.horizontal_visible_end =
-          static_cast<u16>(std::max<int>(cs.horizontal_visible_start, 3168 + g_settings.display_active_end_offset));
-        cs.vertical_visible_start = static_cast<u16>(std::max<int>(0, 24 + g_settings.display_line_start_offset));
+          static_cast<uint16_t>(std::max<int>(cs.horizontal_visible_start, 3168 + g_settings.display_active_end_offset));
+        cs.vertical_visible_start = static_cast<uint16_t>(std::max<int>(0, 24 + g_settings.display_line_start_offset));
         cs.vertical_visible_end =
-          static_cast<u16>(std::max<int>(cs.vertical_visible_start, 248 + g_settings.display_line_end_offset));
+          static_cast<uint16_t>(std::max<int>(cs.vertical_visible_start, 248 + g_settings.display_line_end_offset));
         break;
 
       case DisplayCropMode::Borders:
@@ -649,19 +648,19 @@ void GPU::UpdateCRTCDisplayParameters()
         break;
     }
     cs.horizontal_visible_start =
-      std::clamp<u16>(cs.horizontal_visible_start, NTSC_HORIZONTAL_ACTIVE_START, NTSC_HORIZONTAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.horizontal_visible_start, NTSC_HORIZONTAL_ACTIVE_START, NTSC_HORIZONTAL_ACTIVE_END);
     cs.horizontal_visible_end =
-      std::clamp<u16>(cs.horizontal_visible_end, cs.horizontal_visible_start, NTSC_HORIZONTAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.horizontal_visible_end, cs.horizontal_visible_start, NTSC_HORIZONTAL_ACTIVE_END);
     cs.vertical_visible_start =
-      std::clamp<u16>(cs.vertical_visible_start, NTSC_VERTICAL_ACTIVE_START, NTSC_VERTICAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.vertical_visible_start, NTSC_VERTICAL_ACTIVE_START, NTSC_VERTICAL_ACTIVE_END);
     cs.vertical_visible_end =
-      std::clamp<u16>(cs.vertical_visible_end, cs.vertical_visible_start, NTSC_VERTICAL_ACTIVE_END);
+      std::clamp<uint16_t>(cs.vertical_visible_end, cs.vertical_visible_start, NTSC_VERTICAL_ACTIVE_END);
   }
 
   // If force-progressive is enabled, we only double the height in 480i mode. This way non-interleaved 480i framebuffers
   // won't be broken when displayed.
-  const u8 y_shift = BoolToUInt8(m_GPUSTAT.vertical_interlace && m_GPUSTAT.vertical_resolution);
-  const u8 height_shift = m_force_progressive_scan ? y_shift : BoolToUInt8(m_GPUSTAT.vertical_interlace);
+  const uint8_t y_shift = static_cast<uint8_t>(m_GPUSTAT.vertical_interlace && m_GPUSTAT.vertical_resolution);
+  const uint8_t height_shift = m_force_progressive_scan ? y_shift : static_cast<uint8_t>(m_GPUSTAT.vertical_interlace);
 
   // Determine screen size.
   cs.display_width = (cs.horizontal_visible_end - cs.horizontal_visible_start) / cs.dot_clock_divider;
@@ -669,10 +668,10 @@ void GPU::UpdateCRTCDisplayParameters()
 
   // Determine number of pixels outputted from VRAM (in general, round to 4-pixel multiple).
   // TODO: Verify behavior if values are outside of the active video portion of scanline.
-  const u16 horizontal_display_ticks =
+  const uint16_t horizontal_display_ticks =
     (horizontal_display_end < horizontal_display_start) ? 0 : (horizontal_display_end - horizontal_display_start);
 
-  const u16 horizontal_display_pixels = horizontal_display_ticks / cs.dot_clock_divider;
+  const uint16_t horizontal_display_pixels = horizontal_display_ticks / cs.dot_clock_divider;
   if (horizontal_display_pixels == 1u)
     cs.display_vram_width = 4u;
   else
@@ -680,7 +679,7 @@ void GPU::UpdateCRTCDisplayParameters()
 
   // Determine if we need to adjust the VRAM rectangle (because the display is starting outside the visible area) or add
   // padding.
-  u16 horizontal_skip_pixels;
+  uint16_t horizontal_skip_pixels;
   if (horizontal_display_start >= cs.horizontal_visible_start)
   {
     cs.display_origin_left = (horizontal_display_start - cs.horizontal_visible_start) / cs.dot_clock_divider;
@@ -698,7 +697,7 @@ void GPU::UpdateCRTCDisplayParameters()
   cs.display_vram_width -= std::min(cs.display_vram_width, horizontal_skip_pixels);
 
   // Apply crop from the end by shrinking VRAM rectangle width if display would end outside the visible area.
-  cs.display_vram_width = std::min<u16>(cs.display_vram_width, cs.display_width - cs.display_origin_left);
+  cs.display_vram_width = std::min<uint16_t>(cs.display_vram_width, cs.display_width - cs.display_origin_left);
 
   if (vertical_display_start >= cs.vertical_visible_start)
   {
@@ -818,7 +817,7 @@ void GPU::CRTCTickEvent(TickCount ticks)
     return;
   }
 
-  u32 lines_to_draw = m_crtc_state.current_tick_in_scanline / m_crtc_state.horizontal_total;
+  uint32_t lines_to_draw = m_crtc_state.current_tick_in_scanline / m_crtc_state.horizontal_total;
   m_crtc_state.current_tick_in_scanline %= m_crtc_state.horizontal_total;
 
   const bool old_hblank = m_crtc_state.in_hblank;
@@ -826,15 +825,15 @@ void GPU::CRTCTickEvent(TickCount ticks)
   m_crtc_state.in_hblank = new_hblank;
   if (g_timers.IsUsingExternalClock(HBLANK_TIMER_INDEX))
   {
-    const u32 hblank_timer_ticks = BoolToUInt32(!old_hblank) + BoolToUInt32(new_hblank) + (lines_to_draw - 1);
+    const uint32_t hblank_timer_ticks = static_cast<uint32_t>(!old_hblank) + static_cast<uint32_t>(new_hblank) + (lines_to_draw - 1);
     g_timers.AddTicks(HBLANK_TIMER_INDEX, static_cast<TickCount>(hblank_timer_ticks));
   }
 
   while (lines_to_draw > 0)
   {
-    const u32 lines_to_draw_this_loop =
+    const uint32_t lines_to_draw_this_loop =
       std::min(lines_to_draw, m_crtc_state.vertical_total - m_crtc_state.current_scanline);
-    const u32 prev_scanline = m_crtc_state.current_scanline;
+    const uint32_t prev_scanline = m_crtc_state.current_scanline;
     m_crtc_state.current_scanline += lines_to_draw_this_loop;
     lines_to_draw -= lines_to_draw_this_loop;
 
@@ -892,14 +891,13 @@ void GPU::CRTCTickEvent(TickCount ticks)
   if (m_GPUSTAT.InInterleaved480iMode())
   {
     m_crtc_state.active_line_lsb =
-      Truncate8((m_crtc_state.regs.Y + BoolToUInt32(m_crtc_state.interlaced_display_field)) & u32(1));
-    m_GPUSTAT.display_line_lsb = ConvertToBoolUnchecked(
-      (m_crtc_state.regs.Y + (BoolToUInt8(!m_crtc_state.in_vblank) & m_crtc_state.interlaced_display_field)) & u32(1));
+      static_cast<uint8_t>((m_crtc_state.regs.Y + static_cast<uint32_t>(m_crtc_state.interlaced_display_field)) & uint32_t(1));
+    m_GPUSTAT.display_line_lsb = static_cast<bool>((m_crtc_state.regs.Y + (static_cast<uint8_t>(!m_crtc_state.in_vblank) & m_crtc_state.interlaced_display_field)) & uint32_t(1));
   }
   else
   {
     m_crtc_state.active_line_lsb = 0;
-    m_GPUSTAT.display_line_lsb = ConvertToBoolUnchecked((m_crtc_state.regs.Y + m_crtc_state.current_scanline) & u32(1));
+    m_GPUSTAT.display_line_lsb = static_cast<bool>((m_crtc_state.regs.Y + m_crtc_state.current_scanline) & uint32_t(1));
   }
 
   UpdateCRTCTickEvent();
@@ -930,8 +928,8 @@ void GPU::UpdateCommandTickEvent()
     m_command_tick_event->SetIntervalAndSchedule(GPUTicksToSystemTicks(m_pending_command_ticks));
 }
 
-bool GPU::ConvertScreenCoordinatesToBeamTicksAndLines(s32 window_x, s32 window_y, float x_scale, float y_scale,
-                                                      u32* out_tick, u32* out_line) const
+bool GPU::ConvertScreenCoordinatesToBeamTicksAndLines(int32_t window_x, int32_t window_y, float x_scale, float y_scale,
+                                                      uint32_t* out_tick, uint32_t* out_line) const
 {
   auto [display_x, display_y] = m_host_display->ConvertWindowCoordinatesToDisplayCoordinates(
     window_x, window_y, m_host_display->GetWindowWidth(), m_host_display->GetWindowHeight(), 0 /* display top margin */);
@@ -952,30 +950,30 @@ bool GPU::ConvertScreenCoordinatesToBeamTicksAndLines(s32 window_x, s32 window_y
     display_y = (((scaled_y + 1.0f) * 0.5f) * dh); // -1..1 -> 0..1
   }
 
-  if (display_x < 0 || static_cast<u32>(display_x) >= m_crtc_state.display_width || display_y < 0 ||
-      static_cast<u32>(display_y) >= m_crtc_state.display_height)
+  if (display_x < 0 || static_cast<uint32_t>(display_x) >= m_crtc_state.display_width || display_y < 0 ||
+      static_cast<uint32_t>(display_y) >= m_crtc_state.display_height)
     return false;
 
-  *out_line = (static_cast<u32>(std::round(display_y)) >> BoolToUInt8(m_GPUSTAT.vertical_interlace)) +
+  *out_line = (static_cast<uint32_t>(std::round(display_y)) >> static_cast<uint8_t>(m_GPUSTAT.vertical_interlace)) +
               m_crtc_state.vertical_visible_start;
-  *out_tick = static_cast<u32>(std::round(display_x * static_cast<float>(m_crtc_state.dot_clock_divider))) +
+  *out_tick = static_cast<uint32_t>(std::round(display_x * static_cast<float>(m_crtc_state.dot_clock_divider))) +
               m_crtc_state.horizontal_visible_start;
   return true;
 }
 
-u32 GPU::ReadGPUREAD()
+uint32_t GPU::ReadGPUREAD()
 {
   if (m_blitter_state != BlitterState::ReadingVRAM)
     return m_GPUREAD_latch;
 
   // Read two pixels out of VRAM and combine them. Zero fill odd pixel counts.
-  u32 value = 0;
-  for (u32 i = 0; i < 2; i++)
+  uint32_t value = 0;
+  for (uint32_t i = 0; i < 2; i++)
   {
     // Read with correct wrap-around behavior.
-    const u16 read_x = (m_vram_transfer.x + m_vram_transfer.col) % VRAM_WIDTH;
-    const u16 read_y = (m_vram_transfer.y + m_vram_transfer.row) % VRAM_HEIGHT;
-    value |= ZeroExtend32(m_vram_ptr[read_y * VRAM_WIDTH + read_x]) << (i * 16);
+    const uint16_t read_x = (m_vram_transfer.x + m_vram_transfer.col) % VRAM_WIDTH;
+    const uint16_t read_y = (m_vram_transfer.y + m_vram_transfer.row) % VRAM_HEIGHT;
+    value |= static_cast<uint32_t>(m_vram_ptr[read_y * VRAM_WIDTH + read_x]) << (i * 16);
 
     if (++m_vram_transfer.col == m_vram_transfer.width)
     {
@@ -998,10 +996,10 @@ u32 GPU::ReadGPUREAD()
   return value;
 }
 
-void GPU::WriteGP1(u32 value)
+void GPU::WriteGP1(uint32_t value)
 {
-  const u32 command = (value >> 24) & 0x3Fu;
-  const u32 param = value & UINT32_C(0x00FFFFFF);
+  const uint32_t command = (value >> 24) & 0x3Fu;
+  const uint32_t param = value & UINT32_C(0x00FFFFFF);
   switch (command)
   {
     case 0x00: // Reset GPU
@@ -1042,7 +1040,7 @@ void GPU::WriteGP1(u32 value)
 
     case 0x03: // Display on/off
     {
-      const bool disable = ConvertToBoolUnchecked(value & 0x01);
+      const bool disable = static_cast<bool>(value & 0x01);
       SynchronizeCRTC();
 
       if (!m_GPUSTAT.display_disable && disable && m_GPUSTAT.vertical_interlace && !m_force_progressive_scan)
@@ -1064,7 +1062,7 @@ void GPU::WriteGP1(u32 value)
 
     case 0x05: // Set display start address
     {
-      const u32 new_value = param & CRTCState::Regs::DISPLAY_ADDRESS_START_MASK;
+      const uint32_t new_value = param & CRTCState::Regs::DISPLAY_ADDRESS_START_MASK;
 
       if (m_crtc_state.regs.display_address_start != new_value)
       {
@@ -1077,7 +1075,7 @@ void GPU::WriteGP1(u32 value)
 
     case 0x06: // Set horizontal display range
     {
-      const u32 new_value = param & CRTCState::Regs::HORIZONTAL_DISPLAY_RANGE_MASK;
+      const uint32_t new_value = param & CRTCState::Regs::HORIZONTAL_DISPLAY_RANGE_MASK;
 
       if (m_crtc_state.regs.horizontal_display_range != new_value)
       {
@@ -1090,7 +1088,7 @@ void GPU::WriteGP1(u32 value)
 
     case 0x07: // Set vertical display range
     {
-      const u32 new_value = param & CRTCState::Regs::VERTICAL_DISPLAY_RANGE_MASK;
+      const uint32_t new_value = param & CRTCState::Regs::VERTICAL_DISPLAY_RANGE_MASK;
 
       if (m_crtc_state.regs.vertical_display_range != new_value)
       {
@@ -1105,15 +1103,15 @@ void GPU::WriteGP1(u32 value)
     {
       union GP1_08h
       {
-        u32 bits;
+        uint32_t bits;
 
-        BitField<u32, u8, 0, 2> horizontal_resolution_1;
-        BitField<u32, bool, 2, 1> vertical_resolution;
-        BitField<u32, bool, 3, 1> pal_mode;
-        BitField<u32, bool, 4, 1> display_area_color_depth;
-        BitField<u32, bool, 5, 1> vertical_interlace;
-        BitField<u32, bool, 6, 1> horizontal_resolution_2;
-        BitField<u32, bool, 7, 1> reverse_flag;
+        BitField<uint32_t, uint8_t, 0, 2> horizontal_resolution_1;
+        BitField<uint32_t, bool, 2, 1> vertical_resolution;
+        BitField<uint32_t, bool, 3, 1> pal_mode;
+        BitField<uint32_t, bool, 4, 1> display_area_color_depth;
+        BitField<uint32_t, bool, 5, 1> vertical_interlace;
+        BitField<uint32_t, bool, 6, 1> horizontal_resolution_2;
+        BitField<uint32_t, bool, 7, 1> reverse_flag;
       };
 
       const GP1_08h dm{param};
@@ -1135,7 +1133,7 @@ void GPU::WriteGP1(u32 value)
       if (m_GPUSTAT.bits != new_GPUSTAT.bits)
       {
         // Have to be careful when setting this because Synchronize() can modify GPUSTAT.
-        static constexpr u32 SET_MASK = UINT32_C(0b00000000011111110100000000000000);
+        static constexpr uint32_t SET_MASK = UINT32_C(0b00000000011111110100000000000000);
         m_command_tick_event->InvokeEarly();
         SynchronizeCRTC();
         m_GPUSTAT.bits = (m_GPUSTAT.bits & ~SET_MASK) | (new_GPUSTAT.bits & SET_MASK);
@@ -1146,7 +1144,7 @@ void GPU::WriteGP1(u32 value)
 
     case 0x09: // Allow texture disable
     {
-      m_set_texture_disable_mask = ConvertToBoolUnchecked(param & 0x01);
+      m_set_texture_disable_mask = static_cast<bool>(param & 0x01);
     }
     break;
 
@@ -1167,7 +1165,7 @@ void GPU::WriteGP1(u32 value)
     case 0x1E:
     case 0x1F:
     {
-	    const u8 subcommand = Truncate8(value & 0x07);
+	    const uint8_t subcommand = static_cast<uint8_t>(value & 0x07);
 	    switch (subcommand)
 	    {
 		    case 0x00:
@@ -1219,16 +1217,16 @@ void GPU::ClearDisplay() {}
 
 void GPU::UpdateDisplay() {}
 
-void GPU::ReadVRAM(u32 x, u32 y, u32 width, u32 height) {}
+void GPU::ReadVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {}
 
-void GPU::FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color)
+void GPU::FillVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t color)
 {
-  const u16 color16 = VRAMRGBA8888ToRGBA5551(color);
+  const uint16_t color16 = VRAMRGBA8888ToRGBA5551(color);
   if ((x + width) <= VRAM_WIDTH && !IsInterlacedRenderingEnabled())
   {
-    for (u32 yoffs = 0; yoffs < height; yoffs++)
+    for (uint32_t yoffs = 0; yoffs < height; yoffs++)
     {
-      const u32 row = (y + yoffs) % VRAM_HEIGHT;
+      const uint32_t row = (y + yoffs) % VRAM_HEIGHT;
       std::fill_n(&m_vram_ptr[row * VRAM_WIDTH + x], width, color16);
     }
   }
@@ -1238,44 +1236,44 @@ void GPU::FillVRAM(u32 x, u32 y, u32 width, u32 height, u32 color)
     if (IsCRTCScanlinePending())
       SynchronizeCRTC();
 
-    const u32 active_field = GetActiveLineLSB();
-    for (u32 yoffs = 0; yoffs < height; yoffs++)
+    const uint32_t active_field = GetActiveLineLSB();
+    for (uint32_t yoffs = 0; yoffs < height; yoffs++)
     {
-      const u32 row = (y + yoffs) % VRAM_HEIGHT;
-      if ((row & u32(1)) == active_field)
+      const uint32_t row = (y + yoffs) % VRAM_HEIGHT;
+      if ((row & uint32_t(1)) == active_field)
         continue;
 
-      u16* row_ptr = &m_vram_ptr[row * VRAM_WIDTH];
-      for (u32 xoffs = 0; xoffs < width; xoffs++)
+      uint16_t* row_ptr = &m_vram_ptr[row * VRAM_WIDTH];
+      for (uint32_t xoffs = 0; xoffs < width; xoffs++)
       {
-        const u32 col = (x + xoffs) % VRAM_WIDTH;
+        const uint32_t col = (x + xoffs) % VRAM_WIDTH;
         row_ptr[col] = color16;
       }
     }
   }
   else
   {
-    for (u32 yoffs = 0; yoffs < height; yoffs++)
+    for (uint32_t yoffs = 0; yoffs < height; yoffs++)
     {
-      const u32 row = (y + yoffs) % VRAM_HEIGHT;
-      u16* row_ptr = &m_vram_ptr[row * VRAM_WIDTH];
-      for (u32 xoffs = 0; xoffs < width; xoffs++)
+      const uint32_t row = (y + yoffs) % VRAM_HEIGHT;
+      uint16_t* row_ptr = &m_vram_ptr[row * VRAM_WIDTH];
+      for (uint32_t xoffs = 0; xoffs < width; xoffs++)
       {
-        const u32 col = (x + xoffs) % VRAM_WIDTH;
+        const uint32_t col = (x + xoffs) % VRAM_WIDTH;
         row_ptr[col] = color16;
       }
     }
   }
 }
 
-void GPU::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data, bool set_mask, bool check_mask)
+void GPU::UpdateVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, bool set_mask, bool check_mask)
 {
   // Fast path when the copy is not oversized.
   if ((x + width) <= VRAM_WIDTH && (y + height) <= VRAM_HEIGHT && !set_mask && !check_mask)
   {
-    const u16* src_ptr = static_cast<const u16*>(data);
-    u16* dst_ptr = &m_vram_ptr[y * VRAM_WIDTH + x];
-    for (u32 yoffs = 0; yoffs < height; yoffs++)
+    const uint16_t* src_ptr = static_cast<const uint16_t*>(data);
+    uint16_t* dst_ptr = &m_vram_ptr[y * VRAM_WIDTH + x];
+    for (uint32_t yoffs = 0; yoffs < height; yoffs++)
     {
       std::copy_n(src_ptr, width, dst_ptr);
       src_ptr += width;
@@ -1286,17 +1284,17 @@ void GPU::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data, bool
   {
     // Slow path when we need to handle wrap-around.
     // During transfer/render operations, if ((dst_pixel & mask_and) == 0) { pixel = src_pixel | mask_or }
-    const u16* src_ptr = static_cast<const u16*>(data);
-    const u16 mask_and = check_mask ? 0x8000 : 0;
-    const u16 mask_or = set_mask ? 0x8000 : 0;
+    const uint16_t* src_ptr = static_cast<const uint16_t*>(data);
+    const uint16_t mask_and = check_mask ? 0x8000 : 0;
+    const uint16_t mask_or = set_mask ? 0x8000 : 0;
 
-    for (u32 row = 0; row < height;)
+    for (uint32_t row = 0; row < height;)
     {
-      u16* dst_row_ptr = &m_vram_ptr[((y + row++) % VRAM_HEIGHT) * VRAM_WIDTH];
-      for (u32 col = 0; col < width;)
+      uint16_t* dst_row_ptr = &m_vram_ptr[((y + row++) % VRAM_HEIGHT) * VRAM_WIDTH];
+      for (uint32_t col = 0; col < width;)
       {
         // TODO: Handle unaligned reads...
-        u16* pixel_ptr = &dst_row_ptr[(x + col++) % VRAM_WIDTH];
+        uint16_t* pixel_ptr = &dst_row_ptr[(x + col++) % VRAM_WIDTH];
         if (((*pixel_ptr) & mask_and) == 0)
           *pixel_ptr = *(src_ptr++) | mask_or;
       }
@@ -1304,26 +1302,26 @@ void GPU::UpdateVRAM(u32 x, u32 y, u32 width, u32 height, const void* data, bool
   }
 }
 
-void GPU::CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 height)
+void GPU::CopyVRAM(uint32_t src_x, uint32_t src_y, uint32_t dst_x, uint32_t dst_y, uint32_t width, uint32_t height)
 {
   // Break up oversized copies. This behavior has not been verified on console.
   if ((src_x + width) > VRAM_WIDTH || (dst_x + width) > VRAM_WIDTH)
   {
-    u32 remaining_rows = height;
-    u32 current_src_y = src_y;
-    u32 current_dst_y = dst_y;
+    uint32_t remaining_rows = height;
+    uint32_t current_src_y = src_y;
+    uint32_t current_dst_y = dst_y;
     while (remaining_rows > 0)
     {
-      const u32 rows_to_copy =
-        std::min<u32>(remaining_rows, std::min<u32>(VRAM_HEIGHT - current_src_y, VRAM_HEIGHT - current_dst_y));
+      const uint32_t rows_to_copy =
+        std::min<uint32_t>(remaining_rows, std::min<uint32_t>(VRAM_HEIGHT - current_src_y, VRAM_HEIGHT - current_dst_y));
 
-      u32 remaining_columns = width;
-      u32 current_src_x = src_x;
-      u32 current_dst_x = dst_x;
+      uint32_t remaining_columns = width;
+      uint32_t current_src_x = src_x;
+      uint32_t current_dst_x = dst_x;
       while (remaining_columns > 0)
       {
-        const u32 columns_to_copy =
-          std::min<u32>(remaining_columns, std::min<u32>(VRAM_WIDTH - current_src_x, VRAM_WIDTH - current_dst_x));
+        const uint32_t columns_to_copy =
+          std::min<uint32_t>(remaining_columns, std::min<uint32_t>(VRAM_WIDTH - current_src_x, VRAM_WIDTH - current_dst_x));
         CopyVRAM(current_src_x, current_src_y, current_dst_x, current_dst_y, columns_to_copy, rows_to_copy);
         current_src_x = (current_src_x + columns_to_copy) % VRAM_WIDTH;
         current_dst_x = (current_dst_x + columns_to_copy) % VRAM_WIDTH;
@@ -1339,21 +1337,21 @@ void GPU::CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 he
   }
 
   // This doesn't have a fast path, but do we really need one? It's not common.
-  const u16 mask_and = m_GPUSTAT.GetMaskAND();
-  const u16 mask_or = m_GPUSTAT.GetMaskOR();
+  const uint16_t mask_and = m_GPUSTAT.GetMaskAND();
+  const uint16_t mask_or = m_GPUSTAT.GetMaskOR();
 
   // Copy in reverse when src_x < dst_x, this is verified on console.
   if (src_x < dst_x || ((src_x + width - 1) % VRAM_WIDTH) < ((dst_x + width - 1) % VRAM_WIDTH))
   {
-    for (u32 row = 0; row < height; row++)
+    for (uint32_t row = 0; row < height; row++)
     {
-      const u16* src_row_ptr = &m_vram_ptr[((src_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
-      u16* dst_row_ptr = &m_vram_ptr[((dst_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
+      const uint16_t* src_row_ptr = &m_vram_ptr[((src_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
+      uint16_t* dst_row_ptr = &m_vram_ptr[((dst_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
 
-      for (s32 col = static_cast<s32>(width - 1); col >= 0; col--)
+      for (int32_t col = static_cast<int32_t>(width - 1); col >= 0; col--)
       {
-        const u16 src_pixel = src_row_ptr[(src_x + static_cast<u32>(col)) % VRAM_WIDTH];
-        u16* dst_pixel_ptr = &dst_row_ptr[(dst_x + static_cast<u32>(col)) % VRAM_WIDTH];
+        const uint16_t src_pixel = src_row_ptr[(src_x + static_cast<uint32_t>(col)) % VRAM_WIDTH];
+        uint16_t* dst_pixel_ptr = &dst_row_ptr[(dst_x + static_cast<uint32_t>(col)) % VRAM_WIDTH];
         if ((*dst_pixel_ptr & mask_and) == 0)
           *dst_pixel_ptr = src_pixel | mask_or;
       }
@@ -1361,15 +1359,15 @@ void GPU::CopyVRAM(u32 src_x, u32 src_y, u32 dst_x, u32 dst_y, u32 width, u32 he
   }
   else
   {
-    for (u32 row = 0; row < height; row++)
+    for (uint32_t row = 0; row < height; row++)
     {
-      const u16* src_row_ptr = &m_vram_ptr[((src_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
-      u16* dst_row_ptr = &m_vram_ptr[((dst_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
+      const uint16_t* src_row_ptr = &m_vram_ptr[((src_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
+      uint16_t* dst_row_ptr = &m_vram_ptr[((dst_y + row) % VRAM_HEIGHT) * VRAM_WIDTH];
 
-      for (u32 col = 0; col < width; col++)
+      for (uint32_t col = 0; col < width; col++)
       {
-        const u16 src_pixel = src_row_ptr[(src_x + col) % VRAM_WIDTH];
-        u16* dst_pixel_ptr = &dst_row_ptr[(dst_x + col) % VRAM_WIDTH];
+        const uint16_t src_pixel = src_row_ptr[(src_x + col) % VRAM_WIDTH];
+        uint16_t* dst_pixel_ptr = &dst_row_ptr[(dst_x + col) % VRAM_WIDTH];
         if ((*dst_pixel_ptr & mask_and) == 0)
           *dst_pixel_ptr = src_pixel | mask_or;
       }
@@ -1381,9 +1379,9 @@ void GPU::DispatchRenderCommand() {}
 
 void GPU::FlushRender() {}
 
-void GPU::SetDrawMode(u16 value)
+void GPU::SetDrawMode(uint16_t value)
 {
-  GPUDrawModeReg new_mode_reg{static_cast<u16>(value & GPUDrawModeReg::MASK)};
+  GPUDrawModeReg new_mode_reg{static_cast<uint16_t>(value & GPUDrawModeReg::MASK)};
   if (!m_set_texture_disable_mask)
     new_mode_reg.texture_disable = false;
 
@@ -1405,23 +1403,23 @@ void GPU::SetDrawMode(u16 value)
 
   // Bits 0..10 are returned in the GPU status register.
   m_GPUSTAT.bits = (m_GPUSTAT.bits & ~(GPUDrawModeReg::GPUSTAT_MASK)) |
-                   (ZeroExtend32(new_mode_reg.bits) & GPUDrawModeReg::GPUSTAT_MASK);
+                   (static_cast<uint32_t>(new_mode_reg.bits) & GPUDrawModeReg::GPUSTAT_MASK);
   m_GPUSTAT.texture_disable = m_draw_mode.mode_reg.texture_disable;
 }
 
-void GPU::SetTexturePalette(u16 value)
+void GPU::SetTexturePalette(uint16_t value)
 {
   value &= DrawMode::PALETTE_MASK;
   if (m_draw_mode.palette_reg == value)
     return;
 
-  m_draw_mode.texture_palette_x = ZeroExtend32(value & 0x3F) * 16;
-  m_draw_mode.texture_palette_y = ZeroExtend32(value >> 6);
+  m_draw_mode.texture_palette_x = static_cast<uint32_t>(value & 0x3F) * 16;
+  m_draw_mode.texture_palette_y = static_cast<uint32_t>(value >> 6);
   m_draw_mode.palette_reg = value;
   m_draw_mode.texture_page_changed = true;
 }
 
-void GPU::SetTextureWindow(u32 value)
+void GPU::SetTextureWindow(uint32_t value)
 {
   value &= DrawMode::TEXTURE_WINDOW_MASK;
   if (m_draw_mode.texture_window_value == value)
@@ -1429,10 +1427,10 @@ void GPU::SetTextureWindow(u32 value)
 
   FlushRender();
 
-  const u8 mask_x = Truncate8(value & UINT32_C(0x1F));
-  const u8 mask_y = Truncate8((value >> 5) & UINT32_C(0x1F));
-  const u8 offset_x = Truncate8((value >> 10) & UINT32_C(0x1F));
-  const u8 offset_y = Truncate8((value >> 15) & UINT32_C(0x1F));
+  const uint8_t mask_x = static_cast<uint8_t>(value & UINT32_C(0x1F));
+  const uint8_t mask_y = static_cast<uint8_t>((value >> 5) & UINT32_C(0x1F));
+  const uint8_t offset_x = static_cast<uint8_t>((value >> 10) & UINT32_C(0x1F));
+  const uint8_t offset_y = static_cast<uint8_t>((value >> 15) & UINT32_C(0x1F));
 
   m_draw_mode.texture_window.and_x = ~(mask_x * 8);
   m_draw_mode.texture_window.and_y = ~(mask_y * 8);

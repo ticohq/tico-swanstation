@@ -1,10 +1,7 @@
 #pragma once
 #include "types.h"
-#include <algorithm>
 #include <cstdarg>
 #include <cstring>
-#include <limits>
-#include <string>
 #include <string_view>
 
 //
@@ -23,15 +20,15 @@ public:
     char* pBuffer;
 
     // Length of the string located in pBuffer (in characters)
-    u32 StringLength;
+    uint32_t StringLength;
 
     // Size of the buffer pointed to by pBuffer
-    u32 BufferSize;
+    uint32_t BufferSize;
 
     // Reference count of this data object. If set to -1,
     // it is considered noncopyable and any copies of the string
     // will always create their own copy.
-    s32 ReferenceCount;
+    int32_t ReferenceCount;
 
     // Whether the memory pointed to by pBuffer is writable.
     bool ReadOnly;
@@ -46,9 +43,6 @@ public:
   // For strings that do not allocate any space on the heap, see StaticString.
   String(const char* Text);
 
-  // Creates a string contained the specified text (with length).
-  String(const char* Text, u32 Count);
-
   // Creates a string using the same buffer as another string (copy-on-write).
   String(const String& copyString);
 
@@ -58,129 +52,51 @@ public:
   // Construct a string from a data object, does not increment the reference count on the string data, use carefully.
   explicit String(StringData* pStringData) : m_pStringData(pStringData) {}
 
-  // Creates string from string_view.
-  String(const std::string_view& sv);
-
   // Destructor. Child classes may not have any destructors, as this is not virtual.
   ~String();
 
   // manual assignment
   void Assign(const String& copyString);
   void Assign(const char* copyText);
-  void Assign(const std::string& copyString);
-  void Assign(const std::string_view& copyString);
   void Assign(String&& moveString);
 
   // Ensures that the string has its own unique copy of the data.
   void EnsureOwnWritableCopy();
 
   // Ensures that we have our own copy of the buffer, and spaceRequired bytes free in the buffer.
-  void EnsureRemainingSpace(u32 spaceRequired);
+  void EnsureRemainingSpace(uint32_t spaceRequired);
 
   // clears the contents of the string
   void Clear();
 
-  // clear the contents of the string, and free any memory currently being used
-  void Obliterate();
-
-  // swaps strings
-  void Swap(String& swapString);
-
-  // append a single character to this string
-  void AppendCharacter(char c);
-
   // append a string to this string
   void AppendString(const String& appendStr);
   void AppendString(const char* appendText);
-  void AppendString(const char* appendString, u32 Count);
-  void AppendString(const std::string& appendString);
-  void AppendString(const std::string_view& appendString);
-
-  // append a substring of the specified string to this string
-  void AppendSubString(const String& appendStr, s32 Offset = 0, s32 Count = std::numeric_limits<s32>::max());
-  void AppendSubString(const char* appendText, s32 Offset = 0, s32 Count = std::numeric_limits<s32>::max());
-
-  // append formatted string to this string
-  void AppendFormattedString(const char* FormatString, ...) printflike(2, 3);
-  void AppendFormattedStringVA(const char* FormatString, std::va_list ArgPtr);
+  void AppendString(const char* appendString, uint32_t Count);
 
   // set to formatted string
   void Format(const char* FormatString, ...) printflike(2, 3);
   void FormatVA(const char* FormatString, std::va_list ArgPtr);
 
   // compare one string to another
-  bool Compare(const String& otherString) const;
   bool Compare(const char* otherText) const;
-  bool CompareInsensitive(const String& otherString) const;
-  bool CompareInsensitive(const char* otherText) const;
-
-  // numerical compares
-  int NumericCompare(const String& otherString) const;
-  int NumericCompare(const char* otherText) const;
-  int NumericCompareInsensitive(const String& otherString) const;
-  int NumericCompareInsensitive(const char* otherText) const;
-
-  // starts with / ends with
-  bool StartsWith(const char* compareString, bool caseSensitive = true) const;
-  bool StartsWith(const String& compareString, bool caseSensitive = true) const;
-  bool EndsWith(const char* compareString, bool caseSensitive = true) const;
-  bool EndsWith(const String& compareString, bool caseSensitive = true) const;
-
-  // searches for a character inside a string
-  // rfind is the same except it starts at the end instead of the start
-  // returns -1 if it is not found, otherwise the offset in the string
-  s32 Find(char c, u32 Offset = 0) const;
-
-  // searches for a string inside a string
-  // rfind is the same except it starts at the end instead of the start
-  // returns -1 if it is not found, otherwise the offset in the string
-  s32 Find(const char* str, u32 Offset = 0) const;
-
-  // alters the length of the string to be at least len bytes long
-  void Reserve(u32 newReserve, bool Force = false);
 
   // Cuts characters off the string to reduce it to len bytes long.
-  void Resize(u32 newSize, char fillerCharacter = ' ', bool skrinkIfSmaller = false);
+  void Resize(uint32_t newSize, char fillerCharacter = ' ');
 
   // updates the internal length counter when the string is externally modified
   void UpdateSize();
 
-  // shrink the string to the minimum size possible
-  void Shrink(bool Force);
-
   // gets the size of the string
-  u32 GetLength() const { return m_pStringData->StringLength; }
+  uint32_t GetLength() const { return m_pStringData->StringLength; }
   bool IsEmpty() const { return (m_pStringData->StringLength == 0); }
 
   // gets the maximum number of bytes we can write to the string, currently
-  u32 GetBufferSize() const { return m_pStringData->BufferSize; }
-  u32 GetWritableBufferSize()
-  {
-    EnsureOwnWritableCopy();
-    return m_pStringData->BufferSize;
-  }
-
-  // erase count characters at offset from this string. if count is less than zero, everything past offset is erased
-  void Erase(s32 Offset, s32 Count = std::numeric_limits<s32>::max());
-
-  // replaces all instances of character c with character r in this string
-  // returns the number of changes
-  u32 Replace(char searchCharacter, char replaceCharacter);
+  uint32_t GetBufferSize() const { return m_pStringData->BufferSize; }
 
   // replaces all instances of string s with string r in this string
   // returns the number of changes
-  u32 Replace(const char* searchString, const char* replaceString);
-
-  // convert string to lowercase
-  void ToLower();
-
-  // convert string to upper
-  void ToUpper();
-
-  // strip characters from start and end of the string
-  void LStrip(const char* szStripCharacters = " \t\r\n");
-  void RStrip(const char* szStripCharacters = " \t\r\n");
-  void Strip(const char* szStripCharacters = " \t\r\n");
+  uint32_t Replace(const char* searchString, const char* replaceString);
 
   // gets a constant pointer to the string
   const char* GetCharArray() const { return m_pStringData->pBuffer; }
@@ -216,16 +132,6 @@ public:
     Assign(Text);
     return *this;
   }
-  String& operator=(const std::string& Text)
-  {
-    Assign(Text);
-    return *this;
-  }
-  String& operator=(const std::string_view& Text)
-  {
-    Assign(Text);
-    return *this;
-  }
 
   // Move operator.
   String& operator=(String&& moveString)
@@ -234,19 +140,9 @@ public:
     return *this;
   }
 
-  // comparative operators
-  bool operator==(const String& compString) const { return Compare(compString); }
-  bool operator==(const char* compString) const { return Compare(compString); }
-  bool operator!=(const String& compString) const { return !Compare(compString); }
-  bool operator!=(const char* compString) const { return !Compare(compString); }
-  bool operator<(const String& compString) const { return (NumericCompare(compString) < 0); }
-  bool operator<(const char* compString) const { return (NumericCompare(compString) < 0); }
-  bool operator>(const String& compString) const { return (NumericCompare(compString) > 0); }
-  bool operator>(const char* compString) const { return (NumericCompare(compString) > 0); }
-
 protected:
   // Internal append function.
-  void InternalAppend(const char* pString, u32 Length);
+  void InternalAppend(const char* pString, uint32_t Length);
 
   // Pointer to string data.
   StringData* m_pStringData;
@@ -255,18 +151,8 @@ protected:
   static const StringData s_EmptyStringData;
 };
 
-// static string, stored in .rodata
-#define StaticString(Text)                                                                                             \
-  []() noexcept -> String {                                                                                            \
-    static constexpr u32 buffer_size = sizeof(Text);                                                                   \
-    static constexpr u32 length = buffer_size - 1;                                                                     \
-    static constexpr String::StringData data{const_cast<char*>(Text), length, buffer_size, static_cast<s32>(-1),       \
-                                             true};                                                                    \
-    return String(const_cast<String::StringData*>(&data));                                                             \
-  }()
-
 // stack-allocated string
-template<u32 L>
+template<uint32_t L>
 class StackString : public String
 {
 public:
@@ -278,30 +164,11 @@ public:
     Assign(Text);
   }
 
-  StackString(const char* Text, u32 Count) : String(&m_sStringData)
-  {
-    InitStackStringData();
-    AppendString(Text, Count);
-  }
-
-  StackString(const String& copyString) : String(&m_sStringData)
-  {
-    // force a copy by passing it a string pointer, instead of a string object
-    InitStackStringData();
-    Assign(copyString.GetCharArray());
-  }
-
   StackString(const StackString& copyString) : String(&m_sStringData)
   {
     // force a copy by passing it a string pointer, instead of a string object
     InitStackStringData();
     Assign(copyString.GetCharArray());
-  }
-
-  StackString(const std::string_view& sv) : String(&m_sStringData)
-  {
-    InitStackStringData();
-    AppendString(sv.data(), static_cast<u32>(sv.size()));
   }
 
   // Override the fromstring method
@@ -336,16 +203,6 @@ public:
     Assign(Text);
     return *this;
   }
-  StackString& operator=(const std::string& Text)
-  {
-    Assign(Text);
-    return *this;
-  }
-  StackString& operator=(const std::string_view& Text)
-  {
-    Assign(Text);
-    return *this;
-  }
 
 private:
   StringData m_sStringData;
@@ -371,6 +228,3 @@ private:
 typedef StackString<64> TinyString;
 typedef StackString<256> SmallString;
 typedef StackString<512> PathString;
-
-// empty string global
-extern const String EmptyString;

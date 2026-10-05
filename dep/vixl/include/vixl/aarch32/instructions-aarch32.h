@@ -24,8 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef SWANSTATION_VIXL_AARCH32_INSTRUCTIONS_AARCH32_H_
-#define SWANSTATION_VIXL_AARCH32_INSTRUCTIONS_AARCH32_H_
+#ifndef VIXL_AARCH32_INSTRUCTIONS_AARCH32_H_
+#define VIXL_AARCH32_INSTRUCTIONS_AARCH32_H_
 
 extern "C" {
 #include <stdint.h>
@@ -45,7 +45,7 @@ extern "C" {
 #define HARDFLOAT __attribute__((noinline))
 #endif
 
-namespace swanstation_vixl {
+namespace vixl {
 namespace aarch32 {
 
 class Operand;
@@ -83,28 +83,28 @@ class CPURegister {
   CPURegister(RegisterType type, uint32_t code, int size)
       : value_((type << kTypeShift) | (code << kCodeShift) |
                (size << kSizeShift)) {
-#ifdef SWANSTATION_VIXL_DEBUG
+#ifdef VIXL_DEBUG
     switch (type) {
       case kNoRegister:
         break;
       case kRRegister:
-        SWANSTATION_VIXL_ASSERT(code < kNumberOfRegisters);
-        SWANSTATION_VIXL_ASSERT(size == kRegSizeInBits);
+        VIXL_ASSERT(code < kNumberOfRegisters);
+        VIXL_ASSERT(size == kRegSizeInBits);
         break;
       case kSRegister:
-        SWANSTATION_VIXL_ASSERT(code < kNumberOfSRegisters);
-        SWANSTATION_VIXL_ASSERT(size == kSRegSizeInBits);
+        VIXL_ASSERT(code < kNumberOfSRegisters);
+        VIXL_ASSERT(size == kSRegSizeInBits);
         break;
       case kDRegister:
-        SWANSTATION_VIXL_ASSERT(code < kMaxNumberOfDRegisters);
-        SWANSTATION_VIXL_ASSERT(size == kDRegSizeInBits);
+        VIXL_ASSERT(code < kMaxNumberOfDRegisters);
+        VIXL_ASSERT(size == kDRegSizeInBits);
         break;
       case kQRegister:
-        SWANSTATION_VIXL_ASSERT(code < kNumberOfQRegisters);
-        SWANSTATION_VIXL_ASSERT(size == kQRegSizeInBits);
+        VIXL_ASSERT(code < kNumberOfQRegisters);
+        VIXL_ASSERT(size == kQRegSizeInBits);
         break;
       default:
-        SWANSTATION_VIXL_UNREACHABLE();
+        VIXL_UNREACHABLE();
         break;
     }
 #endif
@@ -138,7 +138,7 @@ class Register : public CPURegister {
   Register() : CPURegister(kNoRegister, 0, kRegSizeInBits) {}
   explicit Register(uint32_t code)
       : CPURegister(kRRegister, code % kNumberOfRegisters, kRegSizeInBits) {
-    SWANSTATION_VIXL_ASSERT(GetCode() < kNumberOfRegisters);
+    VIXL_ASSERT(GetCode() < kNumberOfRegisters);
   }
   bool Is(Register ref) const { return GetCode() == ref.GetCode(); }
   bool IsLow() const { return GetCode() < kNumberOfT32LowRegisters; }
@@ -154,12 +154,12 @@ class RegisterOrAPSR_nzcv {
 
  public:
   explicit RegisterOrAPSR_nzcv(uint32_t code) : code_(code) {
-    SWANSTATION_VIXL_ASSERT(code_ < kNumberOfRegisters);
+    VIXL_ASSERT(code_ < kNumberOfRegisters);
   }
   bool IsAPSR_nzcv() const { return code_ == kPcCode; }
   uint32_t GetCode() const { return code_; }
   Register AsRegister() const {
-    SWANSTATION_VIXL_ASSERT(!IsAPSR_nzcv());
+    VIXL_ASSERT(!IsAPSR_nzcv());
     return Register(code_);
   }
 };
@@ -205,7 +205,7 @@ class SRegister : public VRegister {
 inline unsigned ExtractSRegister(uint32_t instr,
                                  int single_bit_field,
                                  int four_bit_field_lowest_bit) {
-  SWANSTATION_VIXL_ASSERT(single_bit_field > 0);
+  VIXL_ASSERT(single_bit_field > 0);
   if (four_bit_field_lowest_bit == 0) {
     return ((instr << 1) & 0x1e) | ((instr >> single_bit_field) & 0x1);
   }
@@ -224,12 +224,12 @@ class DRegister : public VRegister {
       : VRegister(kDRegister, code, kDRegSizeInBits) {}
   SRegister GetLane(uint32_t lane) const {
     uint32_t lane_count = kDRegSizeInBits / kSRegSizeInBits;
-    SWANSTATION_VIXL_ASSERT(lane < lane_count);
-    SWANSTATION_VIXL_ASSERT(GetCode() * lane_count < kNumberOfSRegisters);
+    VIXL_ASSERT(lane < lane_count);
+    VIXL_ASSERT(GetCode() * lane_count < kNumberOfSRegisters);
     return SRegister(GetCode() * lane_count + lane);
   }
   uint32_t Encode(int single_bit_field, int four_bit_field_lowest_bit) const {
-    SWANSTATION_VIXL_ASSERT(single_bit_field >= 4);
+    VIXL_ASSERT(single_bit_field >= 4);
     return ((GetCode() & 0x10) << (single_bit_field - 4)) |
            ((GetCode() & 0xf) << four_bit_field_lowest_bit);
   }
@@ -238,7 +238,7 @@ class DRegister : public VRegister {
 inline unsigned ExtractDRegister(uint32_t instr,
                                  int single_bit_field,
                                  int four_bit_field_lowest_bit) {
-  SWANSTATION_VIXL_ASSERT(single_bit_field >= 4);
+  VIXL_ASSERT(single_bit_field >= 4);
   return ((instr >> (single_bit_field - 4)) & 0x10) |
          ((instr >> four_bit_field_lowest_bit) & 0xf);
 }
@@ -289,7 +289,7 @@ class DataType {
  public:
   explicit DataType(uint32_t size)
       : value_(static_cast<DataTypeValue>(kDataTypeUntyped | size)) {
-    SWANSTATION_VIXL_ASSERT((size == 8) || (size == 16) || (size == 32) || (size == 64));
+    VIXL_ASSERT((size == 8) || (size == 16) || (size == 32) || (size == 64));
   }
   // Users should be able to use "S8", "S6" and so forth to instantiate this
   // class.
@@ -332,7 +332,7 @@ class DRegisterLane : public DRegister {
   uint32_t EncodeX(DataType dt,
                    int single_bit_field,
                    int four_bit_field_lowest_bit) const {
-    SWANSTATION_VIXL_ASSERT(single_bit_field >= 4);
+    VIXL_ASSERT(single_bit_field >= 4);
     uint32_t value = lane_ << ((dt.GetSize() == 16) ? 3 : 4) | GetCode();
     return ((value & 0x10) << (single_bit_field - 4)) |
            ((value & 0xf) << four_bit_field_lowest_bit);
@@ -344,7 +344,7 @@ inline unsigned ExtractDRegisterAndLane(uint32_t instr,
                                         int single_bit_field,
                                         int four_bit_field_lowest_bit,
                                         int* lane) {
-  SWANSTATION_VIXL_ASSERT(single_bit_field >= 4);
+  VIXL_ASSERT(single_bit_field >= 4);
   uint32_t value = ((instr >> (single_bit_field - 4)) & 0x10) |
                    ((instr >> four_bit_field_lowest_bit) & 0xf);
   if (dt.GetSize() == 16) {
@@ -369,20 +369,20 @@ class QRegister : public VRegister {
   uint32_t Encode(int offset) { return GetCode() << offset; }
   DRegister GetDLane(uint32_t lane) const {
     uint32_t lane_count = kQRegSizeInBits / kDRegSizeInBits;
-    SWANSTATION_VIXL_ASSERT(lane < lane_count);
+    VIXL_ASSERT(lane < lane_count);
     return DRegister(GetCode() * lane_count + lane);
   }
   DRegister GetLowDRegister() const { return DRegister(GetCode() * 2); }
   DRegister GetHighDRegister() const { return DRegister(1 + GetCode() * 2); }
   SRegister GetSLane(uint32_t lane) const {
     uint32_t lane_count = kQRegSizeInBits / kSRegSizeInBits;
-    SWANSTATION_VIXL_ASSERT(lane < lane_count);
-    SWANSTATION_VIXL_ASSERT(GetCode() * lane_count < kNumberOfSRegisters);
+    VIXL_ASSERT(lane < lane_count);
+    VIXL_ASSERT(GetCode() * lane_count < kNumberOfSRegisters);
     return SRegister(GetCode() * lane_count + lane);
   }
   uint32_t Encode(int single_bit_field, int four_bit_field_lowest_bit) {
     // Encode "code * 2".
-    SWANSTATION_VIXL_ASSERT(single_bit_field >= 3);
+    VIXL_ASSERT(single_bit_field >= 3);
     return ((GetCode() & 0x8) << (single_bit_field - 3)) |
            ((GetCode() & 0x7) << (four_bit_field_lowest_bit + 1));
   }
@@ -391,7 +391,7 @@ class QRegister : public VRegister {
 inline unsigned ExtractQRegister(uint32_t instr,
                                  int single_bit_field,
                                  int four_bit_field_lowest_bit) {
-  SWANSTATION_VIXL_ASSERT(single_bit_field >= 3);
+  VIXL_ASSERT(single_bit_field >= 3);
   return ((instr >> (single_bit_field - 3)) & 0x8) |
          ((instr >> (four_bit_field_lowest_bit + 1)) & 0x7);
 }
@@ -626,7 +626,7 @@ class VRegisterList {
         case kSRegSizeInBits:
           return UINT64_C(0x1) << reg.GetCode();
         default:
-          SWANSTATION_VIXL_UNREACHABLE();
+          VIXL_UNREACHABLE();
           return 0;
       }
     }
@@ -651,11 +651,11 @@ class SRegisterList {
   explicit SRegisterList(SRegister reg) : first_(reg.GetCode()), length_(1) {}
   SRegisterList(SRegister first, int length)
       : first_(first.GetCode()), length_(length) {
-    SWANSTATION_VIXL_ASSERT(length >= 0);
+    VIXL_ASSERT(length >= 0);
   }
   SRegister GetSRegister(int n) const {
-    SWANSTATION_VIXL_ASSERT(n >= 0);
-    SWANSTATION_VIXL_ASSERT(n < length_);
+    VIXL_ASSERT(n >= 0);
+    VIXL_ASSERT(n < length_);
     return SRegister((first_.GetCode() + n) % kNumberOfSRegisters);
   }
   const SRegister& GetFirstSRegister() const { return first_; }
@@ -673,11 +673,11 @@ class DRegisterList {
   explicit DRegisterList(DRegister reg) : first_(reg.GetCode()), length_(1) {}
   DRegisterList(DRegister first, int length)
       : first_(first.GetCode()), length_(length) {
-    SWANSTATION_VIXL_ASSERT(length >= 0);
+    VIXL_ASSERT(length >= 0);
   }
   DRegister GetDRegister(int n) const {
-    SWANSTATION_VIXL_ASSERT(n >= 0);
-    SWANSTATION_VIXL_ASSERT(n < length_);
+    VIXL_ASSERT(n >= 0);
+    VIXL_ASSERT(n < length_);
     return DRegister((first_.GetCode() + n) % kMaxNumberOfDRegisters);
   }
   const DRegister& GetFirstDRegister() const { return first_; }
@@ -705,7 +705,7 @@ class NeonRegisterList {
         type_(type),
         lane_(-1),
         length_(1) {
-    SWANSTATION_VIXL_ASSERT(type_ != kOneLane);
+    VIXL_ASSERT(type_ != kOneLane);
   }
   NeonRegisterList(DRegister reg, int lane)
       : first_(reg.GetCode()),
@@ -713,21 +713,21 @@ class NeonRegisterList {
         type_(kOneLane),
         lane_(lane),
         length_(1) {
-    SWANSTATION_VIXL_ASSERT((lane_ >= 0) && (lane_ < 8));
+    VIXL_ASSERT((lane_ >= 0) && (lane_ < 8));
   }
   NeonRegisterList(DRegister first,
                    DRegister last,
                    SpacingType spacing,
                    TransferType type)
       : first_(first.GetCode()), spacing_(spacing), type_(type), lane_(-1) {
-    SWANSTATION_VIXL_ASSERT(type != kOneLane);
-    SWANSTATION_VIXL_ASSERT(first.GetCode() <= last.GetCode());
+    VIXL_ASSERT(type != kOneLane);
+    VIXL_ASSERT(first.GetCode() <= last.GetCode());
 
     int range = last.GetCode() - first.GetCode();
-    SWANSTATION_VIXL_ASSERT(IsSingleSpaced() || IsMultiple(range, 2));
+    VIXL_ASSERT(IsSingleSpaced() || IsMultiple(range, 2));
     length_ = (IsDoubleSpaced() ? (range / 2) : range) + 1;
 
-    SWANSTATION_VIXL_ASSERT(length_ <= 4);
+    VIXL_ASSERT(length_ <= 4);
   }
   NeonRegisterList(DRegister first,
                    DRegister last,
@@ -737,20 +737,20 @@ class NeonRegisterList {
         spacing_(spacing),
         type_(kOneLane),
         lane_(lane) {
-    SWANSTATION_VIXL_ASSERT((lane >= 0) && (lane < 8));
-    SWANSTATION_VIXL_ASSERT(first.GetCode() <= last.GetCode());
+    VIXL_ASSERT((lane >= 0) && (lane < 8));
+    VIXL_ASSERT(first.GetCode() <= last.GetCode());
 
     int range = last.GetCode() - first.GetCode();
-    SWANSTATION_VIXL_ASSERT(IsSingleSpaced() || IsMultiple(range, 2));
+    VIXL_ASSERT(IsSingleSpaced() || IsMultiple(range, 2));
     length_ = (IsDoubleSpaced() ? (range / 2) : range) + 1;
 
-    SWANSTATION_VIXL_ASSERT(length_ <= 4);
+    VIXL_ASSERT(length_ <= 4);
   }
   DRegister GetDRegister(int n) const {
-    SWANSTATION_VIXL_ASSERT(n >= 0);
-    SWANSTATION_VIXL_ASSERT(n < length_);
+    VIXL_ASSERT(n >= 0);
+    VIXL_ASSERT(n < length_);
     unsigned code = first_.GetCode() + (IsDoubleSpaced() ? (2 * n) : n);
-    SWANSTATION_VIXL_ASSERT(code < kMaxNumberOfDRegisters);
+    VIXL_ASSERT(code < kMaxNumberOfDRegisters);
     return DRegister(code);
   }
   const DRegister& GetFirstDRegister() const { return first_; }
@@ -878,7 +878,7 @@ class MaskedSpecialRegister {
 
  public:
   explicit MaskedSpecialRegister(uint32_t reg) : reg_(reg) {
-    SWANSTATION_VIXL_ASSERT(reg <= SPSR_fsxc);
+    VIXL_ASSERT(reg <= SPSR_fsxc);
   }
   MaskedSpecialRegister(
       MaskedSpecialRegisterType reg)  // NOLINT(runtime/explicit)
@@ -908,7 +908,7 @@ class SpecialFPRegister {
 
  public:
   explicit SpecialFPRegister(uint32_t reg) : reg_(reg) {
-#ifdef SWANSTATION_VIXL_DEBUG
+#ifdef VIXL_DEBUG
     switch (reg) {
       case FPSID:
       case FPSCR:
@@ -918,7 +918,7 @@ class SpecialFPRegister {
       case FPEXC:
         break;
       default:
-        SWANSTATION_VIXL_UNREACHABLE();
+        VIXL_UNREACHABLE();
     }
 #endif
   }
@@ -940,7 +940,7 @@ class CRegister {
 
  public:
   explicit CRegister(uint32_t code) : code_(code) {
-    SWANSTATION_VIXL_ASSERT(code < kNumberOfRegisters);
+    VIXL_ASSERT(code < kNumberOfRegisters);
   }
   uint32_t GetCode() const { return code_; }
   bool Is(CRegister value) const { return code_ == value.code_; }
@@ -1006,7 +1006,7 @@ class Condition {
   static const Condition None() { return Condition(kNone); }
   static const Condition Never() { return Condition(kNever); }
   explicit Condition(uint32_t condition) : condition_(condition) {
-    SWANSTATION_VIXL_ASSERT(condition <= kNone);
+    VIXL_ASSERT(condition <= kNone);
   }
   // Users should be able to use "eq", "ne" and so forth to instantiate this
   // class.
@@ -1021,7 +1021,7 @@ class Condition {
   bool IsNever() const { return condition_ == kNever; }
   bool IsNotNever() const { return condition_ != kNever; }
   Condition Negate() const {
-    SWANSTATION_VIXL_ASSERT(IsNot(al) && IsNot(kNever));
+    VIXL_ASSERT(IsNot(al) && IsNot(kNever));
     return Condition(condition_ ^ 1);
   }
 };
@@ -1086,25 +1086,25 @@ class ImmediateShiftOperand : public Shift {
   // Constructor used for assembly.
   ImmediateShiftOperand(Shift shift, uint32_t amount)
       : Shift(shift), amount_(amount) {
-#ifdef SWANSTATION_VIXL_DEBUG
+#ifdef VIXL_DEBUG
     switch (shift.GetType()) {
       case LSL:
-        SWANSTATION_VIXL_ASSERT(amount <= 31);
+        VIXL_ASSERT(amount <= 31);
         break;
       case ROR:
-        SWANSTATION_VIXL_ASSERT(amount > 0);
-        SWANSTATION_VIXL_ASSERT(amount <= 31);
+        VIXL_ASSERT(amount > 0);
+        VIXL_ASSERT(amount <= 31);
         break;
       case LSR:
       case ASR:
-        SWANSTATION_VIXL_ASSERT(amount > 0);
-        SWANSTATION_VIXL_ASSERT(amount <= 32);
+        VIXL_ASSERT(amount > 0);
+        VIXL_ASSERT(amount <= 32);
         break;
       case RRX:
-        SWANSTATION_VIXL_ASSERT(amount == 0);
+        VIXL_ASSERT(amount == 0);
         break;
       default:
-        SWANSTATION_VIXL_UNREACHABLE();
+        VIXL_UNREACHABLE();
         break;
     }
 #endif
@@ -1132,7 +1132,7 @@ class RegisterShiftOperand : public Shift {
  public:
   RegisterShiftOperand(ShiftType shift, Register shift_register)
       : Shift(shift), shift_register_(shift_register) {
-    SWANSTATION_VIXL_ASSERT(!IsRRX() && shift_register_.IsValid());
+    VIXL_ASSERT(!IsRRX() && shift_register_.IsValid());
   }
   const Register GetShiftRegister() const { return shift_register_; }
   bool Is(const RegisterShiftOperand& rhs) const {
@@ -1258,7 +1258,7 @@ class MemoryBarrier {
       : type_(type) {}
   MemoryBarrier(uint32_t type)  // NOLINT(runtime/explicit)
       : type_(static_cast<MemoryBarrierType>(type)) {
-    SWANSTATION_VIXL_ASSERT((type & 0x3) != 0);
+    VIXL_ASSERT((type & 0x3) != 0);
   }
   MemoryBarrierType GetType() const { return type_; }
   const char* GetName() const;
@@ -1286,7 +1286,7 @@ class InterruptFlags {
       : type_(type) {}
   InterruptFlags(uint32_t type)  // NOLINT(runtime/explicit)
       : type_(static_cast<InterruptFlagsType>(type)) {
-    SWANSTATION_VIXL_ASSERT(type <= 7);
+    VIXL_ASSERT(type <= 7);
   }
   InterruptFlagsType GetType() const { return type_; }
   const char* GetName() const;
@@ -1305,7 +1305,7 @@ class Endianness {
   Endianness(EndiannessType type) : type_(type) {}  // NOLINT(runtime/explicit)
   Endianness(uint32_t type)                         // NOLINT(runtime/explicit)
       : type_(static_cast<EndiannessType>(type)) {
-    SWANSTATION_VIXL_ASSERT(type <= 1);
+    VIXL_ASSERT(type <= 1);
   }
   EndiannessType GetType() const { return type_; }
   const char* GetName() const;
@@ -1333,7 +1333,7 @@ class Alignment {
       : align_(align) {}
   Alignment(uint32_t align)  // NOLINT(runtime/explicit)
       : align_(static_cast<AlignmentType>(align)) {
-    SWANSTATION_VIXL_ASSERT(align <= static_cast<uint32_t>(k256BitAlign));
+    VIXL_ASSERT(align <= static_cast<uint32_t>(k256BitAlign));
   }
   AlignmentType GetType() const { return align_; }
   bool Is(AlignmentType type) { return align_ == type; }
@@ -1355,6 +1355,6 @@ struct ReferenceInfo {
 };
 
 }  // namespace aarch32
-}  // namespace swanstation_vixl
+}  // namespace vixl
 
-#endif  // SWANSTATION_VIXL_AARCH32_INSTRUCTIONS_AARCH32_H_
+#endif  // VIXL_AARCH32_INSTRUCTIONS_AARCH32_H_

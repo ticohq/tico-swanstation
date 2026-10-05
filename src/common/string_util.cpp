@@ -1,8 +1,6 @@
 #include "string_util.h"
 #include <cctype>
-#include <codecvt>
 #include <cstdio>
-#include <sstream>
 
 #ifdef _WIN32
 #include "windows_headers.h"
@@ -131,23 +129,6 @@ bool WildcardMatch(const char* subject, const char* mask, bool case_sensitive /*
 
     return *mask == 0;
   }
-}
-
-std::optional<std::vector<u8>> DecodeHex(const std::string_view& in)
-{
-  std::vector<u8> data;
-  data.reserve(in.size() / 2);
-
-  for (size_t i = 0; i < in.size() / 2; i++)
-  {
-    std::optional<u8> byte = StringUtil::FromChars<u8>(in.substr(i * 2, 2), 16);
-    if (byte.has_value())
-      data.push_back(*byte);
-    else
-      return std::nullopt;
-  }
-
-  return {data};
 }
 
 } // namespace StringUtil

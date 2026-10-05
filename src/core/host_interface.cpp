@@ -1,7 +1,7 @@
 #include "host_interface.h"
 #include "bios.h"
 #include "cdrom.h"
-#include "common/audio_stream.h"
+#include "libretro/libretro_audio_stream.h"
 #include "common/byte_stream.h"
 #include "common/file_system.h"
 #include "common/image.h"
@@ -25,49 +25,23 @@
 #include <stdlib.h>
 Log_SetChannel(HostInterface);
 
-HostInterface* g_host_interface;
-
-HostInterface::HostInterface()
-{
-  g_host_interface = this;
-}
-
-HostInterface::~HostInterface()
-{
-  // system should be shut down prior to the destructor
-  g_host_interface = nullptr;
-}
-
-bool HostInterface::Initialize()
-{
-  return true;
-}
-
-void HostInterface::Shutdown()
-{
-  if (!System::IsShutdown())
-    System::Shutdown();
-}
-
 bool HostInterface::BootSystem(std::shared_ptr<SystemBootParameters> parameters)
 {
   AcquireHostDisplay();
 
-  // create the audio stream. this will never fail, since we'll just fall back to null
-  m_audio_stream = CreateAudioStream();
-  m_audio_stream->Reconfigure(AUDIO_SAMPLE_RATE, AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, g_settings.audio_buffer_size);
+  // The libretro audio stream is configured at compile time (44.1 kHz
+  // stereo, 2048-frame slice budget; see LibretroAudioStream.h). There
+  // is nothing to plumb at runtime, so the previous Reconfigure() call
+  // and the unused base-class hook went away with it.
+  m_audio_stream = std::make_unique<LibretroAudioStream>();
 
   if (System::IsValid())
     g_spu.SetAudioStream(m_audio_stream.get());
 
   if (!System::Boot(*parameters))
   {
-    if (!System::IsStartupCancelled())
-    {
-      ReportError(
-        g_host_interface->TranslateString("System", "System failed to boot. The log may contain more information."));
-    }
-
+    ReportError(
+      g_host_interface->TranslateString("System", "System failed to boot. The log may contain more information."));
     m_audio_stream.reset();
     ReleaseHostDisplay();
     return false;
@@ -91,22 +65,6 @@ void HostInterface::DestroySystem()
   m_audio_stream.reset();
   UpdateSoftwareCursor();
   ReleaseHostDisplay();
-}
-
-void HostInterface::ReportError(const char* message)
-{
-  Log_ErrorPrint(message);
-}
-
-void HostInterface::ReportMessage(const char* message)
-{
-  Log_InfoPrint(message);
-}
-
-bool HostInterface::ConfirmMessage(const char* message)
-{
-  Log_WarningPrintf("ConfirmMessage(\"%s\") -> Yes", message);
-  return true;
 }
 
 void HostInterface::ReportFormattedError(const char* format, ...)
@@ -139,18 +97,13 @@ void HostInterface::AddFormattedOSDMessage(float duration, const char* format, .
   AddOSDMessage(std::move(message), duration);
 }
 
-std::string HostInterface::GetBIOSDirectory()
-{
-  std::string dir = GetStringSettingValue("BIOS", "SearchDirectory", "");
-  if (!dir.empty())
-    return dir;
-
-  return GetUserDirectoryRelativePath("bios");
-}
-
-std::optional<std::vector<u8>> HostInterface::GetBIOSImage(ConsoleRegion region)
+std::optional<std::vector<uint8_t>> HostInterface::GetBIOSImage(ConsoleRegion region)
 {
   std::string bios_dir = GetBIOSDirectory();
+
+  if (bios_dir.empty())
+    return std::nullopt;
+
   std::string bios_name;
   switch (region)
   {
@@ -180,7 +133,7 @@ std::optional<std::vector<u8>> HostInterface::GetBIOSImage(ConsoleRegion region)
   return image;
 }
 
-std::optional<std::vector<u8>> HostInterface::FindBIOSImageInDirectory(ConsoleRegion region, const char* directory)
+std::optional<std::vector<uint8_t>> HostInterface::FindBIOSImageInDirectory(ConsoleRegion region, const char* directory)
 {
   Log_InfoPrintf("Searching for a %s BIOS in '%s'...", Settings::GetConsoleRegionDisplayName(region), directory);
 
@@ -207,13 +160,11 @@ std::optional<std::vector<u8>> HostInterface::FindBIOSImageInDirectory(ConsoleRe
     if (!found_image)
       continue;
 
-    BIOS::Hash found_hash = BIOS::GetHash(*found_image);
+    const BIOS::ImageInfo* ii = BIOS::GetImageInfo(*found_image);
 
-    const BIOS::ImageInfo* ii = BIOS::GetImageInfoForHash(found_hash);
-
-    if (BIOS::IsValidHashForRegion(region, found_hash))
+    if (ii && (ii->region == ConsoleRegion::Auto || ii->region == region))
     {
-      Log_InfoPrintf("Using BIOS '%s': %s", fd.FileName.c_str(), ii ? ii->description : "");
+      Log_InfoPrintf("Using BIOS '%s': %s", fd.FileName.c_str(), ii->description);
       return found_image;
     }
 
@@ -228,8 +179,7 @@ std::optional<std::vector<u8>> HostInterface::FindBIOSImageInDirectory(ConsoleRe
 
   if (!fallback_image.has_value())
   {
-    g_host_interface->ReportFormattedError(
-      g_host_interface->TranslateString("HostInterface", "No BIOS image found for %s region"),
+    Log_InfoPrintf("No BIOS image found for %s region",
       Settings::GetConsoleRegionDisplayName(region));
     return std::nullopt;
   }
@@ -238,43 +188,13 @@ std::optional<std::vector<u8>> HostInterface::FindBIOSImageInDirectory(ConsoleRe
     return std::nullopt;
 
   Log_WarningPrintf("Falling back to possibly-incompatible image '%s': %s", fallback_path.c_str(),
-		  fallback_info->description);
+    fallback_info->description);
 
   return fallback_image;
 }
 
-std::string HostInterface::GetShaderCacheBasePath() const
-{
-  return GetUserDirectoryRelativePath("cache/");
-}
-
 void HostInterface::FixIncompatibleSettings(bool display_osd_messages)
 {
-  if (g_settings.disable_all_enhancements)
-  {
-    Log_WarningPrintf("All enhancements disabled by config setting.");
-    g_settings.cpu_overclock_enable = false;
-    g_settings.cpu_overclock_active = false;
-    g_settings.enable_8mb_ram = false;
-    g_settings.gpu_resolution_scale = 1;
-    g_settings.gpu_multisamples = 1;
-    g_settings.gpu_per_sample_shading = false;
-    g_settings.gpu_true_color = false;
-    g_settings.gpu_scaled_dithering = false;
-    g_settings.gpu_texture_filter = GPUTextureFilter::Nearest;
-    g_settings.gpu_disable_interlacing = false;
-    g_settings.gpu_force_ntsc_timings = false;
-    g_settings.gpu_widescreen_hack = false;
-    g_settings.gpu_pgxp_enable = false;
-    g_settings.gpu_24bit_chroma_smoothing = false;
-    g_settings.cdrom_read_speedup = 1;
-    g_settings.cdrom_seek_speedup = 1;
-    g_settings.cdrom_mute_cd_audio = false;
-    g_settings.texture_replacements.enable_vram_write_replacements = false;
-    g_settings.bios_patch_fast_boot = false;
-    g_settings.bios_patch_tty_enable = false;
-  }
-
   if (g_settings.gpu_pgxp_enable)
   {
     if (g_settings.gpu_renderer == GPURenderer::Software)
@@ -292,12 +212,6 @@ void HostInterface::FixIncompatibleSettings(bool display_osd_messages)
 #endif
 
 #if defined(__ANDROID__) && defined(__arm__) && !defined(__aarch64__) && !defined(_M_ARM64)
-  if (g_settings.rewind_enable)
-  {
-    Log_WarningPrintf("Rewind is not supported on 32-bit ARM for Android.");
-    g_settings.rewind_enable = false;
-  }
-
   if (g_settings.runahead_frames > 0)
   {
     Log_WarningPrintf("Runahead is not supported on 32-bit ARM for Android.");
@@ -378,9 +292,7 @@ void HostInterface::CheckForSettingsChanges(const Settings& old_settings)
         g_settings.display_active_start_offset != old_settings.display_active_start_offset ||
         g_settings.display_active_end_offset != old_settings.display_active_end_offset ||
         g_settings.display_line_start_offset != old_settings.display_line_start_offset ||
-        g_settings.display_line_end_offset != old_settings.display_line_end_offset ||
-        g_settings.rewind_enable != old_settings.rewind_enable ||
-        g_settings.runahead_frames != old_settings.runahead_frames)
+        g_settings.display_line_end_offset != old_settings.display_line_end_offset)
     {
       g_gpu->UpdateSettings();
     }
@@ -423,10 +335,7 @@ void HostInterface::CheckForSettingsChanges(const Settings& old_settings)
       System::UpdateMemoryCardTypes();
     }
 
-    if (g_settings.rewind_enable != old_settings.rewind_enable ||
-        g_settings.rewind_save_frequency != old_settings.rewind_save_frequency ||
-        g_settings.rewind_save_slots != old_settings.rewind_save_slots ||
-        g_settings.runahead_frames != old_settings.runahead_frames)
+    if (g_settings.runahead_frames != old_settings.runahead_frames)
     {
       System::UpdateMemorySaveStateSettings();
     }
@@ -443,7 +352,7 @@ void HostInterface::CheckForSettingsChanges(const Settings& old_settings)
   }
 
   bool controllers_updated = false;
-  for (u32 i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
+  for (uint32_t i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
   {
     if (g_settings.controller_types[i] != old_settings.controller_types[i])
     {
@@ -467,6 +376,15 @@ void HostInterface::CheckForSettingsChanges(const Settings& old_settings)
 
   if (g_settings.multitap_mode != old_settings.multitap_mode)
     System::UpdateMultitaps();
+
+  // Used to live in a libretro_host_interface.cpp override that
+  // delegated to the base impl above and then ran these two extras;
+  // folded in directly after the inheritance was removed.
+  if (g_settings.display_aspect_ratio != old_settings.display_aspect_ratio)
+    UpdateGeometry();
+
+  if (g_settings.log_level != old_settings.log_level)
+    UpdateLogging();
 }
 
 std::string HostInterface::GetUserDirectoryRelativePath(const char* format, ...) const
@@ -480,22 +398,6 @@ std::string HostInterface::GetUserDirectoryRelativePath(const char* format, ...)
     return formatted_path;
   return StringUtil::StdStringFromFormat("%s" FS_OSPATH_SEPARATOR_STR "%s", m_user_directory.c_str(),
                                            formatted_path.c_str());
-}
-
-std::string HostInterface::GetSharedMemoryCardPath(u32 slot) const
-{
-  if (g_settings.memory_card_directory.empty())
-    return GetUserDirectoryRelativePath("memcards" FS_OSPATH_SEPARATOR_STR "shared_card_%u.mcd", slot + 1);
-  return StringUtil::StdStringFromFormat("%s" FS_OSPATH_SEPARATOR_STR "shared_card_%u.mcd",
-                                           g_settings.memory_card_directory.c_str(), slot + 1);
-}
-
-std::string HostInterface::GetGameMemoryCardPath(const char* game_code, u32 slot) const
-{
-  if (g_settings.memory_card_directory.empty())
-    return GetUserDirectoryRelativePath("memcards" FS_OSPATH_SEPARATOR_STR "%s_%u.mcd", game_code, slot + 1);
-  return StringUtil::StdStringFromFormat("%s" FS_OSPATH_SEPARATOR_STR "%s_%u.mcd",
-                                           g_settings.memory_card_directory.c_str(), game_code, slot + 1);
 }
 
 bool HostInterface::GetBoolSettingValue(const char* section, const char* key, bool default_value /*= false*/)
@@ -575,41 +477,23 @@ std::string HostInterface::TranslateStdString(const char* context, const char* s
   return result;
 }
 
-void HostInterface::ToggleSoftwareRendering()
-{
-  if (System::IsShutdown() || g_settings.gpu_renderer == GPURenderer::Software)
-    return;
-
-  const GPURenderer new_renderer = g_gpu->IsHardwareRenderer() ? GPURenderer::Software : g_settings.gpu_renderer;
-
-  System::RecreateGPU(new_renderer);
-}
-
 void HostInterface::UpdateSoftwareCursor()
 {
   if (System::IsShutdown())
   {
-    SetMouseMode(false, false);
     m_display->ClearSoftwareCursor();
     return;
   }
 
   const Common::RGBA8Image* image = nullptr;
   float image_scale = 1.0f;
-  bool relative_mode = false;
-  bool hide_cursor = false;
 
-  for (u32 i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
+  for (uint32_t i = 0; i < NUM_CONTROLLER_AND_CARD_PORTS; i++)
   {
     Controller* controller = System::GetController(i);
-    if (controller && controller->GetSoftwareCursor(&image, &image_scale, &relative_mode))
-    {
-      hide_cursor = true;
+    if (controller && controller->GetSoftwareCursor(&image, &image_scale))
       break;
-    }
   }
-
-  SetMouseMode(relative_mode, hide_cursor);
 
   if (image && image->IsValid())
   {

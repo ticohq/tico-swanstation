@@ -11,7 +11,7 @@ namespace D3D12 {
 DescriptorHeapManager::DescriptorHeapManager() = default;
 DescriptorHeapManager::~DescriptorHeapManager() = default;
 
-bool DescriptorHeapManager::Create(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, u32 num_descriptors,
+bool DescriptorHeapManager::Create(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t num_descriptors,
                                    bool shader_visible)
 {
   D3D12_DESCRIPTOR_HEAP_DESC desc = {type, static_cast<UINT>(num_descriptors),
@@ -28,7 +28,7 @@ bool DescriptorHeapManager::Create(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_T
   m_descriptor_increment_size = device->GetDescriptorHandleIncrementSize(type);
 
   // Set all slots to unallocated (1)
-  const u32 bitset_count = num_descriptors / BITSET_SIZE + (((num_descriptors % BITSET_SIZE) != 0) ? 1 : 0);
+  const uint32_t bitset_count = num_descriptors / BITSET_SIZE + (((num_descriptors % BITSET_SIZE) != 0) ? 1 : 0);
   m_free_slots.resize(bitset_count);
   for (BitSetType& bs : m_free_slots)
     bs.flip();
@@ -49,20 +49,20 @@ void DescriptorHeapManager::Destroy()
 bool DescriptorHeapManager::Allocate(DescriptorHandle* handle)
 {
   // Start past the temporary slots, no point in searching those.
-  for (u32 group = 0; group < m_free_slots.size(); group++)
+  for (uint32_t group = 0; group < m_free_slots.size(); group++)
   {
     BitSetType& bs = m_free_slots[group];
     if (bs.none())
       continue;
 
-    u32 bit = 0;
+    uint32_t bit = 0;
     for (; bit < BITSET_SIZE; bit++)
     {
       if (bs[bit])
         break;
     }
 
-    u32 index = group * BITSET_SIZE + bit;
+    uint32_t index = group * BITSET_SIZE + bit;
     bs[bit] = false;
 
     handle->index = index;
@@ -73,10 +73,10 @@ bool DescriptorHeapManager::Allocate(DescriptorHandle* handle)
   return false;
 }
 
-void DescriptorHeapManager::Free(u32 index)
+void DescriptorHeapManager::Free(uint32_t index)
 {
-  u32 group = index / BITSET_SIZE;
-  u32 bit = index % BITSET_SIZE;
+  uint32_t group = index / BITSET_SIZE;
+  uint32_t bit = index % BITSET_SIZE;
   m_free_slots[group][bit] = true;
 }
 

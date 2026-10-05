@@ -11,9 +11,6 @@
 
 #if defined(_WIN32)
 #include "windows_headers.h"
-#include <direct.h>
-#include <io.h>
-#include <share.h>
 #include <malloc.h>
 #else
 #include <sys/stat.h>
@@ -24,21 +21,20 @@
 #endif
 
 #include <file/file_path.h>
-#include <encodings/utf.h>
 
 class FileByteStream : public ByteStream
 {
 public:
-  FileByteStream(FILE* pFile) : m_pFile(pFile) { }
+  FileByteStream(RFILE* pFile) : m_pFile(pFile) { }
 
-  virtual ~FileByteStream() override { fclose(m_pFile); }
+  virtual ~FileByteStream() override { rfclose(m_pFile); }
 
-  bool ReadByte(u8* pDestByte) override
+  bool ReadByte(uint8_t* pDestByte) override
   {
     if (m_errorState)
       return false;
 
-    if (fread(pDestByte, 1, 1, m_pFile) != 1)
+    if (rfread(pDestByte, 1, 1, m_pFile) != 1)
     {
       m_errorState = true;
       return false;
@@ -47,24 +43,24 @@ public:
     return true;
   }
 
-  u32 Read(void* pDestination, u32 ByteCount) override
+  uint32_t Read(void* pDestination, uint32_t ByteCount) override
   {
     if (m_errorState)
       return 0;
 
-    u32 readCount = (u32)fread(pDestination, 1, ByteCount, m_pFile);
-    if (readCount != ByteCount && ferror(m_pFile) != 0)
+    uint32_t readCount = (uint32_t)rfread(pDestination, 1, ByteCount, m_pFile);
+    if (readCount != ByteCount && filestream_error(m_pFile) != 0)
       m_errorState = true;
 
     return readCount;
   }
 
-  bool Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead) override
+  bool Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead) override
   {
     if (m_errorState)
       return false;
 
-    u32 bytesRead = Read(pDestination, ByteCount);
+    uint32_t bytesRead = Read(pDestination, ByteCount);
 
     if (pNumberOfBytesRead != nullptr)
       *pNumberOfBytesRead = bytesRead;
@@ -78,12 +74,12 @@ public:
     return true;
   }
 
-  bool WriteByte(u8 SourceByte) override
+  bool WriteByte(uint8_t SourceByte) override
   {
     if (m_errorState)
       return false;
 
-    if (fwrite(&SourceByte, 1, 1, m_pFile) != 1)
+    if (rfwrite(&SourceByte, 1, 1, m_pFile) != 1)
     {
       m_errorState = true;
       return false;
@@ -92,24 +88,24 @@ public:
     return true;
   }
 
-  u32 Write(const void* pSource, u32 ByteCount) override
+  uint32_t Write(const void* pSource, uint32_t ByteCount) override
   {
     if (m_errorState)
       return 0;
 
-    u32 writeCount = (u32)fwrite(pSource, 1, ByteCount, m_pFile);
+    uint32_t writeCount = (uint32_t)rfwrite(pSource, 1, ByteCount, m_pFile);
     if (writeCount != ByteCount)
       m_errorState = true;
 
     return writeCount;
   }
 
-  bool Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten) override
+  bool Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten) override
   {
     if (m_errorState)
       return false;
 
-    u32 bytesWritten = Write(pSource, ByteCount);
+    uint32_t bytesWritten = Write(pSource, ByteCount);
 
     if (pNumberOfBytesWritten != nullptr)
       *pNumberOfBytesWritten = bytesWritten;
@@ -123,13 +119,12 @@ public:
     return true;
   }
 
-#if defined(_WIN32)
-  bool SeekAbsolute(u64 Offset) override
+  bool SeekAbsolute(uint64_t Offset) override
   {
     if (m_errorState)
       return false;
 
-    if (_fseeki64(m_pFile, Offset, SEEK_SET) != 0)
+    if (rfseek(m_pFile, static_cast<int64_t>(Offset), SEEK_SET) != 0)
     {
       m_errorState = true;
       return false;
@@ -138,77 +133,27 @@ public:
     return true;
   }
 
-  bool SeekRelative(s64 Offset) override
+  uint64_t GetPosition() const override { return static_cast<uint64_t>(rftell(m_pFile)); }
+
+  uint64_t GetSize() const override
   {
-    if (m_errorState)
-      return false;
-
-    if (_fseeki64(m_pFile, Offset, SEEK_CUR) != 0)
-    {
-      m_errorState = true;
-      return true;
-    }
-
-    return true;
+    int64_t OldPos = rftell(m_pFile);
+    rfseek(m_pFile, 0, SEEK_END);
+    int64_t Size = rftell(m_pFile);
+    rfseek(m_pFile, OldPos, SEEK_SET);
+    return (uint64_t)Size;
   }
 
-  u64 GetPosition() const override { return _ftelli64(m_pFile); }
-
-  u64 GetSize() const override
-  {
-    s64 OldPos = _ftelli64(m_pFile);
-    _fseeki64(m_pFile, 0, SEEK_END);
-    s64 Size = _ftelli64(m_pFile);
-    _fseeki64(m_pFile, OldPos, SEEK_SET);
-    return (u64)Size;
-  }
-
-#else
-  bool SeekAbsolute(u64 Offset) override
-  {
-    if (m_errorState)
-      return false;
-
-    if (fseeko(m_pFile, static_cast<off_t>(Offset), SEEK_SET) != 0)
-    {
-      m_errorState = true;
-      return false;
-    }
-
-    return true;
-  }
-
-  bool SeekRelative(s64 Offset) override
-  {
-    if (m_errorState)
-      return false;
-
-    if (fseeko(m_pFile, static_cast<off_t>(Offset), SEEK_CUR) != 0)
-    {
-      m_errorState = true;
-      return false;
-    }
-
-    return true;
-  }
-
-  u64 GetPosition() const override { return static_cast<u64>(ftello(m_pFile)); }
-
-  u64 GetSize() const override
-  {
-    off_t OldPos = ftello(m_pFile);
-    fseeko(m_pFile, 0, SEEK_END);
-    off_t Size = ftello(m_pFile);
-    fseeko(m_pFile, OldPos, SEEK_SET);
-    return (u64)Size;
-  }
-#endif
   bool Flush() override
   {
     if (m_errorState)
       return false;
 
-    if (fflush(m_pFile) != 0)
+    // Closed (post-commit) streams have nothing left to flush.
+    if (!m_pFile)
+      return true;
+
+    if (filestream_flush(m_pFile) != 0)
     {
       m_errorState = true;
       return false;
@@ -222,13 +167,25 @@ public:
   virtual bool Discard() override { return false; }
 
 protected:
-  FILE* m_pFile;
+  /// Close the underlying handle early (idempotent).  Windows cannot
+  /// rename or delete a file that is held open by a handle without
+  /// FILE_SHARE_DELETE - which is what the VFS-opened handle is - so
+  /// the atomic-update commit path must close before renaming.  The
+  /// rf* wrappers are null-safe, so subsequent stream calls degrade
+  /// to errors rather than crashes.
+  void CloseFile()
+  {
+    rfclose(m_pFile);
+    m_pFile = nullptr;
+  }
+
+  RFILE* m_pFile;
 };
 
 class AtomicUpdatedFileByteStream final : public FileByteStream
 {
 public:
-  AtomicUpdatedFileByteStream(FILE* pFile, std::string originalFileName, std::string temporaryFileName)
+  AtomicUpdatedFileByteStream(RFILE* pFile, std::string originalFileName, std::string temporaryFileName)
     : FileByteStream(pFile), m_committed(false), m_discarded(false), m_originalFileName(std::move(originalFileName)),
       m_temporaryFileName(std::move(temporaryFileName))
   {
@@ -238,50 +195,55 @@ public:
   {
     if (m_discarded)
     {
-#if defined(_WIN32)
-      // delete the temporary file
-      wchar_t *a = utf8_to_utf16_string_alloc(m_temporaryFileName.c_str());
-      if (!DeleteFileW(a)) { }
-      free(a);
-#else
-      // delete the temporary file
-      if (remove(m_temporaryFileName.c_str()) < 0) { }
-#endif
+      // The handle must be closed before the temporary file can be
+      // deleted on Windows (no FILE_SHARE_DELETE on VFS handles).
+      CloseFile();
+      filestream_delete(m_temporaryFileName.c_str());
     }
     else if (!m_committed)
     {
       Commit();
     }
 
-    // fclose called by FileByteStream destructor
+    // rfclose called by FileByteStream destructor (null-safe if
+    // Commit already closed the handle)
   }
 
   bool Commit() override
   {
     if (m_committed)
-      return Flush();
+      return true;
 
-    fflush(m_pFile);
+    // The pre-VFS Windows path opened the temporary with
+    // FILE_SHARE_DELETE and renamed it over the original while still
+    // open (MoveFileExW).  The VFS handle is a plain _wfopen without
+    // that sharing mode, so renaming - or deleting - the temporary
+    // while it is open fails with a sharing violation, leaving the
+    // new save stranded in .tmp and the original untouched.  Flush
+    // and close first, then rename through the VFS (which also
+    // routes correctly for frontend-backed paths).
+    filestream_flush(m_pFile);
+    CloseFile();
 
-#if defined(_WIN32)
-    // move the atomic file name to the original file name
-    wchar_t *a = utf8_to_utf16_string_alloc(m_temporaryFileName.c_str());
-    wchar_t *b = utf8_to_utf16_string_alloc(m_originalFileName.c_str());
-    if (!MoveFileExW(a, b, MOVEFILE_REPLACE_EXISTING))
-      m_discarded = true;
-    else
-      m_committed = true;
-    free(a);
-    free(b);
-#else
-    // move the atomic file name to the original file name
-    if (rename(m_temporaryFileName.c_str(), m_originalFileName.c_str()) < 0)
-      m_discarded = true;
-    else
-      m_committed = true;
-#endif
+    if (filestream_rename(m_temporaryFileName.c_str(), m_originalFileName.c_str()) != 0)
+    {
+      // A VFS backend without replace-existing rename semantics
+      // (e.g. a frontend whose Windows rename is plain _wrename)
+      // fails when the destination exists: fall back to
+      // delete-then-rename.  Not atomic, but strictly better than
+      // losing the new data; the atomic single-rename path is
+      // preserved wherever the backend supports it.
+      filestream_delete(m_originalFileName.c_str());
+      if (filestream_rename(m_temporaryFileName.c_str(), m_originalFileName.c_str()) != 0)
+      {
+        m_discarded = true;
+        filestream_delete(m_temporaryFileName.c_str());
+        return false;
+      }
+    }
 
-    return (!m_discarded);
+    m_committed = true;
+    return true;
   }
 
   bool Discard() override
@@ -297,16 +259,16 @@ private:
   std::string m_temporaryFileName;
 };
 
-MemoryByteStream::MemoryByteStream(void* pMemory, u32 MemSize)
+MemoryByteStream::MemoryByteStream(void* pMemory, uint32_t MemSize)
 {
   m_iPosition = 0;
   m_iSize = MemSize;
-  m_pMemory = (u8*)pMemory;
+  m_pMemory = (uint8_t*)pMemory;
 }
 
 MemoryByteStream::~MemoryByteStream() {}
 
-bool MemoryByteStream::ReadByte(u8* pDestByte)
+bool MemoryByteStream::ReadByte(uint8_t* pDestByte)
 {
   if (m_iPosition < m_iSize)
   {
@@ -317,9 +279,9 @@ bool MemoryByteStream::ReadByte(u8* pDestByte)
   return false;
 }
 
-u32 MemoryByteStream::Read(void* pDestination, u32 ByteCount)
+uint32_t MemoryByteStream::Read(void* pDestination, uint32_t ByteCount)
 {
-  u32 sz = ByteCount;
+  uint32_t sz = ByteCount;
   if ((m_iPosition + ByteCount) > m_iSize)
     sz = m_iSize - m_iPosition;
 
@@ -332,16 +294,16 @@ u32 MemoryByteStream::Read(void* pDestination, u32 ByteCount)
   return sz;
 }
 
-bool MemoryByteStream::Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead /* = nullptr */)
+bool MemoryByteStream::Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead /* = nullptr */)
 {
-  u32 r = Read(pDestination, ByteCount);
+  uint32_t r = Read(pDestination, ByteCount);
   if (pNumberOfBytesRead != NULL)
     *pNumberOfBytesRead = r;
 
   return (r == ByteCount);
 }
 
-bool MemoryByteStream::WriteByte(u8 SourceByte)
+bool MemoryByteStream::WriteByte(uint8_t SourceByte)
 {
   if (m_iPosition < m_iSize)
   {
@@ -352,9 +314,9 @@ bool MemoryByteStream::WriteByte(u8 SourceByte)
   return false;
 }
 
-u32 MemoryByteStream::Write(const void* pSource, u32 ByteCount)
+uint32_t MemoryByteStream::Write(const void* pSource, uint32_t ByteCount)
 {
-  u32 sz = ByteCount;
+  uint32_t sz = ByteCount;
   if ((m_iPosition + ByteCount) > m_iSize)
     sz = m_iSize - m_iPosition;
 
@@ -367,18 +329,18 @@ u32 MemoryByteStream::Write(const void* pSource, u32 ByteCount)
   return sz;
 }
 
-bool MemoryByteStream::Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten /* = nullptr */)
+bool MemoryByteStream::Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten /* = nullptr */)
 {
-  u32 r = Write(pSource, ByteCount);
+  uint32_t r = Write(pSource, ByteCount);
   if (pNumberOfBytesWritten != nullptr)
     *pNumberOfBytesWritten = r;
 
   return (r == ByteCount);
 }
 
-bool MemoryByteStream::SeekAbsolute(u64 Offset)
+bool MemoryByteStream::SeekAbsolute(uint64_t Offset)
 {
-  u32 Offset32 = (u32)Offset;
+  uint32_t Offset32 = (uint32_t)Offset;
   if (Offset32 > m_iSize)
     return false;
 
@@ -386,24 +348,14 @@ bool MemoryByteStream::SeekAbsolute(u64 Offset)
   return true;
 }
 
-bool MemoryByteStream::SeekRelative(s64 Offset)
+uint64_t MemoryByteStream::GetSize() const
 {
-  s32 Offset32 = (s32)Offset;
-  if ((Offset32 < 0 && -Offset32 > (s32)m_iPosition) || (u32)((s32)m_iPosition + Offset32) > m_iSize)
-    return false;
-
-  m_iPosition += Offset32;
-  return true;
+  return (uint64_t)m_iSize;
 }
 
-u64 MemoryByteStream::GetSize() const
+uint64_t MemoryByteStream::GetPosition() const
 {
-  return (u64)m_iSize;
-}
-
-u64 MemoryByteStream::GetPosition() const
-{
-  return (u64)m_iPosition;
+  return (uint64_t)m_iPosition;
 }
 
 bool MemoryByteStream::Flush()
@@ -421,16 +373,16 @@ bool MemoryByteStream::Discard()
   return false;
 }
 
-ReadOnlyMemoryByteStream::ReadOnlyMemoryByteStream(const void* pMemory, u32 MemSize)
+ReadOnlyMemoryByteStream::ReadOnlyMemoryByteStream(const void* pMemory, uint32_t MemSize)
 {
   m_iPosition = 0;
   m_iSize = MemSize;
-  m_pMemory = reinterpret_cast<const u8*>(pMemory);
+  m_pMemory = reinterpret_cast<const uint8_t*>(pMemory);
 }
 
 ReadOnlyMemoryByteStream::~ReadOnlyMemoryByteStream() {}
 
-bool ReadOnlyMemoryByteStream::ReadByte(u8* pDestByte)
+bool ReadOnlyMemoryByteStream::ReadByte(uint8_t* pDestByte)
 {
   if (m_iPosition < m_iSize)
   {
@@ -441,9 +393,9 @@ bool ReadOnlyMemoryByteStream::ReadByte(u8* pDestByte)
   return false;
 }
 
-u32 ReadOnlyMemoryByteStream::Read(void* pDestination, u32 ByteCount)
+uint32_t ReadOnlyMemoryByteStream::Read(void* pDestination, uint32_t ByteCount)
 {
-  u32 sz = ByteCount;
+  uint32_t sz = ByteCount;
   if ((m_iPosition + ByteCount) > m_iSize)
     sz = m_iSize - m_iPosition;
 
@@ -456,33 +408,33 @@ u32 ReadOnlyMemoryByteStream::Read(void* pDestination, u32 ByteCount)
   return sz;
 }
 
-bool ReadOnlyMemoryByteStream::Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead /* = nullptr */)
+bool ReadOnlyMemoryByteStream::Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead /* = nullptr */)
 {
-  u32 r = Read(pDestination, ByteCount);
+  uint32_t r = Read(pDestination, ByteCount);
   if (pNumberOfBytesRead != nullptr)
     *pNumberOfBytesRead = r;
 
   return (r == ByteCount);
 }
 
-bool ReadOnlyMemoryByteStream::WriteByte(u8 SourceByte)
+bool ReadOnlyMemoryByteStream::WriteByte(uint8_t SourceByte)
 {
   return false;
 }
 
-u32 ReadOnlyMemoryByteStream::Write(const void* pSource, u32 ByteCount)
+uint32_t ReadOnlyMemoryByteStream::Write(const void* pSource, uint32_t ByteCount)
 {
   return 0;
 }
 
-bool ReadOnlyMemoryByteStream::Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten /* = nullptr */)
+bool ReadOnlyMemoryByteStream::Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten /* = nullptr */)
 {
   return false;
 }
 
-bool ReadOnlyMemoryByteStream::SeekAbsolute(u64 Offset)
+bool ReadOnlyMemoryByteStream::SeekAbsolute(uint64_t Offset)
 {
-  u32 Offset32 = (u32)Offset;
+  uint32_t Offset32 = (uint32_t)Offset;
   if (Offset32 > m_iSize)
     return false;
 
@@ -490,24 +442,14 @@ bool ReadOnlyMemoryByteStream::SeekAbsolute(u64 Offset)
   return true;
 }
 
-bool ReadOnlyMemoryByteStream::SeekRelative(s64 Offset)
+uint64_t ReadOnlyMemoryByteStream::GetSize() const
 {
-  s32 Offset32 = (s32)Offset;
-  if ((Offset32 < 0 && -Offset32 > (s32)m_iPosition) || (u32)((s32)m_iPosition + Offset32) > m_iSize)
-    return false;
-
-  m_iPosition += Offset32;
-  return true;
+  return (uint64_t)m_iSize;
 }
 
-u64 ReadOnlyMemoryByteStream::GetSize() const
+uint64_t ReadOnlyMemoryByteStream::GetPosition() const
 {
-  return (u64)m_iSize;
-}
-
-u64 ReadOnlyMemoryByteStream::GetPosition() const
-{
-  return (u64)m_iPosition;
+  return (uint64_t)m_iPosition;
 }
 
 bool ReadOnlyMemoryByteStream::Flush()
@@ -525,7 +467,7 @@ bool ReadOnlyMemoryByteStream::Discard()
   return false;
 }
 
-GrowableMemoryByteStream::GrowableMemoryByteStream(void* pInitialMem, u32 InitialMemSize)
+GrowableMemoryByteStream::GrowableMemoryByteStream(void* pInitialMem, uint32_t InitialMemSize)
 {
   m_iPosition = 0;
   m_iSize = 0;
@@ -534,12 +476,17 @@ GrowableMemoryByteStream::GrowableMemoryByteStream(void* pInitialMem, u32 Initia
   {
     m_iMemorySize = InitialMemSize;
     m_pPrivateMemory = nullptr;
-    m_pMemory = (u8*)pInitialMem;
+    m_pMemory = (uint8_t*)pInitialMem;
   }
   else
   {
-    m_iMemorySize = std::max(InitialMemSize, (u32)64);
-    m_pPrivateMemory = m_pMemory = (u8*)std::malloc(m_iMemorySize);
+    m_iMemorySize = std::max(InitialMemSize, (uint32_t)64);
+    m_pPrivateMemory = m_pMemory = (uint8_t*)std::malloc(m_iMemorySize);
+    if (m_pMemory == nullptr)
+    {
+      m_iMemorySize = 0;
+      SetErrorState();
+    }
   }
 }
 
@@ -549,7 +496,7 @@ GrowableMemoryByteStream::~GrowableMemoryByteStream()
     std::free(m_pPrivateMemory);
 }
 
-void GrowableMemoryByteStream::Resize(u32 new_size)
+void GrowableMemoryByteStream::Resize(uint32_t new_size)
 {
   if (new_size > m_iMemorySize)
     ResizeMemory(new_size);
@@ -557,26 +504,41 @@ void GrowableMemoryByteStream::Resize(u32 new_size)
   m_iSize = new_size;
 }
 
-void GrowableMemoryByteStream::ResizeMemory(u32 new_size)
+void GrowableMemoryByteStream::ResizeMemory(uint32_t new_size)
 {
   if (new_size == m_iMemorySize)
     return;
 
   if (m_pPrivateMemory == nullptr)
   {
-    m_pPrivateMemory = (u8*)std::malloc(new_size);
-    std::memcpy(m_pPrivateMemory, m_pMemory, m_iSize);
+    uint8_t* new_memory = (uint8_t*)std::malloc(new_size);
+    if (new_memory == nullptr)
+    {
+      SetErrorState();
+      return;
+    }
+
+    std::memcpy(new_memory, m_pMemory, m_iSize);
+    m_pPrivateMemory = new_memory;
     m_pMemory = m_pPrivateMemory;
     m_iMemorySize = new_size;
   }
   else
   {
-    m_pPrivateMemory = m_pMemory = (u8*)std::realloc(m_pPrivateMemory, new_size);
+    uint8_t* new_memory = (uint8_t*)std::realloc(m_pPrivateMemory, new_size);
+    if (new_memory == nullptr)
+    {
+      // original buffer is still valid and owned by m_pPrivateMemory
+      SetErrorState();
+      return;
+    }
+
+    m_pPrivateMemory = m_pMemory = new_memory;
     m_iMemorySize = new_size;
   }
 }
 
-bool GrowableMemoryByteStream::ReadByte(u8* pDestByte)
+bool GrowableMemoryByteStream::ReadByte(uint8_t* pDestByte)
 {
   if (m_iPosition < m_iSize)
   {
@@ -587,9 +549,9 @@ bool GrowableMemoryByteStream::ReadByte(u8* pDestByte)
   return false;
 }
 
-u32 GrowableMemoryByteStream::Read(void* pDestination, u32 ByteCount)
+uint32_t GrowableMemoryByteStream::Read(void* pDestination, uint32_t ByteCount)
 {
-  u32 sz = ByteCount;
+  uint32_t sz = ByteCount;
   if ((m_iPosition + ByteCount) > m_iSize)
     sz = m_iSize - m_iPosition;
 
@@ -602,29 +564,35 @@ u32 GrowableMemoryByteStream::Read(void* pDestination, u32 ByteCount)
   return sz;
 }
 
-bool GrowableMemoryByteStream::Read2(void* pDestination, u32 ByteCount, u32* pNumberOfBytesRead /* = nullptr */)
+bool GrowableMemoryByteStream::Read2(void* pDestination, uint32_t ByteCount, uint32_t* pNumberOfBytesRead /* = nullptr */)
 {
-  u32 r = Read(pDestination, ByteCount);
+  uint32_t r = Read(pDestination, ByteCount);
   if (pNumberOfBytesRead != NULL)
     *pNumberOfBytesRead = r;
 
   return (r == ByteCount);
 }
 
-bool GrowableMemoryByteStream::WriteByte(u8 SourceByte)
+bool GrowableMemoryByteStream::WriteByte(uint8_t SourceByte)
 {
   if (m_iPosition == m_iMemorySize)
     Grow(1);
+
+  if (m_errorState || m_pMemory == nullptr)
+    return false;
 
   m_pMemory[m_iPosition++] = SourceByte;
   m_iSize = std::max(m_iSize, m_iPosition);
   return true;
 }
 
-u32 GrowableMemoryByteStream::Write(const void* pSource, u32 ByteCount)
+uint32_t GrowableMemoryByteStream::Write(const void* pSource, uint32_t ByteCount)
 {
   if ((m_iPosition + ByteCount) > m_iMemorySize)
     Grow(ByteCount);
+
+  if (m_errorState || m_pMemory == nullptr)
+    return 0;
 
   std::memcpy(m_pMemory + m_iPosition, pSource, ByteCount);
   m_iPosition += ByteCount;
@@ -632,18 +600,18 @@ u32 GrowableMemoryByteStream::Write(const void* pSource, u32 ByteCount)
   return ByteCount;
 }
 
-bool GrowableMemoryByteStream::Write2(const void* pSource, u32 ByteCount, u32* pNumberOfBytesWritten /* = nullptr */)
+bool GrowableMemoryByteStream::Write2(const void* pSource, uint32_t ByteCount, uint32_t* pNumberOfBytesWritten /* = nullptr */)
 {
-  u32 r = Write(pSource, ByteCount);
+  uint32_t r = Write(pSource, ByteCount);
   if (pNumberOfBytesWritten != nullptr)
     *pNumberOfBytesWritten = r;
 
   return (r == ByteCount);
 }
 
-bool GrowableMemoryByteStream::SeekAbsolute(u64 Offset)
+bool GrowableMemoryByteStream::SeekAbsolute(uint64_t Offset)
 {
-  u32 Offset32 = (u32)Offset;
+  uint32_t Offset32 = (uint32_t)Offset;
   if (Offset32 > m_iSize)
     return false;
 
@@ -651,24 +619,14 @@ bool GrowableMemoryByteStream::SeekAbsolute(u64 Offset)
   return true;
 }
 
-bool GrowableMemoryByteStream::SeekRelative(s64 Offset)
+uint64_t GrowableMemoryByteStream::GetSize() const
 {
-  s32 Offset32 = (s32)Offset;
-  if ((Offset32 < 0 && -Offset32 > (s32)m_iPosition) || (u32)((s32)m_iPosition + Offset32) > m_iSize)
-    return false;
-
-  m_iPosition += Offset32;
-  return true;
+  return (uint64_t)m_iSize;
 }
 
-u64 GrowableMemoryByteStream::GetSize() const
+uint64_t GrowableMemoryByteStream::GetPosition() const
 {
-  return (u64)m_iSize;
-}
-
-u64 GrowableMemoryByteStream::GetPosition() const
-{
-  return (u64)m_iPosition;
+  return (uint64_t)m_iPosition;
 }
 
 bool GrowableMemoryByteStream::Flush()
@@ -686,15 +644,13 @@ bool GrowableMemoryByteStream::Discard()
   return false;
 }
 
-void GrowableMemoryByteStream::Grow(u32 MinimumGrowth)
+void GrowableMemoryByteStream::Grow(uint32_t MinimumGrowth)
 {
-  u32 NewSize = std::max(m_iMemorySize + MinimumGrowth, m_iMemorySize * 2);
+  uint32_t NewSize = std::max(m_iMemorySize + MinimumGrowth, m_iMemorySize * 2);
   ResizeMemory(NewSize);
 }
 
-#if defined(_WIN32)
-
-std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 openMode)
+std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, uint32_t openMode)
 {
   if ((openMode & (BYTESTREAM_OPEN_CREATE | BYTESTREAM_OPEN_WRITE)) == BYTESTREAM_OPEN_WRITE)
   {
@@ -704,215 +660,7 @@ std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 
   }
 
   char modeString[16];
-  u32 modeStringLength = 0;
-
-  if (openMode & BYTESTREAM_OPEN_WRITE)
-  {
-    // if the file exists, use r+, otherwise w+
-    // HACK: if we're not truncating, and the file exists (we want to only update it), we still have to use r+
-    if (!path_is_valid(fileName))
-    {
-      modeString[modeStringLength++] = 'w';
-      if (openMode & BYTESTREAM_OPEN_READ)
-        modeString[modeStringLength++] = '+';
-    }
-    else
-    {
-      modeString[modeStringLength++] = 'r';
-      modeString[modeStringLength++] = '+';
-    }
-
-    modeString[modeStringLength++] = 'b';
-  }
-  else if (openMode & BYTESTREAM_OPEN_READ)
-  {
-    modeString[modeStringLength++] = 'r';
-    modeString[modeStringLength++] = 'b';
-  }
-
-  // doesn't work with _fdopen
-  if (!(openMode & BYTESTREAM_OPEN_ATOMIC_UPDATE))
-  {
-    if (openMode & BYTESTREAM_OPEN_STREAMED)
-      modeString[modeStringLength++] = 'S';
-    else if (openMode & BYTESTREAM_OPEN_SEEKABLE)
-      modeString[modeStringLength++] = 'R';
-  }
-
-  modeString[modeStringLength] = 0;
-
-  if (openMode & BYTESTREAM_OPEN_CREATE_PATH)
-  {
-    u32 i;
-    u32 fileNameLength = static_cast<u32>(std::strlen(fileName));
-    char* tempStr = (char*)alloca(fileNameLength + 1);
-
-    // check if it starts with a drive letter. if so, skip ahead
-    if (fileNameLength >= 2 && fileName[1] == ':')
-    {
-      if (fileNameLength <= 3)
-      {
-        // create a file called driveletter: or driveletter:\ ? you must be crazy
-        i = fileNameLength;
-      }
-      else
-      {
-        std::memcpy(tempStr, fileName, 3);
-        i = 3;
-      }
-    }
-    else
-    {
-      // start at beginning
-      i = 0;
-    }
-
-    // step through each path component, create folders as necessary
-    for (; i < fileNameLength; i++)
-    {
-      if (i > 0 && (fileName[i] == '\\' || fileName[i] == '/'))
-      {
-        // terminate the string
-        tempStr[i] = '\0';
-
-        // check if it exists
-	if (!path_is_valid(tempStr))
-        {
-          if (errno == ENOENT)
-          {
-            // try creating it
-	    if (!path_mkdir(tempStr)) // no point trying any further down the chain
-              break;
-          }
-          else // if (errno == ENOTDIR)
-          {
-            // well.. someone's trying to open a fucking weird path that is comprised of both directories and files...
-            // I aint sticking around here to find out what disaster awaits... let fopen deal with it
-            break;
-          }
-        }
-
-// append platform path seperator
-        tempStr[i] = '\\';
-      }
-      else
-      {
-        // append character to temp string
-        tempStr[i] = fileName[i];
-      }
-    }
-  }
-
-  if (openMode & BYTESTREAM_OPEN_ATOMIC_UPDATE)
-  {
-    // generate the temporary file name
-    u32 fileNameLength = static_cast<u32>(std::strlen(fileName));
-    char* temporaryFileName = (char*)alloca(fileNameLength + 8);
-    std::snprintf(temporaryFileName, fileNameLength + 8, "%s.XXXXXX", fileName);
-
-    // fill in random characters
-    _mktemp_s(temporaryFileName, fileNameLength + 8);
-    wchar_t *wideTemporaryFileName = utf8_to_utf16_string_alloc(temporaryFileName);
-
-    // massive hack here
-    DWORD desiredAccess = GENERIC_WRITE;
-    if (openMode & BYTESTREAM_OPEN_READ)
-      desiredAccess |= GENERIC_READ;
-
-    HANDLE hFile =
-      CreateFileW(wideTemporaryFileName, desiredAccess, FILE_SHARE_DELETE, NULL, CREATE_NEW, 0, NULL);
-
-    if (hFile == INVALID_HANDLE_VALUE)
-    {
-      free(wideTemporaryFileName);
-      return nullptr;
-    }
-
-    // get fd from this
-    int fd = _open_osfhandle(reinterpret_cast<intptr_t>(hFile), 0);
-    if (fd < 0)
-    {
-      CloseHandle(hFile);
-      DeleteFileW(wideTemporaryFileName);
-      free(wideTemporaryFileName);
-      return nullptr;
-    }
-
-    // convert to a stream
-    FILE* pTemporaryFile = _fdopen(fd, modeString);
-    if (!pTemporaryFile)
-    {
-      _close(fd);
-      DeleteFileW(wideTemporaryFileName);
-      free(wideTemporaryFileName);
-      return nullptr;
-    }
-
-    // create the stream pointer
-    std::unique_ptr<AtomicUpdatedFileByteStream> pStream =
-      std::make_unique<AtomicUpdatedFileByteStream>(pTemporaryFile, fileName, temporaryFileName);
-
-    // do we need to copy the existing file into this one?
-    if (!(openMode & BYTESTREAM_OPEN_TRUNCATE))
-    {
-      RFILE* pOriginalFile = FileSystem::OpenRFile(fileName, "rb");
-      if (!pOriginalFile)
-      {
-        // this will delete the temporary file
-        pStream->Discard();
-	free(wideTemporaryFileName);
-        return nullptr;
-      }
-
-      static const size_t BUFFERSIZE = 4096;
-      u8 buffer[BUFFERSIZE];
-      while (!rfeof(pOriginalFile))
-      {
-        size_t nBytes = rfread(buffer, BUFFERSIZE, sizeof(u8), pOriginalFile);
-        if (nBytes == 0)
-          break;
-
-        if (pStream->Write(buffer, (u32)nBytes) != (u32)nBytes)
-        {
-          pStream->Discard();
-          rfclose(pOriginalFile);
-	  free(wideTemporaryFileName);
-          return nullptr;
-        }
-      }
-
-      // close original file
-      rfclose(pOriginalFile);
-    }
-
-    free(wideTemporaryFileName);
-    // return pointer
-    return pStream;
-  }
-  else
-  {
-    // forward through
-    FILE* pFile = FileSystem::OpenCFile(fileName, modeString);
-    if (!pFile)
-      return nullptr;
-
-    return std::make_unique<FileByteStream>(pFile);
-  }
-}
-
-#else
-
-std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 openMode)
-{
-  if ((openMode & (BYTESTREAM_OPEN_CREATE | BYTESTREAM_OPEN_WRITE)) == BYTESTREAM_OPEN_WRITE)
-  {
-    // if opening with write but not create, the path must exist.
-    if (!path_is_valid(fileName))
-      return nullptr;
-  }
-
-  char modeString[16];
-  u32 modeStringLength = 0;
+  uint32_t modeStringLength = 0;
 
   if (openMode & BYTESTREAM_OPEN_WRITE)
   {
@@ -934,68 +682,21 @@ std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 
 
   modeString[modeStringLength] = 0;
 
-  if (openMode & BYTESTREAM_OPEN_CREATE_PATH)
-  {
-    u32 i;
-    const u32 fileNameLength = static_cast<u32>(std::strlen(fileName));
-    char* tempStr = (char*)alloca(fileNameLength + 1);
-
-    // step through each path component, create folders as necessary
-    for (i = 0; i < fileNameLength; i++)
-    {
-      if (i > 0 && (fileName[i] == '\\' || fileName[i] == '/') && fileName[i] != ':')
-      {
-        // terminate the string
-        tempStr[i] = '\0';
-
-        // check if it exists
-	if (!path_is_valid(tempStr))
-        {
-          if (errno == ENOENT)
-          {
-            // try creating it
-	    if (!path_mkdir(tempStr)) // no point trying any further down the chain
-              break;
-          }
-          else // if (errno == ENOTDIR)
-          {
-            // well.. someone's trying to open a fucking weird path that is comprised of both directories and
-            // files... I aint sticking around here to find out what disaster awaits... let fopen deal with it
-            break;
-          }
-        }
-
-// append platform path seperator
-        tempStr[i] = '/';
-      }
-      else
-      {
-        // append character to temp string
-        tempStr[i] = fileName[i];
-      }
-    }
-  }
-
   if (openMode & BYTESTREAM_OPEN_ATOMIC_UPDATE)
   {
     // generate the temporary file name
-    const u32 fileNameLength = static_cast<u32>(std::strlen(fileName));
+    const uint32_t fileNameLength = static_cast<uint32_t>(std::strlen(fileName));
     char* temporaryFileName = (char*)alloca(fileNameLength + 8);
-    std::snprintf(temporaryFileName, fileNameLength + 8, "%s.XXXXXX", fileName);
+    std::snprintf(temporaryFileName, fileNameLength + 8, "%s.tmp", fileName);
 
-    std::FILE* pTemporaryFile;
-    // fill in random characters
-#ifdef HAVE_MKSTEMP
-    int fd = mkstemp(temporaryFileName);
-    if (fd == -1)
-      return nullptr;
-    pTemporaryFile = fdopen(fd, modeString);
-#else
-    if (mktemp(temporaryFileName) == nullptr)
-      return nullptr;
-    pTemporaryFile = std::fopen(temporaryFileName, modeString);
-#endif
-    if (pTemporaryFile == nullptr)
+    // open the temporary file through libretro VFS.  The temporary
+    // must always be created fresh (pre-VFS this was CREATE_NEW):
+    // passing the caller's append mode through maps to VFS
+    // UPDATE_EXISTING, which fails when the tmp does not exist yet -
+    // and would be wrong anyway, since the copy-in loop below is what
+    // provides the original content for non-truncating opens.
+    RFILE* pTemporaryFile = rfopen(temporaryFileName, (openMode & BYTESTREAM_OPEN_READ) ? "w+b" : "wb");
+    if (!pTemporaryFile)
       return nullptr;
 
     // create the stream pointer
@@ -1009,21 +710,21 @@ std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 
       if (!pOriginalFile)
       {
         // this will delete the temporary file
-        pStream->SetErrorState();
+        pStream->Discard();
         return nullptr;
       }
 
       static const size_t BUFFERSIZE = 4096;
-      u8 buffer[BUFFERSIZE];
+      uint8_t buffer[BUFFERSIZE];
       while (!rfeof(pOriginalFile))
       {
-        size_t nBytes = rfread(buffer, BUFFERSIZE, sizeof(u8), pOriginalFile);
-        if (nBytes == 0)
+        int64_t nBytes = rfread(buffer, sizeof(uint8_t), BUFFERSIZE, pOriginalFile);
+        if (nBytes <= 0)
           break;
 
-        if (pStream->Write(buffer, (u32)nBytes) != (u32)nBytes)
+        if (pStream->Write(buffer, (uint32_t)nBytes) != (uint32_t)nBytes)
         {
-          pStream->SetErrorState();
+          pStream->Discard();
           rfclose(pOriginalFile);
           return nullptr;
         }
@@ -1038,7 +739,7 @@ std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 
   }
   else
   {
-    std::FILE* pFile = std::fopen(fileName, modeString);
+    RFILE* pFile = rfopen(fileName, modeString);
     if (!pFile)
       return nullptr;
 
@@ -1046,19 +747,17 @@ std::unique_ptr<ByteStream> ByteStream_OpenFileStream(const char* fileName, u32 
   }
 }
 
-#endif
-
-std::unique_ptr<MemoryByteStream> ByteStream_CreateMemoryStream(void* pMemory, u32 Size)
+std::unique_ptr<MemoryByteStream> ByteStream_CreateMemoryStream(void* pMemory, uint32_t Size)
 {
   return std::make_unique<MemoryByteStream>(pMemory, Size);
 }
 
-std::unique_ptr<ReadOnlyMemoryByteStream> ByteStream_CreateReadOnlyMemoryStream(const void* pMemory, u32 Size)
+std::unique_ptr<ReadOnlyMemoryByteStream> ByteStream_CreateReadOnlyMemoryStream(const void* pMemory, uint32_t Size)
 {
   return std::make_unique<ReadOnlyMemoryByteStream>(pMemory, Size);
 }
 
-std::unique_ptr<GrowableMemoryByteStream> ByteStream_CreateGrowableMemoryStream(void* pInitialMemory, u32 InitialSize)
+std::unique_ptr<GrowableMemoryByteStream> ByteStream_CreateGrowableMemoryStream(void* pInitialMemory, uint32_t InitialSize)
 {
   return std::make_unique<GrowableMemoryByteStream>(pInitialMemory, InitialSize);
 }

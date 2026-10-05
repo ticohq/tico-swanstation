@@ -103,6 +103,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"scph5500.bin", "SCPH5500"},
      {"psxonpsp660.bin", "PSP"},
      {"ps1_rom.bin", "PS3"},
+     {"openbios.bin", "OpenBIOS"},
      {NULL, NULL},
    },
    "scph5500.bin"},
@@ -116,6 +117,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"scph5501.bin", "SCPH5501"},
      {"psxonpsp660.bin", "PSP"},
      {"ps1_rom.bin", "PS3"},
+     {"openbios.bin", "OpenBIOS"},
      {NULL, NULL},
    },
    "scph5501.bin"},
@@ -129,6 +131,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"scph5502.bin", "SCPH5502"},
      {"psxonpsp660.bin", "PSP"},
      {"ps1_rom.bin", "PS3"},
+     {"openbios.bin", "OpenBIOS"},
      {NULL, NULL},
    },
    "scph5502.bin"},
@@ -286,6 +289,9 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"Auto", "Hardware (Auto)"},
 #ifdef WIN32
      {"D3D11", "Hardware (D3D11)"},
+#ifdef USE_D3D12
+     {"D3D12", "Hardware (D3D12)"},
+#endif
 #endif
      {"OpenGL", "Hardware (OpenGL)"},
      {"Vulkan", "Hardware (Vulkan)"},
@@ -698,6 +704,25 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {NULL, NULL},
    },
    "Disabled"},
+  {"swanstation_GPU_ShaderPrecompile",
+   "Shader Precompilation",
+   NULL,
+   "Controls when the hardware renderer's batch fragment shaders are compiled. "
+   "'Lazy' (default) compiles them on a background thread while gameplay starts immediately; "
+   "the previous frontend-blocking behaviour is preserved as 'Enabled'. "
+   "'Disabled' skips precompilation entirely and compiles each shader on the main thread "
+   "the first time the game actually dispatches a draw using it - lowest startup latency, "
+   "but brief stutters can occur during early gameplay when new shader permutations are "
+   "encountered. Changing the texture filter recompiles the matrix and pays this cost again.",
+   NULL,
+   "display",
+   {
+     {"Lazy", "Lazy (background thread, default)"},
+     {"Enabled", "Enabled (block until done, like old behaviour)"},
+     {"Disabled", "Disabled (compile on first use)"},
+     {NULL, NULL},
+   },
+   "Lazy"},
   {"swanstation_Display_ShowOSDMessages",
    "Display OSD Messages",
    NULL,
@@ -929,7 +954,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller1_VibrationBias",
    "Controller 1 Vibration Bias",
    NULL,
@@ -1089,7 +1114,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller2_VibrationBias",
    "Controller 2 Vibration Bias",
    NULL,
@@ -1249,7 +1274,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller3_VibrationBias",
    "Controller 3 Vibration Bias",
    NULL,
@@ -1361,7 +1386,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller4_VibrationBias",
    "Controller 4 Vibration Bias",
    NULL,
@@ -1473,7 +1498,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller5_VibrationBias",
    "Controller 5 Vibration Bias",
    NULL,
@@ -1544,7 +1569,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller6_VibrationBias",
    "Controller 6 Vibration Bias",
    NULL,
@@ -1615,7 +1640,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller7_VibrationBias",
    "Controller 7 Vibration Bias",
    NULL,
@@ -1686,7 +1711,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
      {"1.42", NULL}, {"1.43", NULL}, {"1.44", NULL}, {"1.45", NULL}, {"1.46", NULL}, {"1.47", NULL}, {"1.48", NULL},
      {"1.49", NULL}, {"1.50", NULL}, {NULL, NULL},
    },
-   "1.00"},
+   "1.33"},
   {"swanstation_Controller8_VibrationBias",
    "Controller 8 Vibration Bias",
    NULL,
@@ -1981,7 +2006,10 @@ struct retro_core_option_v2_definition option_defs_us[] = {
    "Internal Run-Ahead",
    NULL,
    "Simulates the system ahead of time and rolls back/replays to reduce input lag. Has very high system "
-   "requirements.",
+   "requirements. Most libretro frontends (including RetroArch) provide their own run-ahead implementation "
+   "in their settings; the frontend version is generally more efficient and supports both single- and "
+   "second-instance modes, so prefer it when available and leave this option at 0. Only enable this "
+   "internal version if the frontend does not offer its own run-ahead, or to test against it.",
    NULL,
    "advanced",
    {
@@ -2028,10 +2056,13 @@ struct retro_core_option_v2_definition option_defs_us[] = {
    },
    "true"},
   {"swanstation_Audio_FastHook",
-   "Use Alternative Audio Hook (Restart)",
+   "Use Per-Frame Audio Batching (Restart)",
    NULL,
-   "Use a faster and more efficient to submit audio samples to the frontend. Mostly safe to enable, but may hang "
-   "for a select few games that rely on the old method to function. Requires the core to be restarted to apply.",
+   "Drains all SPU samples to the frontend once per emulated frame, instead of pushing each chunk as the SPU "
+   "produces it. This is faster and produces more even audio batching, and is the right choice for almost every "
+   "game. A small number of titles (notably Formula 1 / Formula 1 '97) hang at boot if audio is not delivered to "
+   "the frontend mid-frame; the core auto-disables this option for those known titles, but if a game freezes at "
+   "startup with audio enabled, try disabling this manually.",
    NULL,
    "advanced",
    {

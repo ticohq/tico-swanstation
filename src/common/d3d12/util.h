@@ -43,7 +43,7 @@ static inline void SetViewportAndScissor(ID3D12GraphicsCommandList* cmdlist, int
   SetScissor(cmdlist, x, y, width, height);
 }
 
-u32 GetTexelSize(DXGI_FORMAT format);
+uint32_t GetTexelSize(DXGI_FORMAT format);
 
 void SetDefaultSampler(D3D12_SAMPLER_DESC* desc);
 
@@ -62,7 +62,7 @@ static inline void SetObjectNameFormatted(ID3D12Object* object, const char* form
 class RootSignatureBuilder
 {
 public:
-  static constexpr u32 MAX_PARAMETERS = 16, MAX_DESCRIPTOR_RANGES = 16;
+  static constexpr uint32_t MAX_PARAMETERS = 16, MAX_DESCRIPTOR_RANGES = 16;
 
   RootSignatureBuilder();
 
@@ -72,23 +72,23 @@ public:
 
   void SetInputAssemblerFlag();
 
-  u32 Add32BitConstants(u32 shader_reg, u32 num_values, D3D12_SHADER_VISIBILITY visibility);
-  u32 AddCBVParameter(u32 shader_reg, D3D12_SHADER_VISIBILITY visibility);
-  u32 AddSRVParameter(u32 shader_reg, D3D12_SHADER_VISIBILITY visibility);
-  u32 AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rt, u32 start_shader_reg, u32 num_shader_regs,
+  uint32_t Add32BitConstants(uint32_t shader_reg, uint32_t num_values, D3D12_SHADER_VISIBILITY visibility);
+  uint32_t AddCBVParameter(uint32_t shader_reg, D3D12_SHADER_VISIBILITY visibility);
+  uint32_t AddSRVParameter(uint32_t shader_reg, D3D12_SHADER_VISIBILITY visibility);
+  uint32_t AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rt, uint32_t start_shader_reg, uint32_t num_shader_regs,
                          D3D12_SHADER_VISIBILITY visibility);
 
 private:
   D3D12_ROOT_SIGNATURE_DESC m_desc{};
   std::array<D3D12_ROOT_PARAMETER, MAX_PARAMETERS> m_params{};
   std::array<D3D12_DESCRIPTOR_RANGE, MAX_DESCRIPTOR_RANGES> m_descriptor_ranges{};
-  u32 m_num_descriptor_ranges = 0;
+  uint32_t m_num_descriptor_ranges = 0;
 };
 
 class GraphicsPipelineBuilder
 {
 public:
-  static constexpr u32 MAX_VERTEX_ATTRIBUTES = 16;
+  static constexpr uint32_t MAX_VERTEX_ATTRIBUTES = 16;
 
   GraphicsPipelineBuilder();
 
@@ -101,21 +101,30 @@ public:
 
   void SetRootSignature(ID3D12RootSignature* rs);
 
-  void SetVertexShader(const void* data, u32 data_size);
-  void SetGeometryShader(const void* data, u32 data_size);
-  void SetPixelShader(const void* data, u32 data_size);
+  void SetVertexShader(const void* data, uint32_t data_size);
+  void SetGeometryShader(const void* data, uint32_t data_size);
+  void SetPixelShader(const void* data, uint32_t data_size);
 
   void SetVertexShader(ID3DBlob* blob);
   void SetGeometryShader(ID3DBlob* blob);
   void SetPixelShader(ID3DBlob* blob);
 
-  void AddVertexAttribute(const char* semantic_name, u32 semantic_index, DXGI_FORMAT format, u32 buffer, u32 offset);
+  // Convenience overloads for D3D12_SHADER_BYTECODE - the natural form
+  // for pre-baked DXBC blobs from src/common/d3d_common/embedded_dxbc/, which
+  // are returned as { data, size } aggregates by the
+  // D3DCommon::EmbeddedShaders helpers and by GPU_HW_D3D12's pre-bake
+  // accessors. Just unwraps to the (data, size) overload above.
+  void SetVertexShader(const D3D12_SHADER_BYTECODE& bc);
+  void SetGeometryShader(const D3D12_SHADER_BYTECODE& bc);
+  void SetPixelShader(const D3D12_SHADER_BYTECODE& bc);
+
+  void AddVertexAttribute(const char* semantic_name, uint32_t semantic_index, DXGI_FORMAT format, uint32_t buffer, uint32_t offset);
 
   void SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE type);
 
   void SetRasterizationState(D3D12_FILL_MODE polygon_mode, D3D12_CULL_MODE cull_mode, bool front_face_ccw);
 
-  void SetMultisamples(u32 multisamples);
+  void SetMultisamples(uint32_t multisamples);
 
   void SetNoCullRasterizationState();
 
@@ -123,15 +132,15 @@ public:
 
   void SetNoDepthTestState();
 
-  void SetBlendState(u32 rt, bool blend_enable, D3D12_BLEND src_factor, D3D12_BLEND dst_factor, D3D12_BLEND_OP op,
+  void SetBlendState(uint32_t rt, bool blend_enable, D3D12_BLEND src_factor, D3D12_BLEND dst_factor, D3D12_BLEND_OP op,
                      D3D12_BLEND alpha_src_factor, D3D12_BLEND alpha_dst_factor, D3D12_BLEND_OP alpha_op,
-                     u8 write_mask = D3D12_COLOR_WRITE_ENABLE_ALL);
+                     uint8_t write_mask = D3D12_COLOR_WRITE_ENABLE_ALL);
 
   void SetNoBlendingState();
 
   void ClearRenderTargets();
 
-  void SetRenderTarget(u32 rt, DXGI_FORMAT format);
+  void SetRenderTarget(uint32_t rt, DXGI_FORMAT format);
 
   void ClearDepthStencilFormat();
 

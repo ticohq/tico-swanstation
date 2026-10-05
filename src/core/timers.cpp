@@ -3,6 +3,7 @@
 #include "gpu.h"
 #include "interrupt_controller.h"
 #include "system.h"
+#include <limits>
 
 Timers g_timers;
 
@@ -71,7 +72,7 @@ void Timers::CPUClocksChanged()
   m_syclk_ticks_carry = 0;
 }
 
-void Timers::SetGate(u32 timer, bool state)
+void Timers::SetGate(uint32_t timer, bool state)
 {
   CounterState& cs = m_states[timer];
   if (cs.gate == state)
@@ -104,7 +105,7 @@ void Timers::SetGate(u32 timer, bool state)
   UpdateSysClkEvent();
 }
 
-TickCount Timers::GetTicksUntilIRQ(u32 timer) const
+TickCount Timers::GetTicksUntilIRQ(uint32_t timer) const
 {
   const CounterState& cs = m_states[timer];
   if (!cs.counting_enabled)
@@ -119,15 +120,15 @@ TickCount Timers::GetTicksUntilIRQ(u32 timer) const
   return ticks_until_irq;
 }
 
-void Timers::AddTicks(u32 timer, TickCount count)
+void Timers::AddTicks(uint32_t timer, TickCount count)
 {
   CounterState& cs = m_states[timer];
-  const u32 old_counter = cs.counter;
-  cs.counter += static_cast<u32>(count);
+  const uint32_t old_counter = cs.counter;
+  cs.counter += static_cast<uint32_t>(count);
   CheckForIRQ(timer, old_counter);
 }
 
-void Timers::CheckForIRQ(u32 timer, u32 old_counter)
+void Timers::CheckForIRQ(uint32_t timer, uint32_t old_counter)
 {
   CounterState& cs = m_states[timer];
 
@@ -166,10 +167,10 @@ void Timers::CheckForIRQ(u32 timer, u32 old_counter)
 
 static ALWAYS_INLINE_RELEASE TickCount UnscaleTicksToOverclock(TickCount ticks, TickCount* remainder)
 {
-  const u64 num =
-    (static_cast<u32>(ticks) * static_cast<u64>(g_settings.cpu_overclock_denominator)) + static_cast<u32>(*remainder);
-  const TickCount t = static_cast<u32>(num / g_settings.cpu_overclock_numerator);
-  *remainder = static_cast<u32>(num % g_settings.cpu_overclock_numerator);
+  const uint64_t num =
+    (static_cast<uint32_t>(ticks) * static_cast<uint64_t>(g_settings.cpu_overclock_denominator)) + static_cast<uint32_t>(*remainder);
+  const TickCount t = static_cast<uint32_t>(num / g_settings.cpu_overclock_numerator);
+  *remainder = static_cast<uint32_t>(num % g_settings.cpu_overclock_numerator);
   return t;
 }
 
@@ -195,10 +196,10 @@ void Timers::AddSysClkTicks(TickCount sysclk_ticks)
   UpdateSysClkEvent();
 }
 
-u32 Timers::ReadRegister(u32 offset)
+uint32_t Timers::ReadRegister(uint32_t offset)
 {
-  const u32 timer_index = (offset >> 4) & u32(0x03);
-  const u32 port_offset = offset & u32(0x0F);
+  const uint32_t timer_index = (offset >> 4) & uint32_t(0x03);
+  const uint32_t port_offset = offset & uint32_t(0x0F);
   if (timer_index >= 3)
     return UINT32_C(0xFFFFFFFF);
 
@@ -231,7 +232,7 @@ u32 Timers::ReadRegister(u32 offset)
 
       m_sysclk_event->InvokeEarly();
 
-      const u32 bits = cs.mode.bits;
+      const uint32_t bits = cs.mode.bits;
       cs.mode.reached_overflow = false;
       cs.mode.reached_target = false;
       return bits;
@@ -246,10 +247,10 @@ u32 Timers::ReadRegister(u32 offset)
   return UINT32_C(0xFFFFFFFF);
 }
 
-void Timers::WriteRegister(u32 offset, u32 value)
+void Timers::WriteRegister(uint32_t offset, uint32_t value)
 {
-  const u32 timer_index = (offset >> 4) & u32(0x03);
-  const u32 port_offset = offset & u32(0x0F);
+  const uint32_t timer_index = (offset >> 4) & uint32_t(0x03);
+  const uint32_t port_offset = offset & uint32_t(0x0F);
   if (timer_index >= 3)
     return;
 
@@ -269,8 +270,8 @@ void Timers::WriteRegister(u32 offset, u32 value)
   {
     case 0x00:
     {
-      const u32 old_counter = cs.counter;
-      cs.counter = value & u32(0xFFFF);
+      const uint32_t old_counter = cs.counter;
+      cs.counter = value & uint32_t(0xFFFF);
       CheckForIRQ(timer_index, old_counter);
       if (timer_index == 2 || !cs.external_counting_enabled)
         UpdateSysClkEvent();
@@ -279,7 +280,7 @@ void Timers::WriteRegister(u32 offset, u32 value)
 
     case 0x04:
     {
-      static constexpr u32 WRITE_MASK = 0b1110001111111111;
+      static constexpr uint32_t WRITE_MASK = 0b1110001111111111;
 
       cs.mode.bits = (value & WRITE_MASK) | (cs.mode.bits & ~WRITE_MASK);
       cs.use_external_clock = (cs.mode.clock_source & (timer_index == 2 ? 2 : 1)) != 0;
@@ -295,7 +296,7 @@ void Timers::WriteRegister(u32 offset, u32 value)
 
     case 0x08:
     {
-      cs.target = value & u32(0xFFFF);
+      cs.target = value & uint32_t(0xFFFF);
       CheckForIRQ(timer_index, cs.counter);
       if (timer_index == 2 || !cs.external_counting_enabled)
         UpdateSysClkEvent();
@@ -333,7 +334,7 @@ void Timers::UpdateCountingEnabled(CounterState& cs)
   cs.external_counting_enabled = cs.use_external_clock && cs.counting_enabled;
 }
 
-void Timers::UpdateIRQ(u32 index)
+void Timers::UpdateIRQ(uint32_t index)
 {
   CounterState& cs = m_states[index];
   if (cs.mode.interrupt_request_n || (!cs.mode.irq_repeat && cs.irq_done))
@@ -341,13 +342,13 @@ void Timers::UpdateIRQ(u32 index)
 
   cs.irq_done = true;
   g_interrupt_controller.InterruptRequest(
-    static_cast<InterruptController::IRQ>(static_cast<u32>(InterruptController::IRQ::TMR0) + index));
+    static_cast<InterruptController::IRQ>(static_cast<uint32_t>(InterruptController::IRQ::TMR0) + index));
 }
 
 TickCount Timers::GetTicksUntilNextInterrupt() const
 {
   TickCount min_ticks = System::GetMaxSliceTicks();
-  for (u32 i = 0; i < NUM_TIMERS; i++)
+  for (uint32_t i = 0; i < NUM_TIMERS; i++)
   {
     const CounterState& cs = m_states[i];
     if (!cs.counting_enabled || (i < 2 && cs.external_counting_enabled) ||

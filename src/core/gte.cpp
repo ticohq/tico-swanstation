@@ -10,27 +10,27 @@
 #include "timing_event.h"
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include <numeric>
-
 namespace GTE {
 
-static constexpr s64 MAC0_MIN_VALUE = -(INT64_C(1) << 31);
-static constexpr s64 MAC0_MAX_VALUE = (INT64_C(1) << 31) - 1;
-static constexpr s64 MAC123_MIN_VALUE = -(INT64_C(1) << 43);
-static constexpr s64 MAC123_MAX_VALUE = (INT64_C(1) << 43) - 1;
-static constexpr s32 IR0_MIN_VALUE = 0x0000;
-static constexpr s32 IR0_MAX_VALUE = 0x1000;
-static constexpr s32 IR123_MIN_VALUE = -(INT64_C(1) << 15);
-static constexpr s32 IR123_MAX_VALUE = (INT64_C(1) << 15) - 1;
+static constexpr int64_t MAC0_MIN_VALUE = -(INT64_C(1) << 31);
+static constexpr int64_t MAC0_MAX_VALUE = (INT64_C(1) << 31) - 1;
+static constexpr int64_t MAC123_MIN_VALUE = -(INT64_C(1) << 43);
+static constexpr int64_t MAC123_MAX_VALUE = (INT64_C(1) << 43) - 1;
+static constexpr int32_t IR0_MIN_VALUE = 0x0000;
+static constexpr int32_t IR0_MAX_VALUE = 0x1000;
+static constexpr int32_t IR123_MIN_VALUE = -(INT64_C(1) << 15);
+static constexpr int32_t IR123_MAX_VALUE = (INT64_C(1) << 15) - 1;
 
 static DisplayAspectRatio s_aspect_ratio = DisplayAspectRatio::R4_3;
-static u32 s_custom_aspect_ratio_numerator;
-static u32 s_custom_aspect_ratio_denominator;
+static uint32_t s_custom_aspect_ratio_numerator;
+static uint32_t s_custom_aspect_ratio_denominator;
 static float s_custom_aspect_ratio_f;
 
 #define REGS CPU::g_state.gte_regs
 
-ALWAYS_INLINE static u32 CountLeadingBits(u32 value)
+ALWAYS_INLINE static uint32_t CountLeadingBits(uint32_t value)
 {
   // if top-most bit is set, we want to count ones not zeros
   if (value & UINT32_C(0x80000000))
@@ -39,11 +39,11 @@ ALWAYS_INLINE static u32 CountLeadingBits(u32 value)
   return (value == 0u) ? 32 : CountLeadingZeros(value);
 }
 
-template<u32 index>
-ALWAYS_INLINE static void CheckMACOverflow(s64 value)
+template<uint32_t index>
+ALWAYS_INLINE static void CheckMACOverflow(int64_t value)
 {
-  constexpr s64 MIN_VALUE = (index == 0) ? MAC0_MIN_VALUE : MAC123_MIN_VALUE;
-  constexpr s64 MAX_VALUE = (index == 0) ? MAC0_MAX_VALUE : MAC123_MAX_VALUE;
+  constexpr int64_t MIN_VALUE = (index == 0) ? MAC0_MIN_VALUE : MAC123_MIN_VALUE;
+  constexpr int64_t MAX_VALUE = (index == 0) ? MAC0_MAX_VALUE : MAC123_MAX_VALUE;
   if (value < MIN_VALUE)
   {
     if constexpr (index == 0)
@@ -68,30 +68,34 @@ ALWAYS_INLINE static void CheckMACOverflow(s64 value)
   }
 }
 
-template<u32 index>
-ALWAYS_INLINE static s64 SignExtendMACResult(s64 value)
+template<uint32_t index>
+ALWAYS_INLINE static int64_t SignExtendMACResult(int64_t value)
 {
   CheckMACOverflow<index>(value);
-  return SignExtendN < index == 0 ? 31 : 44 > (value);
+  // Sign-extend low 31 bits (MAC0) or 44 bits (MAC1..3) to int64_t.
+  // Shift in unsigned space to avoid UB on negative left shift
+  // (UB in C++<20; well-defined in C++20+).
+  constexpr int shift = index == 0 ? 33 : 20;
+  return static_cast<int64_t>(static_cast<uint64_t>(value) << shift) >> shift;
 }
 
-template<u32 index>
-ALWAYS_INLINE static void TruncateAndSetMAC(s64 value, u8 shift)
+template<uint32_t index>
+ALWAYS_INLINE static void TruncateAndSetMAC(int64_t value, uint8_t shift)
 {
   CheckMACOverflow<index>(value);
 
   // shift should be done before storing to avoid losing precision
   value >>= shift;
 
-  REGS.dr32[24 + index] = Truncate32(static_cast<u64>(value));
+  REGS.dr32[24 + index] = static_cast<uint32_t>(static_cast<uint64_t>(value));
 }
 
-template<u32 index>
-ALWAYS_INLINE static void TruncateAndSetIR(s32 value, bool lm)
+template<uint32_t index>
+ALWAYS_INLINE static void TruncateAndSetIR(int32_t value, bool lm)
 {
-  constexpr s32 MIN_VALUE = (index == 0) ? IR0_MIN_VALUE : IR123_MIN_VALUE;
-  constexpr s32 MAX_VALUE = (index == 0) ? IR0_MAX_VALUE : IR123_MAX_VALUE;
-  const s32 actual_min_value = lm ? 0 : MIN_VALUE;
+  constexpr int32_t MIN_VALUE = (index == 0) ? IR0_MIN_VALUE : IR123_MIN_VALUE;
+  constexpr int32_t MAX_VALUE = (index == 0) ? IR0_MAX_VALUE : IR123_MAX_VALUE;
+  const int32_t actual_min_value = lm ? 0 : MIN_VALUE;
   if (value < actual_min_value)
   {
     value = actual_min_value;
@@ -121,8 +125,8 @@ ALWAYS_INLINE static void TruncateAndSetIR(s32 value, bool lm)
   REGS.dr32[8 + index] = value;
 }
 
-template<u32 index>
-ALWAYS_INLINE static void TruncateAndSetMACAndIR(s64 value, u8 shift, bool lm)
+template<uint32_t index>
+ALWAYS_INLINE static void TruncateAndSetMACAndIR(int64_t value, uint8_t shift, bool lm)
 {
   CheckMACOverflow<index>(value);
 
@@ -130,15 +134,15 @@ ALWAYS_INLINE static void TruncateAndSetMACAndIR(s64 value, u8 shift, bool lm)
   value >>= shift;
 
   // set MAC
-  const s32 value32 = static_cast<s32>(value);
+  const int32_t value32 = static_cast<int32_t>(value);
   REGS.dr32[24 + index] = value32;
 
   // set IR
   TruncateAndSetIR<index>(value32, lm);
 }
 
-template<u32 index>
-ALWAYS_INLINE static u32 TruncateRGB(s32 value)
+template<uint32_t index>
+ALWAYS_INLINE static uint32_t TruncateRGB(int32_t value)
 {
   if (value < 0 || value > 0xFF)
   {
@@ -152,7 +156,7 @@ ALWAYS_INLINE static u32 TruncateRGB(s32 value)
     return (value < 0) ? 0 : 0xFF;
   }
 
-  return static_cast<u32>(value);
+  return static_cast<uint32_t>(value);
 }
 
 void Initialize()
@@ -182,7 +186,7 @@ void UpdateAspectRatio()
 
   s_aspect_ratio = g_settings.display_aspect_ratio;
 
-  u32 num, denom;
+  uint32_t num, denom;
   switch (s_aspect_ratio)
   {
     case DisplayAspectRatio::MatchWindow:
@@ -211,9 +215,9 @@ void UpdateAspectRatio()
   }
 
   // (4 / 3) / (num / denom) => gcd((4 * denom) / (3 * num))
-  const u32 x = 4u * denom;
-  const u32 y = 3u * num;
-  const u32 gcd = std::gcd(x, y);
+  const uint32_t x = 4u * denom;
+  const uint32_t y = 3u * num;
+  const uint32_t gcd = std::gcd(x, y);
 
   s_custom_aspect_ratio_numerator = x / gcd;
   s_custom_aspect_ratio_denominator = y / gcd;
@@ -221,7 +225,7 @@ void UpdateAspectRatio()
   s_custom_aspect_ratio_f = static_cast<float>((4.0 / 3.0) / (static_cast<double>(num) / static_cast<double>(denom)));
 }
 
-u32 ReadRegister(u32 index)
+uint32_t ReadRegister(uint32_t index)
 {
   switch (index)
   {
@@ -235,10 +239,10 @@ u32 ReadRegister(u32 index)
     case 29: // ORGB
     {
       // ORGB register, convert 16-bit to 555
-      const u8 r = static_cast<u8>(std::clamp(REGS.IR1 / 0x80, 0x00, 0x1F));
-      const u8 g = static_cast<u8>(std::clamp(REGS.IR2 / 0x80, 0x00, 0x1F));
-      const u8 b = static_cast<u8>(std::clamp(REGS.IR3 / 0x80, 0x00, 0x1F));
-      return ZeroExtend32(r) | (ZeroExtend32(g) << 5) | (ZeroExtend32(b) << 10);
+      const uint8_t r = static_cast<uint8_t>(std::clamp(REGS.IR1 / 0x80, 0x00, 0x1F));
+      const uint8_t g = static_cast<uint8_t>(std::clamp(REGS.IR2 / 0x80, 0x00, 0x1F));
+      const uint8_t b = static_cast<uint8_t>(std::clamp(REGS.IR3 / 0x80, 0x00, 0x1F));
+      return static_cast<uint32_t>(r) | (static_cast<uint32_t>(g) << 5) | (static_cast<uint32_t>(b) << 10);
     }
 
     default:
@@ -246,7 +250,7 @@ u32 ReadRegister(u32 index)
   }
 }
 
-void WriteRegister(u32 index, u32 value)
+void WriteRegister(uint32_t index, uint32_t value)
 {
   switch (index)
   {
@@ -266,7 +270,7 @@ void WriteRegister(u32 index, u32 value)
     case 62: // ZSF4
     {
       // sign-extend z component of vector registers
-      REGS.r32[index] = SignExtend32(Truncate16(value));
+      REGS.r32[index] = static_cast<uint32_t>(static_cast<int16_t>(value));
     }
     break;
 
@@ -277,7 +281,7 @@ void WriteRegister(u32 index, u32 value)
     case 19: // SZ3
     {
       // zero-extend unsigned values
-      REGS.r32[index] = ZeroExtend32(Truncate16(value));
+      REGS.r32[index] = static_cast<uint32_t>(static_cast<uint16_t>(value));
     }
     break;
 
@@ -294,15 +298,15 @@ void WriteRegister(u32 index, u32 value)
     {
       // IRGB register, convert 555 to 16-bit
       REGS.IRGB = value & UINT32_C(0x7FFF);
-      REGS.r32[9] = SignExtend32(static_cast<u16>(Truncate16((value & UINT32_C(0x1F)) * UINT32_C(0x80))));
-      REGS.r32[10] = SignExtend32(static_cast<u16>(Truncate16(((value >> 5) & UINT32_C(0x1F)) * UINT32_C(0x80))));
-      REGS.r32[11] = SignExtend32(static_cast<u16>(Truncate16(((value >> 10) & UINT32_C(0x1F)) * UINT32_C(0x80))));
+      REGS.r32[9] = static_cast<uint32_t>(static_cast<int16_t>(static_cast<uint16_t>((value & UINT32_C(0x1F)) * UINT32_C(0x80))));
+      REGS.r32[10] = static_cast<uint32_t>(static_cast<int16_t>(static_cast<uint16_t>(((value >> 5) & UINT32_C(0x1F)) * UINT32_C(0x80))));
+      REGS.r32[11] = static_cast<uint32_t>(static_cast<int16_t>(static_cast<uint16_t>(((value >> 10) & UINT32_C(0x1F)) * UINT32_C(0x80))));
     }
     break;
 
     case 30: // LZCS
     {
-      REGS.LZCS = static_cast<s32>(value);
+      REGS.LZCS = static_cast<int32_t>(value);
       REGS.LZCR = CountLeadingBits(value);
     }
     break;
@@ -330,7 +334,7 @@ void WriteRegister(u32 index, u32 value)
   }
 }
 
-ALWAYS_INLINE static void SetOTZ(s32 value)
+ALWAYS_INLINE static void SetOTZ(int32_t value)
 {
   if (value < 0)
   {
@@ -343,10 +347,10 @@ ALWAYS_INLINE static void SetOTZ(s32 value)
     value = 0xFFFF;
   }
 
-  REGS.dr32[7] = static_cast<u32>(value);
+  REGS.dr32[7] = static_cast<uint32_t>(value);
 }
 
-ALWAYS_INLINE static void PushSXY(s32 x, s32 y)
+ALWAYS_INLINE static void PushSXY(int32_t x, int32_t y)
 {
   if (x < -1024)
   {
@@ -372,10 +376,10 @@ ALWAYS_INLINE static void PushSXY(s32 x, s32 y)
 
   REGS.dr32[12] = REGS.dr32[13]; // SXY0 <- SXY1
   REGS.dr32[13] = REGS.dr32[14]; // SXY1 <- SXY2
-  REGS.dr32[14] = (static_cast<u32>(x) & 0xFFFFu) | (static_cast<u32>(y) << 16);
+  REGS.dr32[14] = (static_cast<uint32_t>(x) & 0xFFFFu) | (static_cast<uint32_t>(y) << 16);
 }
 
-ALWAYS_INLINE static void PushSZ(s32 value)
+ALWAYS_INLINE static void PushSZ(int32_t value)
 {
   if (value < 0)
   {
@@ -391,23 +395,23 @@ ALWAYS_INLINE static void PushSZ(s32 value)
   REGS.dr32[16] = REGS.dr32[17];           // SZ0 <- SZ1
   REGS.dr32[17] = REGS.dr32[18];           // SZ1 <- SZ2
   REGS.dr32[18] = REGS.dr32[19];           // SZ2 <- SZ3
-  REGS.dr32[19] = static_cast<u32>(value); // SZ3 <- value
+  REGS.dr32[19] = static_cast<uint32_t>(value); // SZ3 <- value
 }
 
 static void PushRGBFromMAC()
 {
   // Note: SHR 4 used instead of /16 as the results are different.
-  const u32 r = TruncateRGB<0>(static_cast<u32>(REGS.MAC1 >> 4));
-  const u32 g = TruncateRGB<1>(static_cast<u32>(REGS.MAC2 >> 4));
-  const u32 b = TruncateRGB<2>(static_cast<u32>(REGS.MAC3 >> 4));
-  const u32 c = ZeroExtend32(REGS.RGBC[3]);
+  const uint32_t r = TruncateRGB<0>(static_cast<uint32_t>(REGS.MAC1 >> 4));
+  const uint32_t g = TruncateRGB<1>(static_cast<uint32_t>(REGS.MAC2 >> 4));
+  const uint32_t b = TruncateRGB<2>(static_cast<uint32_t>(REGS.MAC3 >> 4));
+  const uint32_t c = static_cast<uint32_t>(REGS.RGBC[3]);
 
   REGS.dr32[20] = REGS.dr32[21];                        // RGB0 <- RGB1
   REGS.dr32[21] = REGS.dr32[22];                        // RGB1 <- RGB2
   REGS.dr32[22] = r | (g << 8) | (b << 16) | (c << 24); // RGB2 <- Value
 }
 
-ALWAYS_INLINE static u32 UNRDivide(u32 lhs, u32 rhs)
+ALWAYS_INLINE static uint32_t UNRDivide(uint32_t lhs, uint32_t rhs)
 {
   if (rhs * 2 <= lhs)
   {
@@ -415,11 +419,15 @@ ALWAYS_INLINE static u32 UNRDivide(u32 lhs, u32 rhs)
     return 0x1FFFF;
   }
 
-  const u32 shift = (rhs == 0) ? 16 : CountLeadingZeros(static_cast<u16>(rhs));
+  const uint32_t shift = (rhs == 0) ? 16 : CountLeadingZeros(static_cast<uint16_t>(rhs));
   lhs <<= shift;
   rhs <<= shift;
 
-  static u8 unr_table[257] = {
+  // constexpr eliminates the C++11 thread-safe-static-init guard.
+  // UNRDivide is called from RTPS / RTPT / DPCS / DPCT / DCPL / GPF /
+  // GPL / SQR - effectively the entire 3D transform path - so this
+  // is one of the hotter functions in the GTE.
+  static constexpr uint8_t unr_table[257] = {
     0xFF, 0xFD, 0xFB, 0xF9, 0xF7, 0xF5, 0xF3, 0xF1, 0xEF, 0xEE, 0xEC, 0xEA, 0xE8, 0xE6, 0xE4, 0xE3, //
     0xE1, 0xDF, 0xDD, 0xDC, 0xDA, 0xD8, 0xD6, 0xD5, 0xD3, 0xD1, 0xD0, 0xCE, 0xCD, 0xCB, 0xC9, 0xC8, //  00h..3Fh
     0xC6, 0xC5, 0xC3, 0xC1, 0xC0, 0xBE, 0xBD, 0xBB, 0xBA, 0xB8, 0xB7, 0xB5, 0xB4, 0xB2, 0xB1, 0xB0, //
@@ -439,23 +447,23 @@ ALWAYS_INLINE static u32 UNRDivide(u32 lhs, u32 rhs)
     0x00 // <-- one extra table entry (for "(d-7FC0h)/80h"=100h)
   };
 
-  const u32 divisor = rhs | 0x8000;
-  const s32 x       = static_cast<s32>(0x101 + ZeroExtend32(unr_table[((divisor & 0x7FFF) + 0x40) >> 7]));
-  const s32 d       = ((static_cast<s32>(ZeroExtend32(divisor)) * -x) + 0x80) >> 8;
-  const u32 recip   = static_cast<u32>(((x * (0x20000 + d)) + 0x80) >> 8);
+  const uint32_t divisor = rhs | 0x8000;
+  const int32_t x       = static_cast<int32_t>(0x101 + static_cast<uint32_t>(unr_table[((divisor & 0x7FFF) + 0x40) >> 7]));
+  const int32_t d       = ((static_cast<int32_t>(divisor) * -x) + 0x80) >> 8;
+  const uint32_t recip   = static_cast<uint32_t>(((x * (0x20000 + d)) + 0x80) >> 8);
 
-  const u32 result  = Truncate32((ZeroExtend64(lhs) * ZeroExtend64(recip) + u64(0x8000)) >> 16);
+  const uint32_t result  = static_cast<uint32_t>((static_cast<uint64_t>(lhs) * static_cast<uint64_t>(recip) + uint64_t(0x8000)) >> 16);
 
   // The min(1FFFFh) limit is needed for cases like FE3Fh/7F20h, F015h/780Bh, etc. (these do produce UNR result 20000h,
   // and are saturated to 1FFFFh, but without setting overflow FLAG bits).
-  return std::min<u32>(0x1FFFF, result);
+  return std::min<uint32_t>(0x1FFFF, result);
 }
 
-static void MulMatVec(const s16 M[3][3], const s16 Vx, const s16 Vy, const s16 Vz, u8 shift, bool lm)
+static void MulMatVec(const int16_t M[3][3], const int16_t Vx, const int16_t Vy, const int16_t Vz, uint8_t shift, bool lm)
 {
 #define dot3(i)                                                                                                        \
-  TruncateAndSetMACAndIR<i + 1>(SignExtendMACResult<i + 1>((s64(M[i][0]) * s64(Vx)) + (s64(M[i][1]) * s64(Vy))) +      \
-                                  (s64(M[i][2]) * s64(Vz)),                                                            \
+  TruncateAndSetMACAndIR<i + 1>(SignExtendMACResult<i + 1>((int64_t(M[i][0]) * int64_t(Vx)) + (int64_t(M[i][1]) * int64_t(Vy))) +      \
+                                  (int64_t(M[i][2]) * int64_t(Vz)),                                                            \
                                 shift, lm)
 
   dot3(0);
@@ -465,13 +473,13 @@ static void MulMatVec(const s16 M[3][3], const s16 Vx, const s16 Vy, const s16 V
 #undef dot3
 }
 
-static void MulMatVec(const s16 M[3][3], const s32 T[3], const s16 Vx, const s16 Vy, const s16 Vz, u8 shift, bool lm)
+static void MulMatVec(const int16_t M[3][3], const int32_t T[3], const int16_t Vx, const int16_t Vy, const int16_t Vz, uint8_t shift, bool lm)
 {
 #define dot3(i)                                                                                                        \
   TruncateAndSetMACAndIR<i + 1>(                                                                                       \
-    SignExtendMACResult<i + 1>(SignExtendMACResult<i + 1>((s64(T[i]) << 12) + (s64(M[i][0]) * s64(Vx))) +              \
-                               (s64(M[i][1]) * s64(Vy))) +                                                             \
-      (s64(M[i][2]) * s64(Vz)),                                                                                        \
+    SignExtendMACResult<i + 1>(SignExtendMACResult<i + 1>((int64_t(T[i]) << 12) + (int64_t(M[i][0]) * int64_t(Vx))) +              \
+                               (int64_t(M[i][1]) * int64_t(Vy))) +                                                             \
+      (int64_t(M[i][2]) * int64_t(Vz)),                                                                                        \
     shift, lm)
 
   dot3(0);
@@ -481,17 +489,17 @@ static void MulMatVec(const s16 M[3][3], const s32 T[3], const s16 Vx, const s16
 #undef dot3
 }
 
-static void MulMatVecBuggy(const s16 M[3][3], const s32 T[3], const s16 Vx, const s16 Vy, const s16 Vz, u8 shift,
+static void MulMatVecBuggy(const int16_t M[3][3], const int32_t T[3], const int16_t Vx, const int16_t Vy, const int16_t Vz, uint8_t shift,
                            bool lm)
 {
 #define dot3(i)                                                                                                        \
   do                                                                                                                   \
   {                                                                                                                    \
-    TruncateAndSetIR<i + 1>(static_cast<s32>(SignExtendMACResult<i + 1>(SignExtendMACResult<i + 1>(                    \
-                                               (s64(T[i]) << 12) + (s64(M[i][0]) * s64(Vx)))) >>                       \
+    TruncateAndSetIR<i + 1>(static_cast<int32_t>(SignExtendMACResult<i + 1>(SignExtendMACResult<i + 1>(                    \
+                                               (int64_t(T[i]) << 12) + (int64_t(M[i][0]) * int64_t(Vx)))) >>                       \
                                              shift),                                                                   \
                             false);                                                                                    \
-    TruncateAndSetMACAndIR<i + 1>(SignExtendMACResult<i + 1>((s64(M[i][1]) * s64(Vy))) + (s64(M[i][2]) * s64(Vz)),     \
+    TruncateAndSetMACAndIR<i + 1>(SignExtendMACResult<i + 1>((int64_t(M[i][1]) * int64_t(Vy))) + (int64_t(M[i][2]) * int64_t(Vz)),     \
                                   shift, lm);                                                                          \
   } while (0)
 
@@ -507,23 +515,23 @@ static void Execute_MVMVA(Instruction inst)
   REGS.FLAG.Clear();
 
   // TODO: Remove memcpy..
-  s16 M[3][3];
+  int16_t M[3][3];
   switch (inst.mvmva_multiply_matrix)
   {
     case 0:
-      std::memcpy(M, REGS.RT, sizeof(s16) * 3 * 3);
+      std::memcpy(M, REGS.RT, sizeof(int16_t) * 3 * 3);
       break;
     case 1:
-      std::memcpy(M, REGS.LLM, sizeof(s16) * 3 * 3);
+      std::memcpy(M, REGS.LLM, sizeof(int16_t) * 3 * 3);
       break;
     case 2:
-      std::memcpy(M, REGS.LCM, sizeof(s16) * 3 * 3);
+      std::memcpy(M, REGS.LCM, sizeof(int16_t) * 3 * 3);
       break;
     default:
     {
       // buggy
-      M[0][0] = -static_cast<s16>(ZeroExtend16(REGS.RGBC[0]) << 4);
-      M[0][1] = static_cast<s16>(ZeroExtend16(REGS.RGBC[0]) << 4);
+      M[0][0] = -static_cast<int16_t>(static_cast<uint16_t>(REGS.RGBC[0]) << 4);
+      M[0][1] = static_cast<int16_t>(static_cast<uint16_t>(REGS.RGBC[0]) << 4);
       M[0][2] = REGS.IR0;
       M[1][0] = REGS.RT[0][2];
       M[1][1] = REGS.RT[0][2];
@@ -535,7 +543,7 @@ static void Execute_MVMVA(Instruction inst)
     break;
   }
 
-  s16 Vx, Vy, Vz;
+  int16_t Vx, Vy, Vz;
   switch (inst.mvmva_multiply_vector)
   {
     case 0:
@@ -560,7 +568,7 @@ static void Execute_MVMVA(Instruction inst)
       break;
   }
 
-  static const s32 zero_T[3] = {};
+  static const int32_t zero_T[3] = {};
   switch (inst.mvmva_translation_vector)
   {
     case 0:
@@ -585,10 +593,10 @@ static void Execute_SQR(Instruction inst)
   REGS.FLAG.Clear();
 
   // 32-bit multiply for speed - 16x16 isn't >32bit, and we know it won't overflow/underflow.
-  const u8 shift = inst.GetShift();
-  REGS.MAC1 = (s32(REGS.IR1) * s32(REGS.IR1)) >> shift;
-  REGS.MAC2 = (s32(REGS.IR2) * s32(REGS.IR2)) >> shift;
-  REGS.MAC3 = (s32(REGS.IR3) * s32(REGS.IR3)) >> shift;
+  const uint8_t shift = inst.GetShift();
+  REGS.MAC1 = (int32_t(REGS.IR1) * int32_t(REGS.IR1)) >> shift;
+  REGS.MAC2 = (int32_t(REGS.IR2) * int32_t(REGS.IR2)) >> shift;
+  REGS.MAC3 = (int32_t(REGS.IR3) * int32_t(REGS.IR3)) >> shift;
 
   const bool lm = inst.lm;
   TruncateAndSetIR<1>(REGS.MAC1, lm);
@@ -603,37 +611,37 @@ static void Execute_OP(Instruction inst)
   REGS.FLAG.Clear();
 
   // Take copies since we overwrite them in each step.
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
-  const s32 D1 = s32(REGS.RT[0][0]);
-  const s32 D2 = s32(REGS.RT[1][1]);
-  const s32 D3 = s32(REGS.RT[2][2]);
-  const s32 IR1 = s32(REGS.IR1);
-  const s32 IR2 = s32(REGS.IR2);
-  const s32 IR3 = s32(REGS.IR3);
+  const int32_t D1 = int32_t(REGS.RT[0][0]);
+  const int32_t D2 = int32_t(REGS.RT[1][1]);
+  const int32_t D3 = int32_t(REGS.RT[2][2]);
+  const int32_t IR1 = int32_t(REGS.IR1);
+  const int32_t IR2 = int32_t(REGS.IR2);
+  const int32_t IR3 = int32_t(REGS.IR3);
 
   // [MAC1,MAC2,MAC3] = [IR3*D2-IR2*D3, IR1*D3-IR3*D1, IR2*D1-IR1*D2] SAR (sf*12)
   // [IR1, IR2, IR3] = [MAC1, MAC2, MAC3]; copy result
-  TruncateAndSetMACAndIR<1>(s64(IR3 * D2) - s64(IR2 * D3), shift, lm);
-  TruncateAndSetMACAndIR<2>(s64(IR1 * D3) - s64(IR3 * D1), shift, lm);
-  TruncateAndSetMACAndIR<3>(s64(IR2 * D1) - s64(IR1 * D2), shift, lm);
+  TruncateAndSetMACAndIR<1>(int64_t(IR3 * D2) - int64_t(IR2 * D3), shift, lm);
+  TruncateAndSetMACAndIR<2>(int64_t(IR1 * D3) - int64_t(IR3 * D1), shift, lm);
+  TruncateAndSetMACAndIR<3>(int64_t(IR2 * D1) - int64_t(IR1 * D2), shift, lm);
 
   REGS.FLAG.UpdateError();
 }
 
-static void RTPS(const s16 V[3], u8 shift, bool lm, bool last)
+static void RTPS(const int16_t V[3], uint8_t shift, bool lm, bool last)
 {
 #define dot3(i)                                                                                                        \
-  SignExtendMACResult<i + 1>(SignExtendMACResult<i + 1>((s64(REGS.TR[i]) << 12) + (s64(REGS.RT[i][0]) * s64(V[0]))) +  \
-                             (s64(REGS.RT[i][1]) * s64(V[1]))) +                                                       \
-    (s64(REGS.RT[i][2]) * s64(V[2]))
+  SignExtendMACResult<i + 1>(SignExtendMACResult<i + 1>((int64_t(REGS.TR[i]) << 12) + (int64_t(REGS.RT[i][0]) * int64_t(V[0]))) +  \
+                             (int64_t(REGS.RT[i][1]) * int64_t(V[1]))) +                                                       \
+    (int64_t(REGS.RT[i][2]) * int64_t(V[2]))
 
   // IR1 = MAC1 = (TRX*1000h + RT11*VX0 + RT12*VY0 + RT13*VZ0) SAR (sf*12)
   // IR2 = MAC2 = (TRY*1000h + RT21*VX0 + RT22*VY0 + RT23*VZ0) SAR (sf*12)
   // IR3 = MAC3 = (TRZ*1000h + RT31*VX0 + RT32*VY0 + RT33*VZ0) SAR (sf*12)
-  const s64 x = dot3(0);
-  const s64 y = dot3(1);
-  const s64 z = dot3(2);
+  const int64_t x = dot3(0);
+  const int64_t y = dot3(1);
+  const int64_t z = dot3(2);
   TruncateAndSetMAC<1>(x, shift);
   TruncateAndSetMAC<2>(y, shift);
   TruncateAndSetMAC<3>(z, shift);
@@ -643,51 +651,51 @@ static void RTPS(const s16 V[3], u8 shift, bool lm, bool last)
   // The command does saturate IR1,IR2,IR3 to -8000h..+7FFFh (regardless of lm bit). When using RTP with sf=0, then the
   // IR3 saturation flag (FLAG.22) gets set <only> if "MAC3 SAR 12" exceeds -8000h..+7FFFh (although IR3 is saturated
   // when "MAC3" exceeds -8000h..+7FFFh).
-  TruncateAndSetIR<3>(s32(z >> 12), false);
+  TruncateAndSetIR<3>(int32_t(z >> 12), false);
   REGS.dr32[11] = std::clamp(REGS.MAC3, lm ? 0 : IR123_MIN_VALUE, IR123_MAX_VALUE);
 #undef dot3
 
   // SZ3 = MAC3 SAR ((1-sf)*12)                           ;ScreenZ FIFO 0..+FFFFh
-  PushSZ(s32(z >> 12));
+  PushSZ(int32_t(z >> 12));
 
   // MAC0=(((H*20000h/SZ3)+1)/2)*IR1+OFX, SX2=MAC0/10000h ;ScrX FIFO -400h..+3FFh
   // MAC0=(((H*20000h/SZ3)+1)/2)*IR2+OFY, SY2=MAC0/10000h ;ScrY FIFO -400h..+3FFh
-  const s64 result = static_cast<s64>(ZeroExtend64(UNRDivide(REGS.H, REGS.SZ3)));
+  const int64_t result = static_cast<int64_t>(UNRDivide(REGS.H, REGS.SZ3));
 
-  s64 Sx;
+  int64_t Sx;
   switch (s_aspect_ratio)
   {
     case DisplayAspectRatio::R16_9:
-      Sx = ((((s64(result) * s64(REGS.IR1)) * s64(3)) / s64(4)) + s64(REGS.OFX));
+      Sx = ((((int64_t(result) * int64_t(REGS.IR1)) * int64_t(3)) / int64_t(4)) + int64_t(REGS.OFX));
       break;
 
     case DisplayAspectRatio::R19_9:
-      Sx = ((((s64(result) * s64(REGS.IR1)) * s64(12)) / s64(19)) + s64(REGS.OFX));
+      Sx = ((((int64_t(result) * int64_t(REGS.IR1)) * int64_t(12)) / int64_t(19)) + int64_t(REGS.OFX));
       break;
 
     case DisplayAspectRatio::R20_9:
-      Sx = ((((s64(result) * s64(REGS.IR1)) * s64(3)) / s64(5)) + s64(REGS.OFX));
+      Sx = ((((int64_t(result) * int64_t(REGS.IR1)) * int64_t(3)) / int64_t(5)) + int64_t(REGS.OFX));
       break;
 
     case DisplayAspectRatio::Custom:
     case DisplayAspectRatio::MatchWindow:
-      Sx = ((((s64(result) * s64(REGS.IR1)) * s64(s_custom_aspect_ratio_numerator)) /
-             s64(s_custom_aspect_ratio_denominator)) +
-            s64(REGS.OFX));
+      Sx = ((((int64_t(result) * int64_t(REGS.IR1)) * int64_t(s_custom_aspect_ratio_numerator)) /
+             int64_t(s_custom_aspect_ratio_denominator)) +
+            int64_t(REGS.OFX));
       break;
 
     case DisplayAspectRatio::Auto:
     case DisplayAspectRatio::R4_3:
     case DisplayAspectRatio::PAR1_1:
     default:
-      Sx = (s64(result) * s64(REGS.IR1) + s64(REGS.OFX));
+      Sx = (int64_t(result) * int64_t(REGS.IR1) + int64_t(REGS.OFX));
       break;
   }
 
-  const s64 Sy = s64(result) * s64(REGS.IR2) + s64(REGS.OFY);
+  const int64_t Sy = int64_t(result) * int64_t(REGS.IR2) + int64_t(REGS.OFY);
   CheckMACOverflow<0>(Sx);
   CheckMACOverflow<0>(Sy);
-  PushSXY(s32(Sx >> 16), s32(Sy >> 16));
+  PushSXY(int32_t(Sx >> 16), int32_t(Sy >> 16));
 
   if (g_settings.gpu_pgxp_enable)
   {
@@ -761,9 +769,9 @@ static void RTPS(const s16 V[3], u8 shift, bool lm, bool last)
   if (last)
   {
     // MAC0=(((H*20000h/SZ3)+1)/2)*DQA+DQB, IR0=MAC0/1000h  ;Depth cueing 0..+1000h
-    const s64 Sz = s64(result) * s64(REGS.DQA) + s64(REGS.DQB);
+    const int64_t Sz = int64_t(result) * int64_t(REGS.DQA) + int64_t(REGS.DQB);
     TruncateAndSetMAC<0>(Sz, 0);
-    TruncateAndSetIR<0>(s32(Sz >> 12), true);
+    TruncateAndSetIR<0>(int32_t(Sz >> 12), true);
   }
 }
 
@@ -778,7 +786,7 @@ static void Execute_RTPT(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   RTPS(REGS.V0, shift, lm, false);
@@ -793,9 +801,9 @@ static void Execute_NCLIP(Instruction inst)
   // MAC0 =   SX0*SY1 + SX1*SY2 + SX2*SY0 - SX0*SY2 - SX1*SY0 - SX2*SY1
   REGS.FLAG.Clear();
 
-  TruncateAndSetMAC<0>(s64(REGS.SXY0[0]) * s64(REGS.SXY1[1]) + s64(REGS.SXY1[0]) * s64(REGS.SXY2[1]) +
-                         s64(REGS.SXY2[0]) * s64(REGS.SXY0[1]) - s64(REGS.SXY0[0]) * s64(REGS.SXY2[1]) -
-                         s64(REGS.SXY1[0]) * s64(REGS.SXY0[1]) - s64(REGS.SXY2[0]) * s64(REGS.SXY1[1]),
+  TruncateAndSetMAC<0>(int64_t(REGS.SXY0[0]) * int64_t(REGS.SXY1[1]) + int64_t(REGS.SXY1[0]) * int64_t(REGS.SXY2[1]) +
+                         int64_t(REGS.SXY2[0]) * int64_t(REGS.SXY0[1]) - int64_t(REGS.SXY0[0]) * int64_t(REGS.SXY2[1]) -
+                         int64_t(REGS.SXY1[0]) * int64_t(REGS.SXY0[1]) - int64_t(REGS.SXY2[0]) * int64_t(REGS.SXY1[1]),
                        0);
 
   REGS.FLAG.UpdateError();
@@ -806,7 +814,7 @@ static void Execute_NCLIP_PGXP(Instruction inst)
   if (PGXP::GTE_NCLIP_valid(REGS.dr32[12], REGS.dr32[13], REGS.dr32[14]))
   {
     REGS.FLAG.Clear();
-    REGS.MAC0 = static_cast<s32>(PGXP::GTE_NCLIP());
+    REGS.MAC0 = static_cast<int32_t>(PGXP::GTE_NCLIP());
   }
   else
   {
@@ -818,9 +826,9 @@ static void Execute_AVSZ3(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const s64 result = s64(REGS.ZSF3) * s32(u32(REGS.SZ1) + u32(REGS.SZ2) + u32(REGS.SZ3));
+  const int64_t result = int64_t(REGS.ZSF3) * int32_t(uint32_t(REGS.SZ1) + uint32_t(REGS.SZ2) + uint32_t(REGS.SZ3));
   TruncateAndSetMAC<0>(result, 0);
-  SetOTZ(s32(result >> 12));
+  SetOTZ(int32_t(result >> 12));
 
   REGS.FLAG.UpdateError();
 }
@@ -829,29 +837,29 @@ static void Execute_AVSZ4(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const s64 result = s64(REGS.ZSF4) * s32(u32(REGS.SZ0) + u32(REGS.SZ1) + u32(REGS.SZ2) + u32(REGS.SZ3));
+  const int64_t result = int64_t(REGS.ZSF4) * int32_t(uint32_t(REGS.SZ0) + uint32_t(REGS.SZ1) + uint32_t(REGS.SZ2) + uint32_t(REGS.SZ3));
   TruncateAndSetMAC<0>(result, 0);
-  SetOTZ(s32(result >> 12));
+  SetOTZ(int32_t(result >> 12));
 
   REGS.FLAG.UpdateError();
 }
 
-static ALWAYS_INLINE void InterpolateColor(s64 in_MAC1, s64 in_MAC2, s64 in_MAC3, u8 shift, bool lm)
+static ALWAYS_INLINE void InterpolateColor(int64_t in_MAC1, int64_t in_MAC2, int64_t in_MAC3, uint8_t shift, bool lm)
 {
   // [MAC1,MAC2,MAC3] = MAC+(FC-MAC)*IR0
   //   [IR1,IR2,IR3] = (([RFC,GFC,BFC] SHL 12) - [MAC1,MAC2,MAC3]) SAR (sf*12)
-  TruncateAndSetMACAndIR<1>((s64(REGS.FC[0]) << 12) - in_MAC1, shift, false);
-  TruncateAndSetMACAndIR<2>((s64(REGS.FC[1]) << 12) - in_MAC2, shift, false);
-  TruncateAndSetMACAndIR<3>((s64(REGS.FC[2]) << 12) - in_MAC3, shift, false);
+  TruncateAndSetMACAndIR<1>((int64_t(REGS.FC[0]) << 12) - in_MAC1, shift, false);
+  TruncateAndSetMACAndIR<2>((int64_t(REGS.FC[1]) << 12) - in_MAC2, shift, false);
+  TruncateAndSetMACAndIR<3>((int64_t(REGS.FC[2]) << 12) - in_MAC3, shift, false);
 
   //   [MAC1,MAC2,MAC3] = (([IR1,IR2,IR3] * IR0) + [MAC1,MAC2,MAC3])
   // [MAC1,MAC2,MAC3] = [MAC1,MAC2,MAC3] SAR (sf*12)
-  TruncateAndSetMACAndIR<1>(s64(s32(REGS.IR1) * s32(REGS.IR0)) + in_MAC1, shift, lm);
-  TruncateAndSetMACAndIR<2>(s64(s32(REGS.IR2) * s32(REGS.IR0)) + in_MAC2, shift, lm);
-  TruncateAndSetMACAndIR<3>(s64(s32(REGS.IR3) * s32(REGS.IR0)) + in_MAC3, shift, lm);
+  TruncateAndSetMACAndIR<1>(int64_t(int32_t(REGS.IR1) * int32_t(REGS.IR0)) + in_MAC1, shift, lm);
+  TruncateAndSetMACAndIR<2>(int64_t(int32_t(REGS.IR2) * int32_t(REGS.IR0)) + in_MAC2, shift, lm);
+  TruncateAndSetMACAndIR<3>(int64_t(int32_t(REGS.IR3) * int32_t(REGS.IR0)) + in_MAC3, shift, lm);
 }
 
-static void NCS(const s16 V[3], u8 shift, bool lm)
+static void NCS(const int16_t V[3], uint8_t shift, bool lm)
 {
   // [IR1,IR2,IR3] = [MAC1,MAC2,MAC3] = (LLM*V0) SAR (sf*12)
   MulMatVec(REGS.LLM, V[0], V[1], V[2], shift, lm);
@@ -876,7 +884,7 @@ static void Execute_NCT(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   NCS(REGS.V0, shift, lm);
@@ -886,7 +894,7 @@ static void Execute_NCT(Instruction inst)
   REGS.FLAG.UpdateError();
 }
 
-static void NCCS(const s16 V[3], u8 shift, bool lm)
+static void NCCS(const int16_t V[3], uint8_t shift, bool lm)
 {
   // [IR1,IR2,IR3] = [MAC1,MAC2,MAC3] = (LLM*V0) SAR (sf*12)
   MulMatVec(REGS.LLM, V[0], V[1], V[2], shift, lm);
@@ -896,9 +904,9 @@ static void NCCS(const s16 V[3], u8 shift, bool lm)
 
   // [MAC1,MAC2,MAC3] = [R*IR1,G*IR2,B*IR3] SHL 4          ;<--- for NCDx/NCCx
   // [MAC1,MAC2,MAC3] = [MAC1,MAC2,MAC3] SAR (sf*12)       ;<--- for NCDx/NCCx
-  TruncateAndSetMACAndIR<1>(s64(s32(ZeroExtend32(REGS.RGBC[0])) * s32(REGS.IR1)) << 4, shift, lm);
-  TruncateAndSetMACAndIR<2>(s64(s32(ZeroExtend32(REGS.RGBC[1])) * s32(REGS.IR2)) << 4, shift, lm);
-  TruncateAndSetMACAndIR<3>(s64(s32(ZeroExtend32(REGS.RGBC[2])) * s32(REGS.IR3)) << 4, shift, lm);
+  TruncateAndSetMACAndIR<1>(int64_t(int32_t(static_cast<uint32_t>(REGS.RGBC[0])) * int32_t(REGS.IR1)) << 4, shift, lm);
+  TruncateAndSetMACAndIR<2>(int64_t(int32_t(static_cast<uint32_t>(REGS.RGBC[1])) * int32_t(REGS.IR2)) << 4, shift, lm);
+  TruncateAndSetMACAndIR<3>(int64_t(int32_t(static_cast<uint32_t>(REGS.RGBC[2])) * int32_t(REGS.IR3)) << 4, shift, lm);
 
   // Color FIFO = [MAC1/16,MAC2/16,MAC3/16,CODE], [IR1,IR2,IR3] = [MAC1,MAC2,MAC3]
   PushRGBFromMAC();
@@ -917,7 +925,7 @@ static void Execute_NCCT(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   NCCS(REGS.V0, shift, lm);
@@ -927,7 +935,7 @@ static void Execute_NCCT(Instruction inst)
   REGS.FLAG.UpdateError();
 }
 
-static void NCDS(const s16 V[3], u8 shift, bool lm)
+static void NCDS(const int16_t V[3], uint8_t shift, bool lm)
 {
   // [IR1,IR2,IR3] = [MAC1,MAC2,MAC3] = (LLM*V0) SAR (sf*12)
   MulMatVec(REGS.LLM, V[0], V[1], V[2], shift, lm);
@@ -937,9 +945,9 @@ static void NCDS(const s16 V[3], u8 shift, bool lm)
 
   // No need to assign these to MAC[1-3], as it'll never overflow.
   // [MAC1,MAC2,MAC3] = [R*IR1,G*IR2,B*IR3] SHL 4          ;<--- for NCDx/NCCx
-  const s32 in_MAC1 = (s32(ZeroExtend32(REGS.RGBC[0])) * s32(REGS.IR1)) << 4;
-  const s32 in_MAC2 = (s32(ZeroExtend32(REGS.RGBC[1])) * s32(REGS.IR2)) << 4;
-  const s32 in_MAC3 = (s32(ZeroExtend32(REGS.RGBC[2])) * s32(REGS.IR3)) << 4;
+  const int32_t in_MAC1 = (int32_t(static_cast<uint32_t>(REGS.RGBC[0])) * int32_t(REGS.IR1)) << 4;
+  const int32_t in_MAC2 = (int32_t(static_cast<uint32_t>(REGS.RGBC[1])) * int32_t(REGS.IR2)) << 4;
+  const int32_t in_MAC3 = (int32_t(static_cast<uint32_t>(REGS.RGBC[2])) * int32_t(REGS.IR3)) << 4;
 
   // [MAC1,MAC2,MAC3] = MAC+(FC-MAC)*IR0                   ;<--- for NCDx only
   InterpolateColor(in_MAC1, in_MAC2, in_MAC3, shift, lm);
@@ -961,7 +969,7 @@ static void Execute_NCDT(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   NCDS(REGS.V0, shift, lm);
@@ -975,7 +983,7 @@ static void Execute_CC(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   // [IR1,IR2,IR3] = [MAC1,MAC2,MAC3] = (BK*1000h + LCM*IR) SAR (sf*12)
@@ -983,9 +991,9 @@ static void Execute_CC(Instruction inst)
 
   // [MAC1,MAC2,MAC3] = [R*IR1,G*IR2,B*IR3] SHL 4
   // [MAC1,MAC2,MAC3] = [MAC1,MAC2,MAC3] SAR (sf*12)
-  TruncateAndSetMACAndIR<1>(s64(s32(ZeroExtend32(REGS.RGBC[0])) * s32(REGS.IR1)) << 4, shift, lm);
-  TruncateAndSetMACAndIR<2>(s64(s32(ZeroExtend32(REGS.RGBC[1])) * s32(REGS.IR2)) << 4, shift, lm);
-  TruncateAndSetMACAndIR<3>(s64(s32(ZeroExtend32(REGS.RGBC[2])) * s32(REGS.IR3)) << 4, shift, lm);
+  TruncateAndSetMACAndIR<1>(int64_t(int32_t(static_cast<uint32_t>(REGS.RGBC[0])) * int32_t(REGS.IR1)) << 4, shift, lm);
+  TruncateAndSetMACAndIR<2>(int64_t(int32_t(static_cast<uint32_t>(REGS.RGBC[1])) * int32_t(REGS.IR2)) << 4, shift, lm);
+  TruncateAndSetMACAndIR<3>(int64_t(int32_t(static_cast<uint32_t>(REGS.RGBC[2])) * int32_t(REGS.IR3)) << 4, shift, lm);
 
   // Color FIFO = [MAC1/16,MAC2/16,MAC3/16,CODE], [IR1,IR2,IR3] = [MAC1,MAC2,MAC3]
   PushRGBFromMAC();
@@ -997,7 +1005,7 @@ static void Execute_CDP(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   // [IR1,IR2,IR3] = [MAC1,MAC2,MAC3] = (BK*1000h + LCM*IR) SAR (sf*12)
@@ -1005,9 +1013,9 @@ static void Execute_CDP(Instruction inst)
 
   // No need to assign these to MAC[1-3], as it'll never overflow.
   // [MAC1,MAC2,MAC3] = [R*IR1,G*IR2,B*IR3] SHL 4
-  const s32 in_MAC1 = (s32(ZeroExtend32(REGS.RGBC[0])) * s32(REGS.IR1)) << 4;
-  const s32 in_MAC2 = (s32(ZeroExtend32(REGS.RGBC[1])) * s32(REGS.IR2)) << 4;
-  const s32 in_MAC3 = (s32(ZeroExtend32(REGS.RGBC[2])) * s32(REGS.IR3)) << 4;
+  const int32_t in_MAC1 = (int32_t(static_cast<uint32_t>(REGS.RGBC[0])) * int32_t(REGS.IR1)) << 4;
+  const int32_t in_MAC2 = (int32_t(static_cast<uint32_t>(REGS.RGBC[1])) * int32_t(REGS.IR2)) << 4;
+  const int32_t in_MAC3 = (int32_t(static_cast<uint32_t>(REGS.RGBC[2])) * int32_t(REGS.IR3)) << 4;
 
   // [MAC1,MAC2,MAC3] = MAC+(FC-MAC)*IR0                   ;<--- for CDP only
   // [MAC1, MAC2, MAC3] = [MAC1, MAC2, MAC3] SAR(sf * 12)
@@ -1019,13 +1027,13 @@ static void Execute_CDP(Instruction inst)
   REGS.FLAG.UpdateError();
 }
 
-static void DPCS(const u8 color[3], u8 shift, bool lm)
+static void DPCS(const uint8_t color[3], uint8_t shift, bool lm)
 {
   // In: [IR1,IR2,IR3]=Vector, FC=Far Color, IR0=Interpolation value, CODE=MSB of RGBC
   // [MAC1,MAC2,MAC3] = [R,G,B] SHL 16                     ;<--- for DPCS/DPCT
-  TruncateAndSetMAC<1>((s64(ZeroExtend64(color[0])) << 16), 0);
-  TruncateAndSetMAC<2>((s64(ZeroExtend64(color[1])) << 16), 0);
-  TruncateAndSetMAC<3>((s64(ZeroExtend64(color[2])) << 16), 0);
+  TruncateAndSetMAC<1>((int64_t(static_cast<uint64_t>(color[0])) << 16), 0);
+  TruncateAndSetMAC<2>((int64_t(static_cast<uint64_t>(color[1])) << 16), 0);
+  TruncateAndSetMAC<3>((int64_t(static_cast<uint64_t>(color[2])) << 16), 0);
 
   // [MAC1,MAC2,MAC3] = MAC+(FC-MAC)*IR0
   InterpolateColor(REGS.MAC1, REGS.MAC2, REGS.MAC3, shift, lm);
@@ -1047,10 +1055,10 @@ static void Execute_DPCT(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
-  for (u32 i = 0; i < 3; i++)
+  for (uint32_t i = 0; i < 3; i++)
     DPCS(REGS.RGB0, shift, lm);
 
   REGS.FLAG.UpdateError();
@@ -1060,14 +1068,14 @@ static void Execute_DCPL(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   // No need to assign these to MAC[1-3], as it'll never overflow.
   // [MAC1,MAC2,MAC3] = [R*IR1,G*IR2,B*IR3] SHL 4          ;<--- for DCPL only
-  const s32 in_MAC1 = (s32(ZeroExtend32(REGS.RGBC[0])) * s32(REGS.IR1)) << 4;
-  const s32 in_MAC2 = (s32(ZeroExtend32(REGS.RGBC[1])) * s32(REGS.IR2)) << 4;
-  const s32 in_MAC3 = (s32(ZeroExtend32(REGS.RGBC[2])) * s32(REGS.IR3)) << 4;
+  const int32_t in_MAC1 = (int32_t(static_cast<uint32_t>(REGS.RGBC[0])) * int32_t(REGS.IR1)) << 4;
+  const int32_t in_MAC2 = (int32_t(static_cast<uint32_t>(REGS.RGBC[1])) * int32_t(REGS.IR2)) << 4;
+  const int32_t in_MAC3 = (int32_t(static_cast<uint32_t>(REGS.RGBC[2])) * int32_t(REGS.IR3)) << 4;
 
   // [MAC1,MAC2,MAC3] = MAC+(FC-MAC)*IR0
   InterpolateColor(in_MAC1, in_MAC2, in_MAC3, shift, lm);
@@ -1082,13 +1090,13 @@ static void Execute_INTPL(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   // No need to assign these to MAC[1-3], as it'll never overflow.
   // [MAC1,MAC2,MAC3] = [IR1,IR2,IR3] SHL 12               ;<--- for INTPL only
   // [MAC1,MAC2,MAC3] = MAC+(FC-MAC)*IR0
-  InterpolateColor(s32(REGS.IR1) << 12, s32(REGS.IR2) << 12, s32(REGS.IR3) << 12, shift, lm);
+  InterpolateColor(int32_t(REGS.IR1) << 12, int32_t(REGS.IR2) << 12, int32_t(REGS.IR3) << 12, shift, lm);
 
   // Color FIFO = [MAC1/16,MAC2/16,MAC3/16,CODE], [IR1,IR2,IR3] = [MAC1,MAC2,MAC3]
   PushRGBFromMAC();
@@ -1100,14 +1108,14 @@ static void Execute_GPL(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   // [MAC1,MAC2,MAC3] = [MAC1,MAC2,MAC3] SHL (sf*12)       ;<--- for GPL only
   // [MAC1,MAC2,MAC3] = (([IR1,IR2,IR3] * IR0) + [MAC1,MAC2,MAC3]) SAR (sf*12)
-  TruncateAndSetMACAndIR<1>((s64(s32(REGS.IR1) * s32(REGS.IR0)) + (s64(REGS.MAC1) << shift)), shift, lm);
-  TruncateAndSetMACAndIR<2>((s64(s32(REGS.IR2) * s32(REGS.IR0)) + (s64(REGS.MAC2) << shift)), shift, lm);
-  TruncateAndSetMACAndIR<3>((s64(s32(REGS.IR3) * s32(REGS.IR0)) + (s64(REGS.MAC3) << shift)), shift, lm);
+  TruncateAndSetMACAndIR<1>((int64_t(int32_t(REGS.IR1) * int32_t(REGS.IR0)) + (int64_t(REGS.MAC1) << shift)), shift, lm);
+  TruncateAndSetMACAndIR<2>((int64_t(int32_t(REGS.IR2) * int32_t(REGS.IR0)) + (int64_t(REGS.MAC2) << shift)), shift, lm);
+  TruncateAndSetMACAndIR<3>((int64_t(int32_t(REGS.IR3) * int32_t(REGS.IR0)) + (int64_t(REGS.MAC3) << shift)), shift, lm);
 
   // Color FIFO = [MAC1/16,MAC2/16,MAC3/16,CODE], [IR1,IR2,IR3] = [MAC1,MAC2,MAC3]
   PushRGBFromMAC();
@@ -1119,14 +1127,14 @@ static void Execute_GPF(Instruction inst)
 {
   REGS.FLAG.Clear();
 
-  const u8 shift = inst.GetShift();
+  const uint8_t shift = inst.GetShift();
   const bool lm = inst.lm;
 
   // [MAC1,MAC2,MAC3] = [0,0,0]                            ;<--- for GPF only
   // [MAC1,MAC2,MAC3] = (([IR1,IR2,IR3] * IR0) + [MAC1,MAC2,MAC3]) SAR (sf*12)
-  TruncateAndSetMACAndIR<1>(s64(s32(REGS.IR1) * s32(REGS.IR0)), shift, lm);
-  TruncateAndSetMACAndIR<2>(s64(s32(REGS.IR2) * s32(REGS.IR0)), shift, lm);
-  TruncateAndSetMACAndIR<3>(s64(s32(REGS.IR3) * s32(REGS.IR0)), shift, lm);
+  TruncateAndSetMACAndIR<1>(int64_t(int32_t(REGS.IR1) * int32_t(REGS.IR0)), shift, lm);
+  TruncateAndSetMACAndIR<2>(int64_t(int32_t(REGS.IR2) * int32_t(REGS.IR0)), shift, lm);
+  TruncateAndSetMACAndIR<3>(int64_t(int32_t(REGS.IR3) * int32_t(REGS.IR0)), shift, lm);
 
   // Color FIFO = [MAC1/16,MAC2/16,MAC3/16,CODE], [IR1,IR2,IR3] = [MAC1,MAC2,MAC3]
   PushRGBFromMAC();
@@ -1134,7 +1142,7 @@ static void Execute_GPF(Instruction inst)
   REGS.FLAG.UpdateError();
 }
 
-void ExecuteInstruction(u32 inst_bits)
+void ExecuteInstruction(uint32_t inst_bits)
 {
   const Instruction inst{inst_bits};
   switch (inst.command)
@@ -1165,7 +1173,7 @@ void ExecuteInstruction(u32 inst_bits)
       break;
 
     case 0x11:
-      CPU::AddGTETicks(7);
+      CPU::AddGTETicks(8);
       Execute_INTPL(inst);
       break;
 
@@ -1259,7 +1267,7 @@ void ExecuteInstruction(u32 inst_bits)
   }
 }
 
-InstructionImpl GetInstructionImpl(u32 inst_bits, TickCount* ticks)
+InstructionImpl GetInstructionImpl(uint32_t inst_bits, TickCount* ticks)
 {
   const Instruction inst{inst_bits};
   switch (inst.command)
@@ -1286,7 +1294,7 @@ InstructionImpl GetInstructionImpl(u32 inst_bits, TickCount* ticks)
       return &Execute_DPCS;
 
     case 0x11:
-      *ticks = 7;
+      *ticks = 8;
       return &Execute_INTPL;
 
     case 0x12:

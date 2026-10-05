@@ -23,31 +23,28 @@ public:
   void Reset();
   bool DoState(StateWrapper& sw);
 
-  Controller* GetController(u32 slot) const { return m_controllers[slot].get(); }
-  void SetController(u32 slot, std::unique_ptr<Controller> dev);
+  Controller* GetController(uint32_t slot) const { return m_controllers[slot].get(); }
+  void SetController(uint32_t slot, std::unique_ptr<Controller> dev);
 
-  MemoryCard* GetMemoryCard(u32 slot) { return m_memory_cards[slot].get(); }
-  void SetMemoryCard(u32 slot, std::unique_ptr<MemoryCard> dev);
-  std::unique_ptr<MemoryCard> RemoveMemoryCard(u32 slot);
+  MemoryCard* GetMemoryCard(uint32_t slot) { return m_memory_cards[slot].get(); }
+  void SetMemoryCard(uint32_t slot, std::unique_ptr<MemoryCard> dev);
 
-  Multitap* GetMultitap(u32 slot) { return &m_multitaps[slot]; };
+  Multitap* GetMultitap(uint32_t slot) { return &m_multitaps[slot]; };
 
-  u32 ReadRegister(u32 offset);
-  void WriteRegister(u32 offset, u32 value);
+  uint32_t ReadRegister(uint32_t offset);
+  void WriteRegister(uint32_t offset, uint32_t value);
 
   ALWAYS_INLINE bool IsTransmitting() const { return m_state != State::Idle; }
 
 private:
-  static constexpr u32 NUM_SLOTS = 2;
-
-  enum class State : u32
+  enum class State : uint32_t
   {
     Idle,
     Transmitting,
     WaitingForACK
   };
 
-  enum class ActiveDevice : u8
+  enum class ActiveDevice : uint8_t
   {
     None,
     Controller,
@@ -57,46 +54,46 @@ private:
 
   union JOY_CTRL
   {
-    u16 bits;
+    uint16_t bits;
 
-    BitField<u16, bool, 0, 1> TXEN;
-    BitField<u16, bool, 1, 1> SELECT;
-    BitField<u16, bool, 2, 1> RXEN;
-    BitField<u16, bool, 4, 1> ACK;
-    BitField<u16, bool, 6, 1> RESET;
-    BitField<u16, u8, 8, 2> RXIMODE;
-    BitField<u16, bool, 10, 1> TXINTEN;
-    BitField<u16, bool, 11, 1> RXINTEN;
-    BitField<u16, bool, 12, 1> ACKINTEN;
-    BitField<u16, u8, 13, 1> SLOT;
+    BitField<uint16_t, bool, 0, 1> TXEN;
+    BitField<uint16_t, bool, 1, 1> SELECT;
+    BitField<uint16_t, bool, 2, 1> RXEN;
+    BitField<uint16_t, bool, 4, 1> ACK;
+    BitField<uint16_t, bool, 6, 1> RESET;
+    BitField<uint16_t, uint8_t, 8, 2> RXIMODE;
+    BitField<uint16_t, bool, 10, 1> TXINTEN;
+    BitField<uint16_t, bool, 11, 1> RXINTEN;
+    BitField<uint16_t, bool, 12, 1> ACKINTEN;
+    BitField<uint16_t, uint8_t, 13, 1> SLOT;
   };
 
   union JOY_STAT
   {
-    u32 bits;
+    uint32_t bits;
 
-    BitField<u32, bool, 0, 1> TXRDY;
-    BitField<u32, bool, 1, 1> RXFIFONEMPTY;
-    BitField<u32, bool, 2, 1> TXDONE;
-    BitField<u32, bool, 7, 1> ACKINPUT;
-    BitField<u32, bool, 9, 1> INTR;
-    BitField<u32, u32, 11, 21> TMR;
+    BitField<uint32_t, bool, 0, 1> TXRDY;
+    BitField<uint32_t, bool, 1, 1> RXFIFONEMPTY;
+    BitField<uint32_t, bool, 2, 1> TXDONE;
+    BitField<uint32_t, bool, 7, 1> ACKINPUT;
+    BitField<uint32_t, bool, 9, 1> INTR;
+    BitField<uint32_t, uint32_t, 11, 21> TMR;
   };
 
   union JOY_MODE
   {
-    u16 bits;
+    uint16_t bits;
 
-    BitField<u16, u8, 0, 2> reload_factor;
-    BitField<u16, u8, 2, 2> character_length;
-    BitField<u16, bool, 4, 1> parity_enable;
-    BitField<u16, u8, 5, 1> parity_type;
-    BitField<u16, u8, 8, 1> clk_polarity;
+    BitField<uint16_t, uint8_t, 0, 2> reload_factor;
+    BitField<uint16_t, uint8_t, 2, 2> character_length;
+    BitField<uint16_t, bool, 4, 1> parity_enable;
+    BitField<uint16_t, uint8_t, 5, 1> parity_type;
+    BitField<uint16_t, uint8_t, 8, 1> clk_polarity;
   };
 
   ALWAYS_INLINE bool CanTransfer() const { return m_transmit_buffer_full && m_JOY_CTRL.SELECT && m_JOY_CTRL.TXEN; }
 
-  ALWAYS_INLINE TickCount GetTransferTicks() const { return static_cast<TickCount>(ZeroExtend32(m_JOY_BAUD) * 8); }
+  ALWAYS_INLINE TickCount GetTransferTicks() const { return static_cast<TickCount>(m_JOY_BAUD * 8); }
 
   // From @JaCzekanski
   // ACK lasts ~96 ticks or approximately 2.84us at master clock (not implemented).
@@ -113,8 +110,8 @@ private:
   void EndTransfer();
   void ResetDeviceTransferState();
 
-  bool DoStateController(StateWrapper& sw, u32 i);
-  bool DoStateMemcard(StateWrapper& sw, u32 i);
+  bool DoStateController(StateWrapper& sw, uint32_t i);
+  bool DoStateMemcard(StateWrapper& sw, uint32_t i);
 
   std::array<std::unique_ptr<Controller>, NUM_CONTROLLER_AND_CARD_PORTS> m_controllers;
   std::array<std::unique_ptr<MemoryCard>, NUM_CONTROLLER_AND_CARD_PORTS> m_memory_cards;
@@ -127,12 +124,12 @@ private:
   JOY_CTRL m_JOY_CTRL = {};
   JOY_STAT m_JOY_STAT = {};
   JOY_MODE m_JOY_MODE = {};
-  u16 m_JOY_BAUD = 0;
+  uint16_t m_JOY_BAUD = 0;
 
   ActiveDevice m_active_device = ActiveDevice::None;
-  u8 m_receive_buffer = 0;
-  u8 m_transmit_buffer = 0;
-  u8 m_transmit_value = 0;
+  uint8_t m_receive_buffer = 0;
+  uint8_t m_transmit_buffer = 0;
+  uint8_t m_transmit_value = 0;
   bool m_receive_buffer_full = false;
   bool m_transmit_buffer_full = false;
 };

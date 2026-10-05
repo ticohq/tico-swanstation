@@ -7,7 +7,7 @@
 class NamcoGunCon final : public Controller
 {
 public:
-  enum class Button : u8
+  enum class Button : uint8_t
   {
     Trigger = 0,
     A = 1,
@@ -20,26 +20,25 @@ public:
   ~NamcoGunCon() override;
 
   static std::unique_ptr<NamcoGunCon> Create();
-  static u32 StaticGetVibrationMotorCount();
 
   ControllerType GetType() const override;
 
   void Reset() override;
   bool DoState(StateWrapper& sw, bool apply_input_state) override;
   void LoadSettings(const char* section) override;
-  bool GetSoftwareCursor(const Common::RGBA8Image** image, float* image_scale, bool* relative_mode) override;
+  bool GetSoftwareCursor(const Common::RGBA8Image** image, float* image_scale) override;
 
-  void SetButtonState(s32 button_code, bool pressed) override;
+  void SetButtonState(int32_t button_code, bool pressed) override;
 
   void ResetTransferState() override;
-  bool Transfer(const u8 data_in, u8* data_out) override;
+  bool Transfer(const uint8_t data_in, uint8_t* data_out) override;
 
   void SetButtonState(Button button, bool pressed);
 
 private:
   void UpdatePosition();
 
-  enum class TransferState : u8
+  enum class TransferState : uint8_t
   {
     Idle,
     Ready,
@@ -59,9 +58,9 @@ private:
   float m_y_scale = 1.0f;
 
   // buttons are active low
-  u16 m_button_state = UINT16_C(0xFFFF);
-  u16 m_position_x = 0;
-  u16 m_position_y = 0;
+  uint16_t m_button_state = UINT16_C(0xFFFF);
+  uint16_t m_position_x = 0;
+  uint16_t m_position_y = 0;
   bool m_shoot_offscreen = false;
 
   TransferState m_transfer_state = TransferState::Idle;

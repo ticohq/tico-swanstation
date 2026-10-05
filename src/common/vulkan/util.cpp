@@ -7,7 +7,6 @@
 #include "../log.h"
 #include "../string_util.h"
 #include "context.h"
-#include "shader_compiler.h"
 
 #include <cmath>
 
@@ -28,43 +27,7 @@ bool IsDepthFormat(VkFormat format)
   }
 }
 
-bool IsCompressedFormat(VkFormat format)
-{
-  switch (format)
-  {
-    case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
-    case VK_FORMAT_BC2_UNORM_BLOCK:
-    case VK_FORMAT_BC3_UNORM_BLOCK:
-    case VK_FORMAT_BC7_UNORM_BLOCK:
-      return true;
-
-    default:
-      return false;
-  }
-}
-
-VkFormat GetLinearFormat(VkFormat format)
-{
-  switch (format)
-  {
-    case VK_FORMAT_R8_SRGB:
-      return VK_FORMAT_R8_UNORM;
-    case VK_FORMAT_R8G8_SRGB:
-      return VK_FORMAT_R8G8_UNORM;
-    case VK_FORMAT_R8G8B8_SRGB:
-      return VK_FORMAT_R8G8B8_UNORM;
-    case VK_FORMAT_R8G8B8A8_SRGB:
-      return VK_FORMAT_R8G8B8A8_UNORM;
-    case VK_FORMAT_B8G8R8_SRGB:
-      return VK_FORMAT_B8G8R8_UNORM;
-    case VK_FORMAT_B8G8R8A8_SRGB:
-      return VK_FORMAT_B8G8R8A8_UNORM;
-    default:
-      return format;
-  }
-}
-
-u32 GetTexelSize(VkFormat format)
+uint32_t GetTexelSize(VkFormat format)
 {
   // Only contains pixel formats we use.
   switch (format)
@@ -101,7 +64,7 @@ u32 GetTexelSize(VkFormat format)
   return 1;
 }
 
-u32 GetBlockSize(VkFormat format)
+uint32_t GetBlockSize(VkFormat format)
 {
   switch (format)
   {
@@ -113,33 +76,6 @@ u32 GetBlockSize(VkFormat format)
 
     default:
       return 1;
-  }
-}
-
-VkRect2D ClampRect2D(const VkRect2D& rect, u32 width, u32 height)
-{
-  VkRect2D out;
-  out.offset.x = std::clamp(rect.offset.x, 0, static_cast<int>(width - 1));
-  out.offset.y = std::clamp(rect.offset.y, 0, static_cast<int>(height - 1));
-  out.extent.width = std::min(rect.extent.width, width - static_cast<int>(rect.offset.x));
-  out.extent.height = std::min(rect.extent.height, height - static_cast<int>(rect.offset.y));
-  return out;
-}
-
-VkBlendFactor GetAlphaBlendFactor(VkBlendFactor factor)
-{
-  switch (factor)
-  {
-    case VK_BLEND_FACTOR_SRC_COLOR:
-      return VK_BLEND_FACTOR_SRC_ALPHA;
-    case VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR:
-      return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    case VK_BLEND_FACTOR_DST_COLOR:
-      return VK_BLEND_FACTOR_DST_ALPHA;
-    case VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR:
-      return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-    default:
-      return factor;
   }
 }
 
@@ -157,7 +93,7 @@ void SetViewport(VkCommandBuffer command_buffer, int x, int y, int width, int he
 
 void SetScissor(VkCommandBuffer command_buffer, int x, int y, int width, int height)
 {
-  const VkRect2D scissor{{x, y}, {static_cast<u32>(width), static_cast<u32>(height)}};
+  const VkRect2D scissor{{x, y}, {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}};
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
 
@@ -170,7 +106,7 @@ void SetViewportAndScissor(VkCommandBuffer command_buffer, int x, int y, int wid
                       static_cast<float>(height),
                       min_depth,
                       max_depth};
-  const VkRect2D scissor{{x, y}, {static_cast<u32>(width), static_cast<u32>(height)}};
+  const VkRect2D scissor{{x, y}, {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}};
   vkCmdSetViewport(command_buffer, 0, 1, &vp);
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
@@ -181,15 +117,6 @@ void SafeDestroyFramebuffer(VkFramebuffer& fb)
   {
     vkDestroyFramebuffer(g_vulkan_context->GetDevice(), fb, nullptr);
     fb = VK_NULL_HANDLE;
-  }
-}
-
-void SafeDestroyShaderModule(VkShaderModule& sm)
-{
-  if (sm != VK_NULL_HANDLE)
-  {
-    vkDestroyShaderModule(g_vulkan_context->GetDevice(), sm, nullptr);
-    sm = VK_NULL_HANDLE;
   }
 }
 
@@ -247,15 +174,6 @@ void SafeDestroySampler(VkSampler& samp)
   }
 }
 
-void SafeDestroySemaphore(VkSemaphore& sem)
-{
-  if (sem != VK_NULL_HANDLE)
-  {
-    vkDestroySemaphore(g_vulkan_context->GetDevice(), sem, nullptr);
-    sem = VK_NULL_HANDLE;
-  }
-}
-
 void SafeFreeGlobalDescriptorSet(VkDescriptorSet& ds)
 {
   if (ds != VK_NULL_HANDLE)
@@ -263,25 +181,6 @@ void SafeFreeGlobalDescriptorSet(VkDescriptorSet& ds)
     g_vulkan_context->FreeGlobalDescriptorSet(ds);
     ds = VK_NULL_HANDLE;
   }
-}
-
-void BufferMemoryBarrier(VkCommandBuffer command_buffer, VkBuffer buffer, VkAccessFlags src_access_mask,
-                         VkAccessFlags dst_access_mask, VkDeviceSize offset, VkDeviceSize size,
-                         VkPipelineStageFlags src_stage_mask, VkPipelineStageFlags dst_stage_mask)
-{
-  VkBufferMemoryBarrier buffer_info = {
-    VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, // VkStructureType    sType
-    nullptr,                                 // const void*        pNext
-    src_access_mask,                         // VkAccessFlags      srcAccessMask
-    dst_access_mask,                         // VkAccessFlags      dstAccessMask
-    VK_QUEUE_FAMILY_IGNORED,                 // uint32_t           srcQueueFamilyIndex
-    VK_QUEUE_FAMILY_IGNORED,                 // uint32_t           dstQueueFamilyIndex
-    buffer,                                  // VkBuffer           buffer
-    offset,                                  // VkDeviceSize       offset
-    size                                     // VkDeviceSize       size
-  };
-
-  vkCmdPipelineBarrier(command_buffer, src_stage_mask, dst_stage_mask, 0, 0, nullptr, 1, &buffer_info, 0, nullptr);
 }
 
 static const char* VkResultToString(VkResult res)

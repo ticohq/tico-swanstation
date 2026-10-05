@@ -20,7 +20,7 @@ Texture::~Texture()
   Destroy();
 }
 
-bool Texture::Create(u32 width, u32 height, u32 samples, GLenum internal_format, GLenum format, GLenum type,
+bool Texture::Create(uint32_t width, uint32_t height, uint32_t samples, GLenum internal_format, GLenum format, GLenum type,
                      const void* data, bool linear_filter, bool wrap)
 {
   glGetError();
@@ -72,7 +72,7 @@ bool Texture::Create(u32 width, u32 height, u32 samples, GLenum internal_format,
   return true;
 }
 
-void Texture::Replace(u32 width, u32 height, GLenum internal_format, GLenum format, GLenum type, const void* data)
+void Texture::Replace(uint32_t width, uint32_t height, GLenum internal_format, GLenum format, GLenum type, const void* data)
 {
   m_width = width;
   m_height = height;

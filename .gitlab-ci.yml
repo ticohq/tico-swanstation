@@ -30,10 +30,23 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/linux-cmake.yml'
 
+  # iOS
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/ios-cmake.yml'
+
+  # tvOS
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/tvos-cmake.yml'
+
   ################################## CELLULAR ################################
   # Android
   - project: 'libretro-infrastructure/ci-templates'
     file: '/android-cmake.yml'
+
+  #################################### MISC ##################################
+  # webOS (LGTV)
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/webos-cmake.yml'
 
 # Stages for building
 stages:
@@ -69,6 +82,12 @@ libretro-build-linux-i686:
     - .libretro-linux-cmake-x86
     - .core-defs
 
+# Linux 64-bit (ARM)
+libretro-build-linux-aarch64:
+  extends:
+    - .libretro-linux-cmake-aarch64
+    - .core-defs
+
 # MacOS 64-bit
 libretro-build-osx-x64:
   extends:
@@ -79,6 +98,22 @@ libretro-build-osx-x64:
 libretro-build-osx-arm64:
   extends:
     - .libretro-osx-cmake-arm64
+    - .core-defs
+
+# iOS arm64. IOS_MINVER overrides the template's 8.0: this core is C++17 and
+# aligned new/delete only exist from iOS 11, so every unique_ptr of an
+# over-aligned type is a build error below that.
+libretro-build-ios-arm64:
+  extends:
+    - .libretro-ios-cmake-arm64
+    - .core-defs
+  variables:
+    IOS_MINVER: "12.0"
+
+# tvOS arm64
+libretro-build-tvos-arm64:
+  extends:
+    - .libretro-tvos-cmake-arm64
     - .core-defs
 
 ################################### CELLULAR #################################
@@ -104,4 +139,11 @@ android-x86_64:
 android-x86:
   extends:
     - .libretro-android-cmake-x86
+    - .core-defs
+
+#################################### MISC ####################################
+# webOS
+libretro-build-webos-armv7a:
+  extends:
+    - .libretro-webos-armv7a-cmake
     - .core-defs

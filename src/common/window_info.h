@@ -5,6 +5,6 @@
 struct WindowInfo
 {
   void* display_connection = nullptr;
-  u32 surface_width = 0;
-  u32 surface_height = 0;
+  uint32_t surface_width = 0;
+  uint32_t surface_height = 0;
 };

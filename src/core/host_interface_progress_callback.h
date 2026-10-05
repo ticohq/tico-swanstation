@@ -13,8 +13,8 @@ public:
   void SetCancellable(bool cancellable) override;
   void SetTitle(const char* title) override;
   void SetStatusText(const char* text) override;
-  void SetProgressRange(u32 range) override;
-  void SetProgressValue(u32 value) override;
+  void SetProgressRange(uint32_t range) override;
+  void SetProgressValue(uint32_t value) override;
 
   void DisplayError(const char* message) override;
   void DisplayWarning(const char* message) override;

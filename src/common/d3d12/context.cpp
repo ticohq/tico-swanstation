@@ -118,14 +118,14 @@ D3D12::Context::ComPtr<ID3D12RootSignature> Context::CreateRootSignature(const D
 
 bool Context::SupportsTextureFormat(DXGI_FORMAT format)
 {
-  const u32 required = D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE;
+  const uint32_t required = D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE;
 
   D3D12_FEATURE_DATA_FORMAT_SUPPORT support = {format};
   return SUCCEEDED(m_device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
          (support.Support1 & required) == required;
 }
 
-bool Context::Create(IDXGIFactory* dxgi_factory, u32 adapter_index, bool enable_debug_layer)
+bool Context::Create(IDXGIFactory* dxgi_factory, uint32_t adapter_index, bool enable_debug_layer)
 {
   if (!LoadD3D12Library())
     return false;
@@ -143,6 +143,36 @@ bool Context::Create(IDXGIFactory* dxgi_factory, u32 adapter_index, bool enable_
   return true;
 }
 
+bool Context::CreateForLibretro(ID3D12Device* device, ID3D12CommandQueue* command_queue)
+{
+  // We don't need d3d12.dll's PFN_D3D12_CREATE_DEVICE here - the frontend
+  // already loaded the library and created the device. The serializer entry
+  // (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE) is still required by
+  // SerializeRootSignature; load the library so its function pointers are
+  // resolved for that path. If LoadLibrary succeeds, UnloadD3D12Library is
+  // a no-op until Destroy().
+  if (!LoadD3D12Library())
+    return false;
+
+  g_d3d12_context.reset(new Context());
+  g_d3d12_context->m_device = device;
+  g_d3d12_context->m_command_queue = command_queue;
+
+  // Match the same feature level CreateDevice would have selected; we
+  // create our own resources at FL11_0 regardless of what the frontend
+  // negotiated, so this is correct for libretro.
+  g_d3d12_context->m_feature_level = D3D_FEATURE_LEVEL_11_0;
+
+  if (!g_d3d12_context->CreateFence() || !g_d3d12_context->CreateDescriptorHeaps() ||
+      !g_d3d12_context->CreateCommandLists() || !g_d3d12_context->CreateTextureStreamBuffer())
+  {
+    Destroy();
+    return false;
+  }
+
+  return true;
+}
+
 void Context::Destroy()
 {
   if (g_d3d12_context)
@@ -151,7 +181,7 @@ void Context::Destroy()
   UnloadD3D12Library();
 }
 
-bool Context::CreateDevice(IDXGIFactory* dxgi_factory, u32 adapter_index, bool enable_debug_layer)
+bool Context::CreateDevice(IDXGIFactory* dxgi_factory, uint32_t adapter_index, bool enable_debug_layer)
 {
   ComPtr<IDXGIAdapter> adapter;
   HRESULT hr = dxgi_factory->EnumAdapters(adapter_index, &adapter);
@@ -274,7 +304,7 @@ bool Context::CreateDescriptorHeaps()
 
 bool Context::CreateCommandLists()
 {
-  for (u32 i = 0; i < NUM_COMMAND_LISTS; i++)
+  for (uint32_t i = 0; i < NUM_COMMAND_LISTS; i++)
   {
     CommandListResources& res = m_command_lists[i];
     HRESULT hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -347,7 +377,7 @@ void Context::DeferResourceDestruction(ID3D12Resource* resource)
   m_command_lists[m_current_command_list].pending_resources.push_back(resource);
 }
 
-void Context::DeferDescriptorDestruction(DescriptorHeapManager& manager, u32 index)
+void Context::DeferDescriptorDestruction(DescriptorHeapManager& manager, uint32_t index)
 {
   m_command_lists[m_current_command_list].pending_descriptors.emplace_back(manager, index);
 }
@@ -397,7 +427,7 @@ void Context::DestroyResources()
   m_device.Reset();
 }
 
-void Context::WaitForFence(u64 fence)
+void Context::WaitForFence(uint64_t fence)
 {
   if (m_completed_fence_value >= fence)
     return;
@@ -413,8 +443,8 @@ void Context::WaitForFence(u64 fence)
   }
 
   // Release resources for as many command lists which have completed.
-  u32 index = (m_current_command_list + 1) % NUM_COMMAND_LISTS;
-  for (u32 i = 0; i < NUM_COMMAND_LISTS; i++)
+  uint32_t index = (m_current_command_list + 1) % NUM_COMMAND_LISTS;
+  for (uint32_t i = 0; i < NUM_COMMAND_LISTS; i++)
   {
     CommandListResources& res = m_command_lists[index];
     if (m_completed_fence_value < res.ready_fence_value)
@@ -427,8 +457,8 @@ void Context::WaitForFence(u64 fence)
 
 void Context::WaitForGPUIdle()
 {
-  u32 index = (m_current_command_list + 1) % NUM_COMMAND_LISTS;
-  for (u32 i = 0; i < (NUM_COMMAND_LISTS - 1); i++)
+  uint32_t index = (m_current_command_list + 1) % NUM_COMMAND_LISTS;
+  for (uint32_t i = 0; i < (NUM_COMMAND_LISTS - 1); i++)
   {
     WaitForFence(m_command_lists[index].ready_fence_value);
     index = (index + 1) % NUM_COMMAND_LISTS;

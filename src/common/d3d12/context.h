@@ -24,7 +24,7 @@ public:
   template<typename T>
   using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-  static constexpr u32
+  static constexpr uint32_t
     // Number of command lists. One is being built while the other(s) are executed.
     NUM_COMMAND_LISTS = 3,
 
@@ -34,7 +34,15 @@ public:
   ~Context();
 
   // Creates new device and context.
-  static bool Create(IDXGIFactory* dxgi_factory, u32 adapter_index, bool enable_debug_layer);
+  static bool Create(IDXGIFactory* dxgi_factory, uint32_t adapter_index, bool enable_debug_layer);
+
+  // Creates a context that adopts the frontend's ID3D12Device and
+  // ID3D12CommandQueue (e.g. via retro_hw_render_interface_d3d12).
+  // The frontend retains ownership of both - we just AddRef them
+  // and create the rest of the context (descriptor heaps, command
+  // lists, fence, texture upload buffer) on top. enable_debug_layer
+  // is ignored; the frontend already configured the device.
+  static bool CreateForLibretro(ID3D12Device* device, ID3D12CommandQueue* command_queue);
 
   // Destroys active context.
   static void Destroy();
@@ -54,7 +62,7 @@ public:
   DescriptorHeapManager& GetDSVHeapManager() { return m_dsv_heap_manager; }
   DescriptorHeapManager& GetSamplerHeapManager() { return m_sampler_heap_manager; }
   ID3D12DescriptorHeap* const* GetGPUDescriptorHeaps() const { return m_gpu_descriptor_heaps.data(); }
-  u32 GetGPUDescriptorHeapCount() const { return static_cast<u32>(m_gpu_descriptor_heaps.size()); }
+  uint32_t GetGPUDescriptorHeapCount() const { return static_cast<uint32_t>(m_gpu_descriptor_heaps.size()); }
   const DescriptorHandle& GetNullSRVDescriptor() const { return m_null_srv_descriptor; }
   StreamBuffer& GetTextureStreamBuffer() { return m_texture_stream_buffer; }
 
@@ -63,10 +71,10 @@ public:
   ComPtr<ID3D12RootSignature> CreateRootSignature(const D3D12_ROOT_SIGNATURE_DESC* desc);
 
   // Fence value for current command list.
-  u64 GetCurrentFenceValue() const { return m_current_fence_value; }
+  uint64_t GetCurrentFenceValue() const { return m_current_fence_value; }
 
   // Last "completed" fence.
-  u64 GetCompletedFenceValue() const { return m_completed_fence_value; }
+  uint64_t GetCompletedFenceValue() const { return m_completed_fence_value; }
 
   // Feature level to use when compiling shaders.
   D3D_FEATURE_LEVEL GetFeatureLevel() const { return m_feature_level; }
@@ -78,7 +86,7 @@ public:
   void ExecuteCommandList(bool wait_for_completion);
 
   // Waits for a specific fence.
-  void WaitForFence(u64 fence);
+  void WaitForFence(uint64_t fence);
 
   // Waits for any in-flight command buffers to complete.
   void WaitForGPUIdle();
@@ -87,7 +95,7 @@ public:
   void DeferResourceDestruction(ID3D12Resource* resource);
 
   // Defers destruction of a descriptor handle (associates it with the current list).
-  void DeferDescriptorDestruction(DescriptorHeapManager& manager, u32 index);
+  void DeferDescriptorDestruction(DescriptorHeapManager& manager, uint32_t index);
   void DeferDescriptorDestruction(DescriptorHeapManager& manager, DescriptorHandle* handle);
 
 private:
@@ -96,13 +104,13 @@ private:
     ComPtr<ID3D12CommandAllocator> command_allocator;
     ComPtr<ID3D12GraphicsCommandList> command_list;
     std::vector<ID3D12Resource*> pending_resources;
-    std::vector<std::pair<DescriptorHeapManager&, u32>> pending_descriptors;
-    u64 ready_fence_value = 0;
+    std::vector<std::pair<DescriptorHeapManager&, uint32_t>> pending_descriptors;
+    uint64_t ready_fence_value = 0;
   };
 
   Context();
 
-  bool CreateDevice(IDXGIFactory* dxgi_factory, u32 adapter_index, bool enable_debug_layer);
+  bool CreateDevice(IDXGIFactory* dxgi_factory, uint32_t adapter_index, bool enable_debug_layer);
   bool CreateCommandQueue();
   bool CreateFence();
   bool CreateDescriptorHeaps();
@@ -118,11 +126,11 @@ private:
 
   ComPtr<ID3D12Fence> m_fence = nullptr;
   HANDLE m_fence_event = {};
-  u32 m_current_fence_value = 0;
-  u64 m_completed_fence_value = 0;
+  uint32_t m_current_fence_value = 0;
+  uint64_t m_completed_fence_value = 0;
 
   std::array<CommandListResources, NUM_COMMAND_LISTS> m_command_lists;
-  u32 m_current_command_list = NUM_COMMAND_LISTS - 1;
+  uint32_t m_current_command_list = NUM_COMMAND_LISTS - 1;
 
   DescriptorHeapManager m_descriptor_heap_manager;
   DescriptorHeapManager m_rtv_heap_manager;

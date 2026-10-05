@@ -7,7 +7,7 @@
 class AnalogJoystick final : public Controller
 {
 public:
-  enum class Axis : u8
+  enum class Axis : uint8_t
   {
     LeftX,
     LeftY,
@@ -16,7 +16,7 @@ public:
     Count
   };
 
-  enum class Button : u8
+  enum class Button : uint8_t
   {
     Select = 0,
     L3 = 1,
@@ -38,32 +38,31 @@ public:
     Count
   };
 
-  AnalogJoystick(u32 index);
+  AnalogJoystick(uint32_t index);
   ~AnalogJoystick() override;
 
-  static std::unique_ptr<AnalogJoystick> Create(u32 index);
-  static u32 StaticGetVibrationMotorCount();
+  static std::unique_ptr<AnalogJoystick> Create(uint32_t index);
 
   ControllerType GetType() const override;
 
   void Reset() override;
   bool DoState(StateWrapper& sw, bool apply_input_state) override;
 
-  void SetAxisState(s32 axis_code, float value) override;
-  void SetButtonState(s32 button_code, bool pressed) override;
-  u32 GetButtonStateBits() const override;
-  std::optional<u32> GetAnalogInputBytes() const override;
+  void SetAxisState(int32_t axis_code, float value) override;
+  void SetButtonState(int32_t button_code, bool pressed) override;
+  uint32_t GetButtonStateBits() const override;
+  std::optional<uint32_t> GetAnalogInputBytes() const override;
 
   void ResetTransferState() override;
-  bool Transfer(const u8 data_in, u8* data_out) override;
+  bool Transfer(const uint8_t data_in, uint8_t* data_out) override;
 
   void LoadSettings(const char* section) override;
 
-  void SetAxisState(Axis axis, u8 value);
+  void SetAxisState(Axis axis, uint8_t value);
   void SetButtonState(Button button, bool pressed);
 
 private:
-  enum class TransferState : u8
+  enum class TransferState : uint8_t
   {
     Idle,
     Ready,
@@ -76,10 +75,10 @@ private:
     LeftAxisY
   };
 
-  u16 GetID() const;
+  uint16_t GetID() const;
   void ToggleAnalogMode();
 
-  u32 m_index;
+  uint32_t m_index;
 
   float m_axis_scale = 1.00f;
 
@@ -87,9 +86,9 @@ private:
   bool m_analog_mode = true;
 
   // buttons are active low
-  u16 m_button_state = UINT16_C(0xFFFF);
+  uint16_t m_button_state = UINT16_C(0xFFFF);
 
-  std::array<u8, static_cast<u8>(Axis::Count)> m_axis_state{};
+  std::array<uint8_t, static_cast<uint8_t>(Axis::Count)> m_axis_state{};
 
   TransferState m_transfer_state = TransferState::Idle;
 };

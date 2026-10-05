@@ -84,38 +84,6 @@ void StagingBuffer::FlushCPUCache(VkDeviceSize offset, VkDeviceSize size)
   vkFlushMappedMemoryRanges(g_vulkan_context->GetDevice(), 1, &range);
 }
 
-void StagingBuffer::InvalidateGPUCache(VkCommandBuffer command_buffer, VkAccessFlagBits dest_access_flags,
-                                       VkPipelineStageFlagBits dest_pipeline_stage, VkDeviceSize offset,
-                                       VkDeviceSize size)
-{
-  if (m_coherent)
-    return;
-
-  Util::BufferMemoryBarrier(command_buffer, m_buffer, VK_ACCESS_HOST_WRITE_BIT, dest_access_flags, offset, size,
-                            VK_PIPELINE_STAGE_HOST_BIT, dest_pipeline_stage);
-}
-
-void StagingBuffer::PrepareForGPUWrite(VkCommandBuffer command_buffer, VkAccessFlagBits dst_access_flags,
-                                       VkPipelineStageFlagBits dst_pipeline_stage, VkDeviceSize offset,
-                                       VkDeviceSize size)
-{
-  if (m_coherent)
-    return;
-
-  Util::BufferMemoryBarrier(command_buffer, m_buffer, 0, dst_access_flags, offset, size,
-                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, dst_pipeline_stage);
-}
-
-void StagingBuffer::FlushGPUCache(VkCommandBuffer command_buffer, VkAccessFlagBits src_access_flags,
-                                  VkPipelineStageFlagBits src_pipeline_stage, VkDeviceSize offset, VkDeviceSize size)
-{
-  if (m_coherent)
-    return;
-
-  Util::BufferMemoryBarrier(command_buffer, m_buffer, src_access_flags, VK_ACCESS_HOST_READ_BIT, offset, size,
-                            src_pipeline_stage, VK_PIPELINE_STAGE_HOST_BIT);
-}
-
 void StagingBuffer::InvalidateCPUCache(VkDeviceSize offset, VkDeviceSize size)
 {
   if (m_coherent || !IsMapped())
@@ -123,21 +91,6 @@ void StagingBuffer::InvalidateCPUCache(VkDeviceSize offset, VkDeviceSize size)
 
   VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr, m_memory, offset - m_map_offset, size};
   vkInvalidateMappedMemoryRanges(g_vulkan_context->GetDevice(), 1, &range);
-}
-
-void StagingBuffer::Read(VkDeviceSize offset, void* data, size_t size, bool invalidate_caches)
-{
-  if (invalidate_caches)
-    InvalidateCPUCache(offset, size);
-
-  memcpy(data, m_map_pointer + (offset - m_map_offset), size);
-}
-
-void StagingBuffer::Write(VkDeviceSize offset, const void* data, size_t size, bool invalidate_caches)
-{
-  memcpy(m_map_pointer + (offset - m_map_offset), data, size);
-  if (invalidate_caches)
-    FlushCPUCache(offset, size);
 }
 
 bool StagingBuffer::AllocateBuffer(Type type, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer* out_buffer,
@@ -163,7 +116,7 @@ bool StagingBuffer::AllocateBuffer(Type type, VkDeviceSize size, VkBufferUsageFl
   VkMemoryRequirements requirements;
   vkGetBufferMemoryRequirements(g_vulkan_context->GetDevice(), *out_buffer, &requirements);
 
-  u32 type_index;
+  uint32_t type_index;
   if (type == Type::Upload)
     type_index = g_vulkan_context->GetUploadMemoryType(requirements.memoryTypeBits, out_coherent);
   else

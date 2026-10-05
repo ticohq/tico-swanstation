@@ -1,8 +1,8 @@
 #include "program.h"
+#include "../byte_stream.h"
 #include "../log.h"
 #include "../string_util.h"
 #include <array>
-#include <fstream>
 Log_SetChannel(GL);
 
 namespace GL {
@@ -57,14 +57,16 @@ GLuint Program::CompileShader(GLenum type, const std::string_view source)
     {
       Log_ErrorPrintf("Shader failed to compile:\n%s", info_log.c_str());
 
-      std::ofstream ofs(StringUtil::StdStringFromFormat("bad_shader_%u.txt", s_next_bad_shader_id++).c_str(),
-                        std::ofstream::out | std::ofstream::binary);
-      if (ofs.is_open())
+      std::unique_ptr<ByteStream> ofs = ByteStream_OpenFileStream(
+        StringUtil::StdStringFromFormat("bad_shader_%u.txt", s_next_bad_shader_id++).c_str(),
+        BYTESTREAM_OPEN_CREATE | BYTESTREAM_OPEN_WRITE | BYTESTREAM_OPEN_TRUNCATE);
+      if (ofs)
       {
-        ofs.write(sources[0], source_lengths[0]);
-        ofs << "\n\nCompile failed, info log:\n";
-        ofs << info_log;
-        ofs.close();
+        ofs->Write(sources[0], static_cast<uint32_t>(source_lengths[0]));
+        static const char tail[] = "\n\nCompile failed, info log:\n";
+        ofs->Write(tail, sizeof(tail) - 1);
+        ofs->Write(info_log.c_str(), static_cast<uint32_t>(info_log.size()));
+        ofs->Commit();
       }
 
       glDeleteShader(id);
@@ -120,7 +122,7 @@ bool Program::Compile(const std::string_view vertex_shader, const std::string_vi
   return true;
 }
 
-bool Program::CreateFromBinary(const void* data, u32 data_length, u32 data_format)
+bool Program::CreateFromBinary(const void* data, uint32_t data_length, uint32_t data_format)
 {
   GLuint prog = glCreateProgram();
   glProgramBinary(prog, static_cast<GLenum>(data_format), data, data_length);
@@ -138,7 +140,7 @@ bool Program::CreateFromBinary(const void* data, u32 data_length, u32 data_forma
   return true;
 }
 
-bool Program::GetBinary(std::vector<u8>* out_data, u32* out_data_format)
+bool Program::GetBinary(std::vector<uint8_t>* out_data, uint32_t* out_data_format)
 {
   GLint binary_size = 0;
   glGetProgramiv(m_program_id, GL_PROGRAM_BINARY_LENGTH, &binary_size);
@@ -162,7 +164,7 @@ bool Program::GetBinary(std::vector<u8>* out_data, u32* out_data_format)
     out_data->resize(static_cast<size_t>(binary_size));
   }
 
-  *out_data_format = static_cast<u32>(format);
+  *out_data_format = static_cast<uint32_t>(format);
   Log_InfoPrintf("Program binary retrieved, %zu bytes, format %u", out_data->size(), *out_data_format);
   return true;
 }
@@ -175,13 +177,6 @@ void Program::SetBinaryRetrievableHint()
 void Program::BindAttribute(GLuint index, const char* name)
 {
   glBindAttribLocation(m_program_id, index, name);
-}
-
-void Program::BindDefaultAttributes()
-{
-  BindAttribute(0, "a_position");
-  BindAttribute(1, "a_texcoord");
-  BindAttribute(2, "a_color");
 }
 
 void Program::BindFragData(GLuint index /*= 0*/, const char* name /*= "o_col0"*/)
@@ -282,81 +277,11 @@ int Program::RegisterUniform(const char* name)
   return id;
 }
 
-void Program::Uniform1ui(int index, u32 x) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform1ui(location, x);
-}
-
-void Program::Uniform2ui(int index, u32 x, u32 y) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform2ui(location, x, y);
-}
-
-void Program::Uniform3ui(int index, u32 x, u32 y, u32 z) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform3ui(location, x, y, z);
-}
-
-void Program::Uniform4ui(int index, u32 x, u32 y, u32 z, u32 w) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform4ui(location, x, y, z, w);
-}
-
-void Program::Uniform1i(int index, s32 x) const
+void Program::Uniform1i(int index, int32_t x) const
 {
   const GLint location = m_uniform_locations[index];
   if (location >= 0)
     glUniform1i(location, x);
-}
-
-void Program::Uniform2i(int index, s32 x, s32 y) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform2i(location, x, y);
-}
-
-void Program::Uniform3i(int index, s32 x, s32 y, s32 z) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform3i(location, x, y, z);
-}
-
-void Program::Uniform4i(int index, s32 x, s32 y, s32 z, s32 w) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform4i(location, x, y, z, w);
-}
-
-void Program::Uniform1f(int index, float x) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform1f(location, x);
-}
-
-void Program::Uniform2f(int index, float x, float y) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform2f(location, x, y);
-}
-
-void Program::Uniform3f(int index, float x, float y, float z) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform3f(location, x, y, z);
 }
 
 void Program::Uniform4f(int index, float x, float y, float z, float w) const
@@ -366,217 +291,14 @@ void Program::Uniform4f(int index, float x, float y, float z, float w) const
     glUniform4f(location, x, y, z, w);
 }
 
-void Program::Uniform2uiv(int index, const u32* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform2uiv(location, 1, v);
-}
-
-void Program::Uniform3uiv(int index, const u32* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform3uiv(location, 1, v);
-}
-
-void Program::Uniform4uiv(int index, const u32* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform4uiv(location, 1, v);
-}
-
-void Program::Uniform2iv(int index, const s32* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform2iv(location, 1, v);
-}
-
-void Program::Uniform3iv(int index, const s32* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform3iv(location, 1, v);
-}
-
-void Program::Uniform4iv(int index, const s32* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform4iv(location, 1, v);
-}
-
-void Program::Uniform2fv(int index, const float* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform2fv(location, 1, v);
-}
-
-void Program::Uniform3fv(int index, const float* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform3fv(location, 1, v);
-}
-
-void Program::Uniform4fv(int index, const float* v) const
-{
-  const GLint location = m_uniform_locations[index];
-  if (location >= 0)
-    glUniform4fv(location, 1, v);
-}
-
-void Program::Uniform1ui(const char* name, u32 x) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform1ui(location, x);
-}
-
-void Program::Uniform2ui(const char* name, u32 x, u32 y) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform2ui(location, x, y);
-}
-
-void Program::Uniform3ui(const char* name, u32 x, u32 y, u32 z) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform3ui(location, x, y, z);
-}
-
-void Program::Uniform4ui(const char* name, u32 x, u32 y, u32 z, u32 w) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform4ui(location, x, y, z, w);
-}
-
-void Program::Uniform1i(const char* name, s32 x) const
+void Program::Uniform1i(const char* name, int32_t x) const
 {
   const GLint location = glGetUniformLocation(m_program_id, name);
   if (location >= 0)
     glUniform1i(location, x);
 }
 
-void Program::Uniform2i(const char* name, s32 x, s32 y) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform2i(location, x, y);
-}
-
-void Program::Uniform3i(const char* name, s32 x, s32 y, s32 z) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform3i(location, x, y, z);
-}
-
-void Program::Uniform4i(const char* name, s32 x, s32 y, s32 z, s32 w) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform4i(location, x, y, z, w);
-}
-
-void Program::Uniform1f(const char* name, float x) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform1f(location, x);
-}
-
-void Program::Uniform2f(const char* name, float x, float y) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform2f(location, x, y);
-}
-
-void Program::Uniform3f(const char* name, float x, float y, float z) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform3f(location, x, y, z);
-}
-
-void Program::Uniform4f(const char* name, float x, float y, float z, float w) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform4f(location, x, y, z, w);
-}
-
-void Program::Uniform2uiv(const char* name, const u32* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform2uiv(location, 1, v);
-}
-
-void Program::Uniform3uiv(const char* name, const u32* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform3uiv(location, 1, v);
-}
-
-void Program::Uniform4uiv(const char* name, const u32* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform4uiv(location, 1, v);
-}
-
-void Program::Uniform2iv(const char* name, const s32* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform2iv(location, 1, v);
-}
-
-void Program::Uniform3iv(const char* name, const s32* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform3iv(location, 1, v);
-}
-
-void Program::Uniform4iv(const char* name, const s32* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform4iv(location, 1, v);
-}
-
-void Program::Uniform2fv(const char* name, const float* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform2fv(location, 1, v);
-}
-
-void Program::Uniform3fv(const char* name, const float* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform3fv(location, 1, v);
-}
-
-void Program::Uniform4fv(const char* name, const float* v) const
-{
-  const GLint location = glGetUniformLocation(m_program_id, name);
-  if (location >= 0)
-    glUniform4fv(location, 1, v);
-}
-
-void Program::BindUniformBlock(const char* name, u32 index)
+void Program::BindUniformBlock(const char* name, uint32_t index)
 {
   const GLint location = glGetUniformBlockIndex(m_program_id, name);
   if (location >= 0)

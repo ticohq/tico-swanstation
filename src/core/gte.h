@@ -11,12 +11,12 @@ bool DoState(StateWrapper& sw);
 void UpdateAspectRatio();
 
 // control registers are offset by +32
-u32 ReadRegister(u32 index);
-void WriteRegister(u32 index, u32 value);
+uint32_t ReadRegister(uint32_t index);
+void WriteRegister(uint32_t index, uint32_t value);
 
-void ExecuteInstruction(u32 inst_bits);
+void ExecuteInstruction(uint32_t inst_bits);
 
 using InstructionImpl = void (*)(Instruction);
-InstructionImpl GetInstructionImpl(u32 inst_bits, TickCount* ticks);
+InstructionImpl GetInstructionImpl(uint32_t inst_bits, TickCount* ticks);
 
 } // namespace GTE

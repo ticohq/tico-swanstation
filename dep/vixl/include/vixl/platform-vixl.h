@@ -32,8 +32,8 @@ extern "C" {
 #include <signal.h>
 }
 
-namespace swanstation_vixl {
+namespace vixl {
 inline void HostBreakpoint() { raise(SIGINT); }
-}  // namespace swanstation_vixl
+}  // namespace vixl
 
 #endif

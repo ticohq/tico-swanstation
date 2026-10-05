@@ -1,5 +1,19 @@
 #include "md5_digest.h"
 
+#include <cstring>
+// Plumb's reference MD5 needs to know the host endianness. The
+// algorithm operates on 32-bit longwords; on a big-endian host the
+// raw input bytes need to be byte-reversed before the per-block
+// transform, on a little-endian host they don't. Upstream uses the
+// historical macro name HIGHFIRST to gate the byte-reverse pass.
+//
+// swanstation reserves MSB_FIRST for the same purpose (see
+// src/common/types.h). Mapping MSB_FIRST -> HIGHFIRST here keeps
+// this third-party implementation file otherwise untouched.
+#if defined(MSB_FIRST) && !defined(HIGHFIRST)
+#define HIGHFIRST 1
+#endif
+
 #ifndef HIGHFIRST
 #define byteReverse(buf, len) /* Nothing */
 #else
@@ -8,11 +22,11 @@
  */
 static void byteReverse(unsigned char* buf, unsigned longs)
 {
-  u32 t;
+  uint32_t t;
   do
   {
-    t = (u32)((unsigned)buf[3] << 8 | buf[2]) << 16 | ((unsigned)buf[1] << 8 | buf[0]);
-    *(u32*)buf = t;
+    t = (uint32_t)((unsigned)buf[3] << 8 | buf[2]) << 16 | ((unsigned)buf[1] << 8 | buf[0]);
+    *(uint32_t*)buf = t;
     buf += 4;
   } while (--longs);
 }
@@ -34,10 +48,10 @@ static void byteReverse(unsigned char* buf, unsigned longs)
  * reflect the addition of 16 longwords of new data.  MD5Update blocks
  * the data and converts bytes into longwords for this routine.
  */
-static void MD5Transform(u32 buf[4], u32 in[16])
+static void MD5Transform(uint32_t buf[4], uint32_t in[16])
 {
-  // register u32 a, b, c, d;
-  u32 a, b, c, d;
+  // register uint32_t a, b, c, d;
+  uint32_t a, b, c, d;
 
   a = buf[0];
   b = buf[1];
@@ -134,15 +148,15 @@ void MD5Digest::Reset()
   this->bits[1] = 0;
 }
 
-void MD5Digest::Update(const void* pData, u32 cbData)
+void MD5Digest::Update(const void* pData, uint32_t cbData)
 {
-  u32 t;
-  const u8* pByteData = reinterpret_cast<const u8*>(pData);
+  uint32_t t;
+  const uint8_t* pByteData = reinterpret_cast<const uint8_t*>(pData);
 
   /* Update bitcount */
 
   t = this->bits[0];
-  if ((this->bits[0] = t + ((u32)cbData << 3)) < t)
+  if ((this->bits[0] = t + ((uint32_t)cbData << 3)) < t)
     this->bits[1]++; /* Carry from low to high */
   this->bits[1] += cbData >> 29;
 
@@ -152,7 +166,7 @@ void MD5Digest::Update(const void* pData, u32 cbData)
 
   if (t)
   {
-    u8* p = (u8*)this->in + t;
+    uint8_t* p = (uint8_t*)this->in + t;
 
     t = 64 - t;
     if (cbData < t)
@@ -162,7 +176,7 @@ void MD5Digest::Update(const void* pData, u32 cbData)
     }
     std::memcpy(p, pByteData, t);
     byteReverse(this->in, 16);
-    MD5Transform(this->buf, (u32*)this->in);
+    MD5Transform(this->buf, (uint32_t*)this->in);
     pByteData += t;
     cbData -= t;
   }
@@ -172,7 +186,7 @@ void MD5Digest::Update(const void* pData, u32 cbData)
   {
     std::memcpy(this->in, pByteData, 64);
     byteReverse(this->in, 16);
-    MD5Transform(this->buf, (u32*)this->in);
+    MD5Transform(this->buf, (uint32_t*)this->in);
     pByteData += 64;
     cbData -= 64;
   }
@@ -182,10 +196,10 @@ void MD5Digest::Update(const void* pData, u32 cbData)
   std::memcpy(this->in, pByteData, cbData);
 }
 
-void MD5Digest::Final(u8 Digest[16])
+void MD5Digest::Final(uint8_t Digest[16])
 {
-  u32 count;
-  u8* p;
+  uint32_t count;
+  uint8_t* p;
 
   /* Compute number of bytes mod 64 */
   count = (this->bits[0] >> 3) & 0x3F;
@@ -204,7 +218,7 @@ void MD5Digest::Final(u8 Digest[16])
     /* Two lots of padding:  Pad the first block to 64 bytes */
     std::memset(p, 0, count);
     byteReverse(this->in, 16);
-    MD5Transform(this->buf, (u32*)this->in);
+    MD5Transform(this->buf, (uint32_t*)this->in);
 
     /* Now fill the next block with 56 bytes */
     std::memset(this->in, 0, 56);
@@ -217,10 +231,10 @@ void MD5Digest::Final(u8 Digest[16])
   byteReverse(this->in, 14);
 
   /* Append length in bits and transform */
-  ((u32*)this->in)[14] = this->bits[0];
-  ((u32*)this->in)[15] = this->bits[1];
+  ((uint32_t*)this->in)[14] = this->bits[0];
+  ((uint32_t*)this->in)[15] = this->bits[1];
 
-  MD5Transform(this->buf, (u32*)this->in);
+  MD5Transform(this->buf, (uint32_t*)this->in);
   byteReverse((unsigned char*)this->buf, 4);
   std::memcpy(Digest, this->buf, 16);
 }

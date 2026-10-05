@@ -19,7 +19,7 @@ class StateWrapper;
 
 namespace Bus {
 
-inline constexpr u32 RAM_BASE = 0x00000000, RAM_2MB_SIZE = 0x200000, RAM_2MB_MASK = RAM_2MB_SIZE - 1,
+inline constexpr uint32_t RAM_2MB_SIZE = 0x200000, RAM_2MB_MASK = RAM_2MB_SIZE - 1,
                      RAM_8MB_SIZE = 0x800000, RAM_8MB_MASK = RAM_8MB_SIZE - 1, RAM_MIRROR_END = 0x800000,
                      EXP1_BASE = 0x1F000000, EXP1_SIZE = 0x800000, EXP1_MASK = EXP1_SIZE - 1, MEMCTRL_BASE = 0x1F801000,
                      MEMCTRL_SIZE = 0x40, MEMCTRL_MASK = MEMCTRL_SIZE - 1, PAD_BASE = 0x1F801040, PAD_SIZE = 0x10,
@@ -35,7 +35,7 @@ inline constexpr u32 RAM_BASE = 0x00000000, RAM_2MB_SIZE = 0x200000, RAM_2MB_MAS
                      EXP2_MASK = EXP2_SIZE - 1, EXP3_BASE = 0x1FA00000, EXP3_SIZE = 0x1, EXP3_MASK = EXP3_SIZE - 1,
                      BIOS_BASE = 0x1FC00000, BIOS_SIZE = 0x80000, BIOS_MASK = 0x7FFFF;
 
-inline constexpr u32 MEMCTRL_REG_COUNT = 9;
+inline constexpr uint32_t MEMCTRL_REG_COUNT = 9;
 
 inline constexpr TickCount RAM_READ_TICKS = 6;
 
@@ -53,7 +53,7 @@ inline constexpr size_t
 #endif
   ;
 
-inline constexpr u32 RAM_2MB_CODE_PAGE_COUNT = (RAM_2MB_SIZE + (HOST_PAGE_SIZE + 1)) / HOST_PAGE_SIZE,
+inline constexpr uint32_t RAM_2MB_CODE_PAGE_COUNT = (RAM_2MB_SIZE + (HOST_PAGE_SIZE + 1)) / HOST_PAGE_SIZE,
                      RAM_8MB_CODE_PAGE_COUNT = (RAM_8MB_SIZE + (HOST_PAGE_SIZE + 1)) / HOST_PAGE_SIZE,
 
                      FASTMEM_LUT_NUM_PAGES = 0x100000, // 0x100000000 >> 12
@@ -64,18 +64,18 @@ void Shutdown();
 void Reset();
 bool DoState(StateWrapper& sw);
 
-u8* GetFastmemBase();
+uint8_t* GetFastmemBase();
 void UpdateFastmemViews(CPUFastmemMode mode);
 bool CanUseFastmemForAddress(VirtualMemoryAddress address);
 
-void SetExpansionROM(std::vector<u8> data);
-void SetBIOS(const std::vector<u8>& image);
+void SetExpansionROM(std::vector<uint8_t> data);
+void SetBIOS(const uint8_t *image, size_t image_size);
 
 extern std::bitset<RAM_8MB_CODE_PAGE_COUNT> m_ram_code_bits;
-extern u8* g_ram;            // 2MB-8MB RAM
-extern u32 g_ram_size;       // Active size of RAM.
-extern u32 g_ram_mask;       // Active address bits for RAM.
-extern u8 g_bios[BIOS_SIZE]; // 512K BIOS ROM
+extern uint8_t* g_ram;            // 2MB-8MB RAM
+extern uint32_t g_ram_size;       // Active size of RAM.
+extern uint32_t g_ram_mask;       // Active address bits for RAM.
+extern uint8_t g_bios[BIOS_SIZE]; // 512K BIOS ROM
 
 /// Returns true if the address specified is writable (RAM).
 ALWAYS_INLINE static bool IsRAMAddress(PhysicalMemoryAddress address)
@@ -84,25 +84,25 @@ ALWAYS_INLINE static bool IsRAMAddress(PhysicalMemoryAddress address)
 }
 
 /// Returns the code page index for a RAM address.
-ALWAYS_INLINE static u32 GetRAMCodePageIndex(PhysicalMemoryAddress address)
+ALWAYS_INLINE static uint32_t GetRAMCodePageIndex(PhysicalMemoryAddress address)
 {
   return (address & g_ram_mask) / HOST_PAGE_SIZE;
 }
 
 /// Returns true if the specified page contains code.
-bool IsRAMCodePage(u32 index);
+bool IsRAMCodePage(uint32_t index);
 
 /// Flags a RAM region as code, so we know when to invalidate blocks.
-void SetRAMCodePage(u32 index);
+void SetRAMCodePage(uint32_t index);
 
 /// Unflags a RAM region as code, the code cache will no longer be notified when writes occur.
-void ClearRAMCodePage(u32 index);
+void ClearRAMCodePage(uint32_t index);
 
 /// Clears all code bits for RAM regions.
 void ClearRAMCodePageFlags();
 
 /// Returns the number of cycles stolen by DMA RAM access.
-ALWAYS_INLINE TickCount GetDMARAMTickCount(u32 word_count)
+ALWAYS_INLINE TickCount GetDMARAMTickCount(uint32_t word_count)
 {
   // DMA is using DRAM Hyper Page mode, allowing it to access DRAM rows at 1 clock cycle per word (effectively around
   // 17 clks per 16 words, due to required row address loading, probably plus some further minimal overload due to
@@ -110,24 +110,5 @@ ALWAYS_INLINE TickCount GetDMARAMTickCount(u32 word_count)
   // plus 6 waitstates, ie. 7 cycles in total).
   return static_cast<TickCount>(word_count + ((word_count + 15) / 16));
 }
-
-enum class MemoryRegion
-{
-  RAM,
-  RAMMirror1,
-  RAMMirror2,
-  RAMMirror3,
-  EXP1,
-  Scratchpad,
-  BIOS,
-  Count
-};
-
-std::optional<MemoryRegion> GetMemoryRegionForAddress(PhysicalMemoryAddress address);
-PhysicalMemoryAddress GetMemoryRegionStart(MemoryRegion region);
-PhysicalMemoryAddress GetMemoryRegionEnd(MemoryRegion region);
-u8* GetMemoryRegionPointer(MemoryRegion region);
-std::optional<PhysicalMemoryAddress> SearchMemory(PhysicalMemoryAddress start_address, const u8* pattern,
-                                                  const u8* mask, u32 pattern_length);
 
 } // namespace Bus

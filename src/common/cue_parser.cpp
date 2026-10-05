@@ -3,6 +3,8 @@
 #include "log.h"
 #include "string_util.h"
 #include <cstdarg>
+#include <cstring>
+#include <limits>
 Log_SetChannel(CueParser);
 
 namespace CueParser {
@@ -20,7 +22,7 @@ File::File() = default;
 
 File::~File() = default;
 
-const Track* File::GetTrack(u32 n) const
+const Track* File::GetTrack(uint32_t n) const
 {
   for (const auto& it : m_tracks)
   {
@@ -31,7 +33,7 @@ const Track* File::GetTrack(u32 n) const
   return nullptr;
 }
 
-Track* File::GetMutableTrack(u32 n)
+Track* File::GetMutableTrack(uint32_t n)
 {
   for (auto& it : m_tracks)
   {
@@ -45,7 +47,7 @@ Track* File::GetMutableTrack(u32 n)
 bool File::Parse(RFILE* fp, Common::Error* error)
 {
   char line[1024];
-  u32 line_number = 1;
+  uint32_t line_number = 1;
   while (rfgets(line, sizeof(line), fp))
   {
     if (!ParseLine(line, line_number, error))
@@ -63,7 +65,7 @@ bool File::Parse(RFILE* fp, Common::Error* error)
   return true;
 }
 
-void File::SetError(u32 line_number, Common::Error* error, const char* format, ...)
+void File::SetError(uint32_t line_number, Common::Error* error, const char* format, ...)
 {
   std::va_list ap;
   SmallString str;
@@ -120,12 +122,12 @@ std::string_view File::GetToken(const char*& line)
 
 std::optional<MSF> File::GetMSF(const std::string_view& token)
 {
-  static const s32 max_values[] = {std::numeric_limits<s32>::max(), 60, 75};
+  static const int32_t max_values[] = {std::numeric_limits<int32_t>::max(), 60, 75};
 
-  u32 parts[3] = {};
-  u32 part = 0;
+  uint32_t parts[3] = {};
+  uint32_t part = 0;
 
-  u32 start = 0;
+  uint32_t start = 0;
   for (;;)
   {
     while (start < token.length() && token[start] < '0' && token[start] <= '9')
@@ -134,15 +136,15 @@ std::optional<MSF> File::GetMSF(const std::string_view& token)
     if (start == token.length())
       return std::nullopt;
 
-    u32 end = start;
+    uint32_t end = start;
     while (end < token.length() && token[end] >= '0' && token[end] <= '9')
       end++;
 
-    const std::optional<s32> value = StringUtil::FromChars<s32>(token.substr(start, end - start));
+    const std::optional<int32_t> value = StringUtil::FromChars<int32_t>(token.substr(start, end - start));
     if (!value.has_value() || value.value() < 0 || value.value() > max_values[part])
       return std::nullopt;
 
-    parts[part] = static_cast<u32>(value.value());
+    parts[part] = static_cast<uint32_t>(value.value());
     part++;
 
     if (part == 3)
@@ -157,13 +159,13 @@ std::optional<MSF> File::GetMSF(const std::string_view& token)
   }
 
   MSF ret;
-  ret.minute = static_cast<u8>(parts[0]);
-  ret.second = static_cast<u8>(parts[1]);
-  ret.frame = static_cast<u8>(parts[2]);
+  ret.minute = static_cast<uint8_t>(parts[0]);
+  ret.second = static_cast<uint8_t>(parts[1]);
+  ret.frame = static_cast<uint8_t>(parts[2]);
   return ret;
 }
 
-bool File::ParseLine(const char* line, u32 line_number, Common::Error* error)
+bool File::ParseLine(const char* line, uint32_t line_number, Common::Error* error)
 {
   const std::string_view command(GetToken(line));
   if (command.empty())
@@ -207,7 +209,7 @@ bool File::ParseLine(const char* line, u32 line_number, Common::Error* error)
   return false;
 }
 
-bool File::HandleFileCommand(const char* line, u32 line_number, Common::Error* error)
+bool File::HandleFileCommand(const char* line, uint32_t line_number, Common::Error* error)
 {
   const std::string_view filename(GetToken(line));
   const std::string_view mode(GetToken(line));
@@ -228,7 +230,7 @@ bool File::HandleFileCommand(const char* line, u32 line_number, Common::Error* e
   return true;
 }
 
-bool File::HandleTrackCommand(const char* line, u32 line_number, Common::Error* error)
+bool File::HandleTrackCommand(const char* line, uint32_t line_number, Common::Error* error)
 {
   if (!CompleteLastTrack(line_number, error))
     return false;
@@ -246,7 +248,7 @@ bool File::HandleTrackCommand(const char* line, u32 line_number, Common::Error* 
     return false;
   }
 
-  const std::optional<s32> track_number = StringUtil::FromChars<s32>(track_number_str);
+  const std::optional<int32_t> track_number = StringUtil::FromChars<int32_t>(track_number_str);
   if (track_number.value_or(0) < MIN_TRACK_NUMBER || track_number.value_or(0) > MAX_TRACK_NUMBER)
   {
     SetError(line_number, error, "Invalid track number %d", track_number.value_or(0));
@@ -278,13 +280,13 @@ bool File::HandleTrackCommand(const char* line, u32 line_number, Common::Error* 
   }
 
   m_current_track = Track();
-  m_current_track->number = static_cast<u32>(track_number.value());
+  m_current_track->number = static_cast<uint32_t>(track_number.value());
   m_current_track->file = m_current_file.value();
   m_current_track->mode = mode;
   return true;
 }
 
-bool File::HandleIndexCommand(const char* line, u32 line_number, Common::Error* error)
+bool File::HandleIndexCommand(const char* line, uint32_t line_number, Common::Error* error)
 {
   if (!m_current_track.has_value())
   {
@@ -299,14 +301,14 @@ bool File::HandleIndexCommand(const char* line, u32 line_number, Common::Error* 
     return false;
   }
 
-  const std::optional<s32> index_number = StringUtil::FromChars<s32>(index_number_str);
+  const std::optional<int32_t> index_number = StringUtil::FromChars<int32_t>(index_number_str);
   if (index_number.value_or(-1) < MIN_INDEX_NUMBER || index_number.value_or(-1) > MAX_INDEX_NUMBER)
   {
     SetError(line_number, error, "Invalid index number %d", index_number.value_or(-1));
     return false;
   }
 
-  if (m_current_track->GetIndex(static_cast<u32>(index_number.value())) != nullptr)
+  if (m_current_track->GetIndex(static_cast<uint32_t>(index_number.value())) != nullptr)
   {
     SetError(line_number, error, "Duplicate index %d", index_number.value());
     return false;
@@ -326,11 +328,11 @@ bool File::HandleIndexCommand(const char* line, u32 line_number, Common::Error* 
     return false;
   }
 
-  m_current_track->indices.emplace_back(static_cast<u32>(index_number.value()), msf.value());
+  m_current_track->indices.emplace_back(static_cast<uint32_t>(index_number.value()), msf.value());
   return true;
 }
 
-bool File::HandlePregapCommand(const char* line, u32 line_number, Common::Error* error)
+bool File::HandlePregapCommand(const char* line, uint32_t line_number, Common::Error* error)
 {
   if (!m_current_track.has_value())
   {
@@ -362,7 +364,7 @@ bool File::HandlePregapCommand(const char* line, u32 line_number, Common::Error*
   return true;
 }
 
-bool File::HandleFlagCommand(const char* line, u32 line_number, Common::Error* error)
+bool File::HandleFlagCommand(const char* line, uint32_t line_number, Common::Error* error)
 {
   if (!m_current_track.has_value())
   {
@@ -391,7 +393,7 @@ bool File::HandleFlagCommand(const char* line, u32 line_number, Common::Error* e
   return true;
 }
 
-bool File::CompleteLastTrack(u32 line_number, Common::Error* error)
+bool File::CompleteLastTrack(uint32_t line_number, Common::Error* error)
 {
   if (!m_current_track.has_value())
     return true;
@@ -432,7 +434,7 @@ bool File::CompleteLastTrack(u32 line_number, Common::Error* error)
   return true;
 }
 
-bool File::SetTrackLengths(u32 line_number, Common::Error* error)
+bool File::SetTrackLengths(uint32_t line_number, Common::Error* error)
 {
   for (const Track& track : m_tracks)
   {
@@ -462,7 +464,7 @@ bool File::SetTrackLengths(u32 line_number, Common::Error* error)
   return true;
 }
 
-const CueParser::MSF* Track::GetIndex(u32 n) const
+const CueParser::MSF* Track::GetIndex(uint32_t n) const
 {
   for (const auto& it : indices)
   {

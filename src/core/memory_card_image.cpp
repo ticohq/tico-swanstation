@@ -7,28 +7,29 @@
 #include "system.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <optional>
 
 #include <file/file_path.h>
 
 namespace MemoryCardImage {
 
-static u8 GetChecksum(const u8* frame)
+static uint8_t GetChecksum(const uint8_t* frame)
 {
-  u8 checksum = frame[0];
-  for (u32 i = 1; i < FRAME_SIZE - 1; i++)
+  uint8_t checksum = frame[0];
+  for (uint32_t i = 1; i < FRAME_SIZE - 1; i++)
     checksum ^= frame[i];
   return checksum;
 }
 
 template<typename T>
-T* GetFramePtr(DataArray* data, u32 block, u32 frame)
+T* GetFramePtr(DataArray* data, uint32_t block, uint32_t frame)
 {
   return reinterpret_cast<T*>(data->data() + (block * BLOCK_SIZE) + (frame * FRAME_SIZE));
 }
 
 template<typename T>
-const T* GetFramePtr(const DataArray& data, u32 block, u32 frame)
+const T* GetFramePtr(const DataArray& data, uint32_t block, uint32_t frame)
 {
   return reinterpret_cast<const T*>(&data[(block * BLOCK_SIZE) + (frame * FRAME_SIZE)]);
 }
@@ -65,32 +66,25 @@ bool SaveToFile(const DataArray& data, const char* filename)
   return true;
 }
 
-bool IsValid(const DataArray& data)
-{
-  // TODO: Check checksum?
-  const u8* fptr = GetFramePtr<u8>(data, 0, 0);
-  return fptr[0] == 'M' && fptr[1] == 'C';
-}
-
 void Format(DataArray* data)
 {
   // fill everything with FF
-  data->fill(u8(0xFF));
+  data->fill(uint8_t(0xFF));
 
   // header
   {
-    u8* fptr = GetFramePtr<u8>(data, 0, 0);
-    std::fill_n(fptr, FRAME_SIZE, u8(0));
+    uint8_t* fptr = GetFramePtr<uint8_t>(data, 0, 0);
+    std::fill_n(fptr, FRAME_SIZE, uint8_t(0));
     fptr[0] = 'M';
     fptr[1] = 'C';
     fptr[0x7F] = GetChecksum(fptr);
   }
 
   // directory
-  for (u32 frame = 1; frame < 16; frame++)
+  for (uint32_t frame = 1; frame < 16; frame++)
   {
-    u8* fptr = GetFramePtr<u8>(data, 0, frame);
-    std::fill_n(fptr, FRAME_SIZE, u8(0));
+    uint8_t* fptr = GetFramePtr<uint8_t>(data, 0, frame);
+    std::fill_n(fptr, FRAME_SIZE, uint8_t(0));
     fptr[0] = 0xA0;                 // free
     fptr[8] = 0xFF;                 // pointer to next file
     fptr[9] = 0xFF;                 // pointer to next file
@@ -98,10 +92,10 @@ void Format(DataArray* data)
   }
 
   // broken sector list
-  for (u32 frame = 16; frame < 36; frame++)
+  for (uint32_t frame = 16; frame < 36; frame++)
   {
-    u8* fptr = GetFramePtr<u8>(data, 0, frame);
-    std::fill_n(fptr, FRAME_SIZE, u8(0));
+    uint8_t* fptr = GetFramePtr<uint8_t>(data, 0, frame);
+    std::fill_n(fptr, FRAME_SIZE, uint8_t(0));
     fptr[0] = 0xFF;
     fptr[1] = 0xFF;
     fptr[2] = 0xFF;
@@ -112,21 +106,21 @@ void Format(DataArray* data)
   }
 
   // broken sector replacement data
-  for (u32 frame = 36; frame < 56; frame++)
+  for (uint32_t frame = 36; frame < 56; frame++)
   {
-    u8* fptr = GetFramePtr<u8>(data, 0, frame);
-    std::fill_n(fptr, FRAME_SIZE, u8(0x00));
+    uint8_t* fptr = GetFramePtr<uint8_t>(data, 0, frame);
+    std::fill_n(fptr, FRAME_SIZE, uint8_t(0x00));
   }
 
   // unused frames
-  for (u32 frame = 56; frame < 63; frame++)
+  for (uint32_t frame = 56; frame < 63; frame++)
   {
-    u8* fptr = GetFramePtr<u8>(data, 0, frame);
-    std::fill_n(fptr, FRAME_SIZE, u8(0x00));
+    uint8_t* fptr = GetFramePtr<uint8_t>(data, 0, frame);
+    std::fill_n(fptr, FRAME_SIZE, uint8_t(0x00));
   }
 
   // write test frame
-  std::memcpy(GetFramePtr<u8>(data, 0, 63), GetFramePtr<u8>(data, 0, 0), FRAME_SIZE);
+  std::memcpy(GetFramePtr<uint8_t>(data, 0, 63), GetFramePtr<uint8_t>(data, 0, 0), FRAME_SIZE);
 }
 
 } // namespace MemoryCardImage

@@ -1,10 +1,10 @@
 #include "libretro_host_display.h"
 #include "common/align.h"
-#include "libretro_host_interface.h"
-#include <libretro.h>
+#include "core/host_interface.h"
 #include <array>
+#include <cstring>
+#include <libretro.h>
 #include <tuple>
-
 static retro_pixel_format GetRetroPixelFormat(HostDisplayPixelFormat format)
 {
   switch (format)
@@ -41,7 +41,7 @@ bool LibretroHostDisplay::CheckPixelFormat(retro_pixel_format new_format)
   if (!g_retro_environment_callback(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &new_format))
     return false;
 
-  if (!g_libretro_host_interface.UpdateSystemAVInfo(false))
+  if (!g_host_interface_storage.UpdateSystemAVInfo(false))
     return false;
 
   m_current_pixel_format = new_format;
@@ -88,23 +88,21 @@ bool LibretroHostDisplay::CreateResources()
 
 void LibretroHostDisplay::DestroyResources() {}
 
-void LibretroHostDisplay::RenderSoftwareCursor() {}
-
 bool LibretroHostDisplay::ChangeRenderWindow(const WindowInfo& wi)
 {
   m_window_info = wi;
   return true;
 }
 
-void LibretroHostDisplay::ResizeRenderWindow(s32 new_window_width, s32 new_window_height)
+void LibretroHostDisplay::ResizeRenderWindow(int32_t new_window_width, int32_t new_window_height)
 {
   m_window_info.surface_width = new_window_width;
   m_window_info.surface_height = new_window_height;
 }
 
-std::unique_ptr<HostDisplayTexture> LibretroHostDisplay::CreateTexture(u32 width, u32 height, u32 layers, u32 levels,
-                                                                       u32 samples, HostDisplayPixelFormat format,
-                                                                       const void* data, u32 data_stride,
+std::unique_ptr<HostDisplayTexture> LibretroHostDisplay::CreateTexture(uint32_t width, uint32_t height, uint32_t layers, uint32_t levels,
+                                                                       uint32_t samples, HostDisplayPixelFormat format,
+                                                                       const void* data, uint32_t data_stride,
                                                                        bool dynamic)
 {
   return nullptr;
@@ -117,15 +115,15 @@ bool LibretroHostDisplay::SupportsDisplayPixelFormat(HostDisplayPixelFormat form
   return (GetRetroPixelFormat(format) == m_current_pixel_format);
 }
 
-bool LibretroHostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, u32 width, u32 height, void** out_buffer,
-                                                u32* out_pitch)
+bool LibretroHostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, uint32_t width, uint32_t height, void** out_buffer,
+                                                uint32_t* out_pitch)
 {
   const retro_pixel_format retro_pf = GetRetroPixelFormat(format);
   if (!CheckPixelFormat(retro_pf))
     return false;
 
-  const u32 full_width = (static_cast<u32>(m_display_active_left) + static_cast<u32>(m_display_width - m_display_active_left - m_display_active_width) + width);
-  const u32 full_height = (static_cast<u32>(m_display_active_top) + static_cast<u32>(m_display_height - m_display_active_top - m_display_active_height) + height);
+  const uint32_t full_width = (static_cast<uint32_t>(m_display_active_left) + static_cast<uint32_t>(m_display_width - m_display_active_left - m_display_active_width) + width);
+  const uint32_t full_height = (static_cast<uint32_t>(m_display_active_top) + static_cast<uint32_t>(m_display_height - m_display_active_top - m_display_active_height) + height);
   m_software_fb.data = nullptr;
   m_software_fb.width = full_width;
   m_software_fb.height = full_height;
@@ -133,17 +131,17 @@ bool LibretroHostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, u
   m_software_fb.format = RETRO_PIXEL_FORMAT_UNKNOWN;
   m_software_fb.access_flags = RETRO_MEMORY_ACCESS_WRITE;
   m_software_fb.memory_flags = 0;
-  const u32 pixel_size = GetDisplayPixelFormatSize(format);
+  const uint32_t pixel_size = GetDisplayPixelFormatSize(format);
 
   if (g_retro_environment_callback(RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER, &m_software_fb) &&
       m_software_fb.format == retro_pf)
   {
-    const u32 active_left = static_cast<u32>(m_display_active_left);
-    const u32 active_right = static_cast<u32>(m_display_width - m_display_active_left - m_display_active_width);
-    const u32 active_top = static_cast<u32>(m_display_active_top);
-    const u32 active_bottom = static_cast<u32>(m_display_height - m_display_active_top - m_display_active_height);
-    const u32 pitch = static_cast<u32>(m_software_fb.pitch);
-    u8* pixel_start = reinterpret_cast<u8*>(m_software_fb.data);
+    const uint32_t active_left = static_cast<uint32_t>(m_display_active_left);
+    const uint32_t active_right = static_cast<uint32_t>(m_display_width - m_display_active_left - m_display_active_width);
+    const uint32_t active_top = static_cast<uint32_t>(m_display_active_top);
+    const uint32_t active_bottom = static_cast<uint32_t>(m_display_height - m_display_active_top - m_display_active_height);
+    const uint32_t pitch = static_cast<uint32_t>(m_software_fb.pitch);
+    uint8_t* pixel_start = reinterpret_cast<uint8_t*>(m_software_fb.data);
 
     if (active_top > 0)
     {
@@ -153,10 +151,10 @@ bool LibretroHostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, u
 
     if (active_left > 0 || active_right > 0)
     {
-      const u32 left_pixel_size = pixel_size * active_left;
-      const u32 right_pixel_size = pixel_size * active_right;
-      u8* pixel_end = pixel_start + ((active_left + width) * pixel_size);
-      for (u32 i = 0; i < height; i++)
+      const uint32_t left_pixel_size = pixel_size * active_left;
+      const uint32_t right_pixel_size = pixel_size * active_right;
+      uint8_t* pixel_end = pixel_start + ((active_left + width) * pixel_size);
+      for (uint32_t i = 0; i < height; i++)
       {
         std::memset(pixel_start, 0, left_pixel_size);
         std::memset(pixel_end, 0, right_pixel_size);
@@ -171,13 +169,13 @@ bool LibretroHostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, u
     m_frame_buffer_pitch = m_software_fb.pitch;
     SetDisplayTexture(m_software_fb.data, format, m_software_fb.width, m_software_fb.height, 0, 0, m_software_fb.width,
                       m_software_fb.height);
-    *out_buffer = reinterpret_cast<u8*>(m_software_fb.data) + (active_left * pixel_size) + (active_top * pitch);
-    *out_pitch = static_cast<u32>(m_software_fb.pitch);
+    *out_buffer = reinterpret_cast<uint8_t*>(m_software_fb.data) + (active_left * pixel_size) + (active_top * pitch);
+    *out_pitch = static_cast<uint32_t>(m_software_fb.pitch);
     return true;
   }
 
-  const u32 pitch = Common::AlignUpPow2(full_width * GetDisplayPixelFormatSize(format), 4);
-  const u32 required_size = full_height * pitch;
+  const uint32_t pitch = Common::AlignUpPow2(full_width * GetDisplayPixelFormatSize(format), 4);
+  const uint32_t required_size = full_height * pitch;
   if (m_frame_buffer.size() != (required_size / 4))
   {
     m_frame_buffer.clear();
@@ -186,7 +184,7 @@ bool LibretroHostDisplay::BeginSetDisplayPixels(HostDisplayPixelFormat format, u
 
   m_frame_buffer_pitch = pitch;
   SetDisplayTexture(m_frame_buffer.data(), format, full_width, full_height, 0, 0, full_width, full_height);
-  *out_buffer = reinterpret_cast<u8*>(m_frame_buffer.data()) + (static_cast<u32>(m_display_active_top) * pitch) + (static_cast<u32>(m_display_active_left) * pixel_size);
+  *out_buffer = reinterpret_cast<uint8_t*>(m_frame_buffer.data()) + (static_cast<uint32_t>(m_display_active_top) * pitch) + (static_cast<uint32_t>(m_display_active_left) * pixel_size);
   *out_pitch = pitch;
   return true;
 }
@@ -200,13 +198,21 @@ bool LibretroHostDisplay::Render()
 {
   if (HasDisplayTexture())
   {
-    g_retro_video_refresh_callback(m_display_texture_handle, m_display_texture_view_width,
-                                   m_display_texture_view_height, m_frame_buffer_pitch);
+    // When the frontend has cleared RETRO_AV_ENABLE_VIDEO for this frame
+    // (single-instance runahead skip frame, fast-forward, etc.), suppress
+    // the refresh callback. The HW renderers' GPU state has already been
+    // produced and remains intact for the next live frame; the SW
+    // renderer's framebuffer pointer (m_software_fb.data) is owned by
+    // the frontend and we still need to clear our handle below so the
+    // next frame's SetDisplayTexture replaces it cleanly.
+    if (!g_retro_skip_video_this_frame)
+      g_retro_video_refresh_callback(m_display_texture_handle, m_display_texture_view_width,
+                                     m_display_texture_view_height, m_frame_buffer_pitch);
 
     if (m_display_texture_handle == m_software_fb.data)
       ClearDisplayTexture();
   }
-  else
+  else if (!g_retro_skip_video_this_frame)
     g_retro_video_refresh_callback(nullptr, 0, 0, 0);
 
   return true;

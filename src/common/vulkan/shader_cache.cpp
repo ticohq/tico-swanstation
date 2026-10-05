@@ -1,42 +1,27 @@
 #include "shader_cache.h"
 #include "../file_system.h"
 #include "../log.h"
-#include "../md5_digest.h"
 #include "context.h"
-#include "shader_compiler.h"
 #include "util.h"
 
+#include <cstring>
+#include <optional>
+#include <vector>
 #include <file/file_path.h>
-
 Log_SetChannel(Vulkan::ShaderCache);
-
-// TODO: store the driver version and stuff in the shader header
 
 std::unique_ptr<Vulkan::ShaderCache> g_vulkan_shader_cache;
 
 namespace Vulkan {
 
-using ShaderCompiler::SPIRVCodeType;
-using ShaderCompiler::SPIRVCodeVector;
-
 #pragma pack(push, 4)
 struct VK_PIPELINE_CACHE_HEADER
 {
-  u32 header_length;
-  u32 header_version;
-  u32 vendor_id;
-  u32 device_id;
-  u8 uuid[VK_UUID_SIZE];
-};
-
-struct CacheIndexEntry
-{
-  u64 source_hash_low;
-  u64 source_hash_high;
-  u32 source_length;
-  u32 shader_type;
-  u32 file_offset;
-  u32 blob_size;
+  uint32_t header_length;
+  uint32_t header_version;
+  uint32_t vendor_id;
+  uint32_t device_id;
+  uint8_t  uuid[VK_UUID_SIZE];
 };
 #pragma pack(pop)
 
@@ -47,42 +32,37 @@ static bool ValidatePipelineCacheHeader(const VK_PIPELINE_CACHE_HEADER& header)
     Log_ErrorPrintf("Pipeline cache failed validation: Invalid header length");
     return false;
   }
-
   if (header.header_version != VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
   {
     Log_ErrorPrintf("Pipeline cache failed validation: Invalid header version");
     return false;
   }
-
   if (header.vendor_id != g_vulkan_context->GetDeviceProperties().vendorID)
   {
     Log_ErrorPrintf("Pipeline cache failed validation: Incorrect vendor ID (file: 0x%X, device: 0x%X)",
                     header.vendor_id, g_vulkan_context->GetDeviceProperties().vendorID);
     return false;
   }
-
   if (header.device_id != g_vulkan_context->GetDeviceProperties().deviceID)
   {
     Log_ErrorPrintf("Pipeline cache failed validation: Incorrect device ID (file: 0x%X, device: 0x%X)",
                     header.device_id, g_vulkan_context->GetDeviceProperties().deviceID);
     return false;
   }
-
   if (std::memcmp(header.uuid, g_vulkan_context->GetDeviceProperties().pipelineCacheUUID, VK_UUID_SIZE) != 0)
   {
     Log_ErrorPrintf("Pipeline cache failed validation: Incorrect UUID");
     return false;
   }
-
   return true;
 }
 
 static void FillPipelineCacheHeader(VK_PIPELINE_CACHE_HEADER* header)
 {
-  header->header_length = sizeof(VK_PIPELINE_CACHE_HEADER);
+  header->header_length  = sizeof(VK_PIPELINE_CACHE_HEADER);
   header->header_version = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
-  header->vendor_id = g_vulkan_context->GetDeviceProperties().vendorID;
-  header->device_id = g_vulkan_context->GetDeviceProperties().deviceID;
+  header->vendor_id      = g_vulkan_context->GetDeviceProperties().vendorID;
+  header->device_id      = g_vulkan_context->GetDeviceProperties().deviceID;
   std::memcpy(header->uuid, g_vulkan_context->GetDeviceProperties().pipelineCacheUUID, VK_UUID_SIZE);
 }
 
@@ -90,27 +70,14 @@ ShaderCache::ShaderCache() = default;
 
 ShaderCache::~ShaderCache()
 {
-  CloseShaderCache();
   FlushPipelineCache();
   ClosePipelineCache();
 }
 
-bool ShaderCache::CacheIndexKey::operator==(const CacheIndexKey& key) const
-{
-  return (source_hash_low == key.source_hash_low && source_hash_high == key.source_hash_high &&
-          source_length == key.source_length && shader_type == key.shader_type);
-}
-
-bool ShaderCache::CacheIndexKey::operator!=(const CacheIndexKey& key) const
-{
-  return (source_hash_low != key.source_hash_low || source_hash_high != key.source_hash_high ||
-          source_length != key.source_length || shader_type != key.shader_type);
-}
-
-void ShaderCache::Create(std::string_view base_path, u32 version, bool debug)
+void ShaderCache::Create(std::string_view base_path, bool debug)
 {
   g_vulkan_shader_cache.reset(new ShaderCache());
-  g_vulkan_shader_cache->Open(base_path, version, debug);
+  g_vulkan_shader_cache->Open(base_path, debug);
 }
 
 void ShaderCache::Destroy()
@@ -118,22 +85,23 @@ void ShaderCache::Destroy()
   g_vulkan_shader_cache.reset();
 }
 
-void ShaderCache::Open(std::string_view base_path, u32 version, bool debug)
+void ShaderCache::Open(std::string_view base_path, bool debug)
 {
-  m_version = version;
-  m_debug = debug;
-
   if (!base_path.empty())
   {
+    // Sweep any leftover SPIR-V cache files from earlier builds. The
+    // runtime-glslang path is gone, so these are no longer touched -
+    // delete them so users do not end up with a stale 0-byte
+    // vulkan_shaders.bin sitting on disk forever.
+    const std::string legacy = GetLegacyShaderCacheBaseFileName(base_path, debug);
+    const std::string legacy_idx = legacy + ".idx";
+    const std::string legacy_bin = legacy + ".bin";
+    if (path_is_valid(legacy_idx.c_str()))
+      filestream_delete(legacy_idx.c_str());
+    if (path_is_valid(legacy_bin.c_str()))
+      filestream_delete(legacy_bin.c_str());
+
     m_pipeline_cache_filename = GetPipelineCacheBaseFileName(base_path, debug);
-
-    const std::string base_filename = GetShaderCacheBaseFileName(base_path, debug);
-    const std::string index_filename = base_filename + ".idx";
-    const std::string blob_filename = base_filename + ".bin";
-
-    if (!ReadExistingShaderCache(index_filename, blob_filename))
-      CreateNewShaderCache(index_filename, blob_filename);
-
     if (!ReadExistingPipelineCache())
       CreateNewPipelineCache();
   }
@@ -152,135 +120,23 @@ VkPipelineCache ShaderCache::GetPipelineCache(bool set_dirty /*= true*/)
   return m_pipeline_cache;
 }
 
-bool ShaderCache::CreateNewShaderCache(const std::string& index_filename, const std::string& blob_filename)
+std::string ShaderCache::GetPipelineCacheBaseFileName(const std::string_view& base_path, bool debug)
 {
-  if (path_is_valid(index_filename.c_str()))
-  {
-    Log_WarningPrintf("Removing existing index file '%s'", index_filename.c_str());
-    filestream_delete(index_filename.c_str());
-  }
-  if (path_is_valid(blob_filename.c_str()))
-  {
-    Log_WarningPrintf("Removing existing blob file '%s'", blob_filename.c_str());
-    filestream_delete(blob_filename.c_str());
-  }
-
-  m_index_file = FileSystem::OpenRFile(index_filename.c_str(), "wb");
-  if (!m_index_file)
-  {
-    Log_ErrorPrintf("Failed to open index file '%s' for writing", index_filename.c_str());
-    return false;
-  }
-
-  const u32 index_version = FILE_VERSION;
-  VK_PIPELINE_CACHE_HEADER header;
-  FillPipelineCacheHeader(&header);
-
-  if (rfwrite(&index_version, sizeof(index_version), 1, m_index_file) != 1 ||
-      rfwrite(&m_version, sizeof(m_version), 1, m_index_file) != 1 ||
-      rfwrite(&header, sizeof(header), 1, m_index_file) != 1)
-  {
-    Log_ErrorPrintf("Failed to write header to index file '%s'", index_filename.c_str());
-    rfclose(m_index_file);
-    m_index_file = nullptr;
-    filestream_delete(index_filename.c_str());
-    return false;
-  }
-
-  m_blob_file = FileSystem::OpenRFile(blob_filename.c_str(), "w+b");
-  if (!m_blob_file)
-  {
-    Log_ErrorPrintf("Failed to open blob file '%s' for writing", blob_filename.c_str());
-    rfclose(m_index_file);
-    m_index_file = nullptr;
-    filestream_delete(index_filename.c_str());
-    return false;
-  }
-
-  return true;
+  std::string base_filename(base_path);
+  base_filename += "vulkan_pipelines";
+  if (debug)
+    base_filename += "_debug";
+  base_filename += ".bin";
+  return base_filename;
 }
 
-bool ShaderCache::ReadExistingShaderCache(const std::string& index_filename, const std::string& blob_filename)
+std::string ShaderCache::GetLegacyShaderCacheBaseFileName(const std::string_view& base_path, bool debug)
 {
-  m_index_file = FileSystem::OpenRFile(index_filename.c_str(), "r+b");
-  if (!m_index_file)
-    return false;
-
-  u32 file_version = 0;
-  u32 data_version = 0;
-  if (rfread(&file_version, sizeof(file_version), 1, m_index_file) != 1 || file_version != FILE_VERSION ||
-      rfread(&data_version, sizeof(data_version), 1, m_index_file) != 1 || data_version != m_version)
-  {
-    Log_ErrorPrintf("Bad file/data version in '%s'", index_filename.c_str());
-    rfclose(m_index_file);
-    m_index_file = nullptr;
-    return false;
-  }
-
-  VK_PIPELINE_CACHE_HEADER header;
-  if (rfread(&header, sizeof(header), 1, m_index_file) != 1 || !ValidatePipelineCacheHeader(header))
-  {
-    Log_ErrorPrintf("Mismatched pipeline cache header in '%s' (GPU/driver changed?)", index_filename.c_str());
-    rfclose(m_index_file);
-    m_index_file = nullptr;
-    return false;
-  }
-
-  m_blob_file = FileSystem::OpenRFile(blob_filename.c_str(), "a+b");
-  if (!m_blob_file)
-  {
-    Log_ErrorPrintf("Blob file '%s' is missing", blob_filename.c_str());
-    rfclose(m_index_file);
-    m_index_file = nullptr;
-    return false;
-  }
-
-  rfseek(m_blob_file, 0, SEEK_END);
-  const u32 blob_file_size = static_cast<u32>(rftell(m_blob_file));
-
-  for (;;)
-  {
-    CacheIndexEntry entry;
-    if (rfread(&entry, sizeof(entry), 1, m_index_file) != 1 ||
-        (entry.file_offset + entry.blob_size) > blob_file_size)
-    {
-      if (rfeof(m_index_file))
-        break;
-
-      Log_ErrorPrintf("Failed to read entry from '%s', corrupt file?", index_filename.c_str());
-      m_index.clear();
-      rfclose(m_blob_file);
-      m_blob_file = nullptr;
-      rfclose(m_index_file);
-      m_index_file = nullptr;
-      return false;
-    }
-
-    const CacheIndexKey key{entry.source_hash_low, entry.source_hash_high, entry.source_length,
-                            static_cast<ShaderCompiler::Type>(entry.shader_type)};
-    const CacheIndexData data{entry.file_offset, entry.blob_size};
-    m_index.emplace(key, data);
-  }
-
-  // ensure we don't write before seeking
-  rfseek(m_index_file, 0, SEEK_END);
-
-  Log_InfoPrintf("Read %zu entries from '%s'", m_index.size(), index_filename.c_str());
-  return true;
-}
-
-void ShaderCache::CloseShaderCache()
-{
-  if (m_index_file)
-  {
-    rfclose(m_index_file);
-    m_index_file = nullptr;
-  }
-  if (m_blob_file)
-  {
-    rfclose(m_blob_file);
-    m_blob_file = nullptr;
-  }
+  std::string base_filename(base_path);
+  base_filename += "vulkan_shaders";
+  if (debug)
+    base_filename += "_debug";
+  return base_filename;
 }
 
 bool ShaderCache::CreateNewPipelineCache()
@@ -305,7 +161,7 @@ bool ShaderCache::CreateNewPipelineCache()
 
 bool ShaderCache::ReadExistingPipelineCache()
 {
-  std::optional<std::vector<u8>> data = FileSystem::ReadBinaryFile(m_pipeline_cache_filename.c_str());
+  std::optional<std::vector<uint8_t>> data = FileSystem::ReadBinaryFile(m_pipeline_cache_filename.c_str());
   if (!data.has_value())
     return false;
 
@@ -345,32 +201,22 @@ bool ShaderCache::FlushPipelineCache()
     return false;
   }
 
-  std::vector<u8> data(data_size);
+  std::vector<uint8_t> data(data_size);
   res = vkGetPipelineCacheData(g_vulkan_context->GetDevice(), m_pipeline_cache, &data_size, data.data());
   if (res != VK_SUCCESS)
   {
-    LOG_VULKAN_ERROR(res, "vkGetPipelineCacheData() (2) failed: ");
+    LOG_VULKAN_ERROR(res, "vkGetPipelineCacheData() (data) failed: ");
+    return false;
+  }
+  data.resize(data_size);
+
+  if (!FileSystem::WriteBinaryFile(m_pipeline_cache_filename.c_str(), data.data(), data.size()))
+  {
+    Log_ErrorPrintf("Failed to write pipeline cache to '%s'", m_pipeline_cache_filename.c_str());
     return false;
   }
 
-  data.resize(data_size);
-
-  // Save disk writes if it hasn't changed, think of the poor SSDs.
-  int32_t sd_size = path_get_size(m_pipeline_cache_filename.c_str());
-  if (sd_size == -1 || sd_size != static_cast<u64>(data_size))
-  {
-    Log_InfoPrintf("Writing %zu bytes to '%s'", data_size, m_pipeline_cache_filename.c_str());
-    if (!FileSystem::WriteBinaryFile(m_pipeline_cache_filename.c_str(), data.data(), data.size()))
-    {
-      Log_ErrorPrintf("Failed to write pipeline cache to '%s'", m_pipeline_cache_filename.c_str());
-      return false;
-    }
-  }
-  else
-  {
-    Log_InfoPrintf("Skipping updating pipeline cache '%s' due to no changes.", m_pipeline_cache_filename.c_str());
-  }
-
+  Log_InfoPrintf("Saved %zu bytes to '%s'", data_size, m_pipeline_cache_filename.c_str());
   m_pipeline_cache_dirty = false;
   return true;
 }
@@ -382,132 +228,6 @@ void ShaderCache::ClosePipelineCache()
 
   vkDestroyPipelineCache(g_vulkan_context->GetDevice(), m_pipeline_cache, nullptr);
   m_pipeline_cache = VK_NULL_HANDLE;
-}
-
-std::string ShaderCache::GetShaderCacheBaseFileName(const std::string_view& base_path, bool debug)
-{
-  std::string base_filename(base_path);
-  base_filename += "vulkan_shaders";
-
-  if (debug)
-    base_filename += "_debug";
-
-  return base_filename;
-}
-
-std::string ShaderCache::GetPipelineCacheBaseFileName(const std::string_view& base_path, bool debug)
-{
-  std::string base_filename(base_path);
-  base_filename += "vulkan_pipelines";
-
-  if (debug)
-    base_filename += "_debug";
-
-  base_filename += ".bin";
-  return base_filename;
-}
-
-ShaderCache::CacheIndexKey ShaderCache::GetCacheKey(ShaderCompiler::Type type, const std::string_view& shader_code)
-{
-  union HashParts
-  {
-    struct
-    {
-      u64 hash_low;
-      u64 hash_high;
-    };
-    u8 hash[16];
-  };
-  HashParts h;
-
-  MD5Digest digest;
-  digest.Update(shader_code.data(), static_cast<u32>(shader_code.length()));
-  digest.Final(h.hash);
-
-  return CacheIndexKey{h.hash_low, h.hash_high, static_cast<u32>(shader_code.length()), type};
-}
-
-std::optional<ShaderCompiler::SPIRVCodeVector> ShaderCache::GetShaderSPV(ShaderCompiler::Type type,
-                                                                         std::string_view shader_code)
-{
-  const auto key = GetCacheKey(type, shader_code);
-  auto iter = m_index.find(key);
-  if (iter == m_index.end())
-    return CompileAndAddShaderSPV(key, shader_code);
-
-  SPIRVCodeVector spv(iter->second.blob_size);
-  if (rfseek(m_blob_file, iter->second.file_offset, SEEK_SET) != 0 ||
-      rfread(spv.data(), sizeof(SPIRVCodeType), iter->second.blob_size, m_blob_file) != iter->second.blob_size)
-  {
-    Log_ErrorPrintf("Read blob from file failed, recompiling");
-    return ShaderCompiler::CompileShader(type, shader_code, m_debug);
-  }
-
-  return spv;
-}
-
-VkShaderModule ShaderCache::GetShaderModule(ShaderCompiler::Type type, std::string_view shader_code)
-{
-  std::optional<SPIRVCodeVector> spv = GetShaderSPV(type, shader_code);
-  if (!spv.has_value())
-    return VK_NULL_HANDLE;
-
-  const VkShaderModuleCreateInfo ci{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0,
-                                    spv->size() * sizeof(SPIRVCodeType), spv->data()};
-
-  VkShaderModule mod;
-  VkResult res = vkCreateShaderModule(g_vulkan_context->GetDevice(), &ci, nullptr, &mod);
-  if (res != VK_SUCCESS)
-  {
-    LOG_VULKAN_ERROR(res, "vkCreateShaderModule() failed: ");
-    return VK_NULL_HANDLE;
-  }
-
-  return mod;
-}
-
-VkShaderModule ShaderCache::GetVertexShader(std::string_view shader_code)
-{
-  return GetShaderModule(ShaderCompiler::Type::Vertex, std::move(shader_code));
-}
-
-VkShaderModule ShaderCache::GetFragmentShader(std::string_view shader_code)
-{
-  return GetShaderModule(ShaderCompiler::Type::Fragment, std::move(shader_code));
-}
-
-std::optional<ShaderCompiler::SPIRVCodeVector> ShaderCache::CompileAndAddShaderSPV(const CacheIndexKey& key,
-                                                                                   std::string_view shader_code)
-{
-  std::optional<SPIRVCodeVector> spv = ShaderCompiler::CompileShader(key.shader_type, shader_code, m_debug);
-  if (!spv.has_value())
-    return {};
-
-  if (!m_blob_file || rfseek(m_blob_file, 0, SEEK_END) != 0)
-    return spv;
-
-  CacheIndexData data;
-  data.file_offset = static_cast<u32>(rftell(m_blob_file));
-  data.blob_size = static_cast<u32>(spv->size());
-
-  CacheIndexEntry entry = {};
-  entry.source_hash_low = key.source_hash_low;
-  entry.source_hash_high = key.source_hash_high;
-  entry.source_length = key.source_length;
-  entry.shader_type = static_cast<u32>(key.shader_type);
-  entry.blob_size = data.blob_size;
-  entry.file_offset = data.file_offset;
-
-  if (rfwrite(spv->data(), sizeof(SPIRVCodeType), entry.blob_size, m_blob_file) != entry.blob_size ||
-      filestream_flush(m_blob_file) != 0 || rfwrite(&entry, sizeof(entry), 1, m_index_file) != 1 ||
-      filestream_flush(m_index_file) != 0)
-  {
-    Log_ErrorPrintf("Failed to write shader blob to file");
-    return spv;
-  }
-
-  m_index.emplace(key, data);
-  return spv;
 }
 
 } // namespace Vulkan

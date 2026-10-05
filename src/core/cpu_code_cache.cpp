@@ -6,6 +6,7 @@
 #include "settings.h"
 #include "system.h"
 #include "timing_event.h"
+#include <cstring>
 Log_SetChannel(CPU::CodeCache);
 
 #ifdef WITH_RECOMPILER
@@ -17,9 +18,9 @@ namespace CPU::CodeCache {
 static constexpr bool USE_BLOCK_LINKING = true;
 
 // Fall blocks back to interpreter if we recompile more than 20 times within 100 frames.
-static constexpr u32 RECOMPILE_FRAMES_TO_FALL_BACK_TO_INTERPRETER = 100;
-static constexpr u32 RECOMPILE_COUNT_TO_FALL_BACK_TO_INTERPRETER = 20;
-static constexpr u32 INVALIDATE_THRESHOLD_TO_DISABLE_LINKING = 10;
+static constexpr uint32_t RECOMPILE_FRAMES_TO_FALL_BACK_TO_INTERPRETER = 100;
+static constexpr uint32_t RECOMPILE_COUNT_TO_FALL_BACK_TO_INTERPRETER = 20;
+static constexpr uint32_t INVALIDATE_THRESHOLD_TO_DISABLE_LINKING = 10;
 
 #ifdef WITH_RECOMPILER
 
@@ -30,17 +31,17 @@ static constexpr u32 INVALIDATE_THRESHOLD_TO_DISABLE_LINKING = 10;
 
 #if defined(CPU_AARCH32)
 // Use a smaller code buffer size on AArch32 to have a better chance of being in range.
-static constexpr u32 RECOMPILER_CODE_CACHE_SIZE = 16 * 1024 * 1024;
-static constexpr u32 RECOMPILER_FAR_CODE_CACHE_SIZE = 8 * 1024 * 1024;
+static constexpr uint32_t RECOMPILER_CODE_CACHE_SIZE = 16 * 1024 * 1024;
+static constexpr uint32_t RECOMPILER_FAR_CODE_CACHE_SIZE = 8 * 1024 * 1024;
 #else
-static constexpr u32 RECOMPILER_CODE_CACHE_SIZE = 128 * 1024 * 1024;
-static constexpr u32 RECOMPILER_FAR_CODE_CACHE_SIZE = 16 * 1024 * 1024;
+static constexpr uint32_t RECOMPILER_CODE_CACHE_SIZE = 128 * 1024 * 1024;
+static constexpr uint32_t RECOMPILER_FAR_CODE_CACHE_SIZE = 16 * 1024 * 1024;
 #endif
 #define CODE_WRITE_FAULT_THRESHOLD_FOR_SLOWMEM 10
 
 #ifdef USE_STATIC_CODE_BUFFER
-static constexpr u32 RECOMPILER_GUARD_SIZE = 4096;
-alignas(Recompiler::CODE_STORAGE_ALIGNMENT) static u8
+static constexpr uint32_t RECOMPILER_GUARD_SIZE = 4096;
+alignas(Recompiler::CODE_STORAGE_ALIGNMENT) static uint8_t
   s_code_storage[RECOMPILER_CODE_CACHE_SIZE + RECOMPILER_FAR_CODE_CACHE_SIZE];
 #endif
 
@@ -48,29 +49,29 @@ static JitCodeBuffer s_code_buffer;
 static FastMapTable s_fast_map[FAST_MAP_TABLE_COUNT];
 static std::unique_ptr<CodeBlock::HostCodePointer[]> s_fast_map_pointers;
 
-DispatcherFunction s_asm_dispatcher;
-SingleBlockDispatcherFunction s_single_block_asm_dispatcher;
+static DispatcherFunction s_asm_dispatcher;
+static SingleBlockDispatcherFunction s_single_block_asm_dispatcher;
 
-static FastMapTable DecodeFastMapPointer(u32 slot, FastMapTable ptr)
+static FastMapTable DecodeFastMapPointer(uint32_t slot, FastMapTable ptr)
 {
   if constexpr (sizeof(void*) == 8)
-    return reinterpret_cast<FastMapTable>(reinterpret_cast<u8*>(ptr) + (static_cast<u64>(slot) << 17));
-  return reinterpret_cast<FastMapTable>(reinterpret_cast<u8*>(ptr) + (slot << 16));
+    return reinterpret_cast<FastMapTable>(reinterpret_cast<uint8_t*>(ptr) + (static_cast<uint64_t>(slot) << 17));
+  return reinterpret_cast<FastMapTable>(reinterpret_cast<uint8_t*>(ptr) + (slot << 16));
 }
 
-static FastMapTable EncodeFastMapPointer(u32 slot, FastMapTable ptr)
+static FastMapTable EncodeFastMapPointer(uint32_t slot, FastMapTable ptr)
 {
   if constexpr (sizeof(void*) == 8)
-    return reinterpret_cast<FastMapTable>(reinterpret_cast<u8*>(ptr) - (static_cast<u64>(slot) << 17));
+    return reinterpret_cast<FastMapTable>(reinterpret_cast<uint8_t*>(ptr) - (static_cast<uint64_t>(slot) << 17));
   else
-    return reinterpret_cast<FastMapTable>(reinterpret_cast<u8*>(ptr) - (slot << 16));
+    return reinterpret_cast<FastMapTable>(reinterpret_cast<uint8_t*>(ptr) - (slot << 16));
 }
 
-static CodeBlock::HostCodePointer* OffsetFastMapPointer(FastMapTable fake_ptr, u32 pc)
+static CodeBlock::HostCodePointer* OffsetFastMapPointer(FastMapTable fake_ptr, uint32_t pc)
 {
-  u8* fake_byte_ptr = reinterpret_cast<u8*>(fake_ptr);
+  uint8_t* fake_byte_ptr = reinterpret_cast<uint8_t*>(fake_ptr);
   if constexpr (sizeof(void*) == 8)
-    return reinterpret_cast<CodeBlock::HostCodePointer*>(fake_byte_ptr + (static_cast<u64>(pc) << 1));
+    return reinterpret_cast<CodeBlock::HostCodePointer*>(fake_byte_ptr + (static_cast<uint64_t>(pc) << 1));
   else
     return reinterpret_cast<CodeBlock::HostCodePointer*>(fake_byte_ptr + pc);
 }
@@ -79,18 +80,18 @@ static void CompileDispatcher();
 void FastCompileBlockFunction();
 static void InvalidCodeFunction();
 
-static constexpr u32 GetTableCount(u32 start, u32 end)
+static constexpr uint32_t GetTableCount(uint32_t start, uint32_t end)
 {
   return ((end >> FAST_MAP_TABLE_SHIFT) - (start >> FAST_MAP_TABLE_SHIFT)) + 1;
 }
 
-static void AllocateFastMapTables(u32 start, u32 end, FastMapTable& table_ptr)
+static void AllocateFastMapTables(uint32_t start, uint32_t end, FastMapTable& table_ptr)
 {
-  const u32 start_slot = start >> FAST_MAP_TABLE_SHIFT;
-  const u32 count = GetTableCount(start, end);
-  for (u32 i = 0; i < count; i++)
+  const uint32_t start_slot = start >> FAST_MAP_TABLE_SHIFT;
+  const uint32_t count = GetTableCount(start, end);
+  for (uint32_t i = 0; i < count; i++)
   {
-    const u32 slot = start_slot + i;
+    const uint32_t slot = start_slot + i;
 
     s_fast_map[slot] = EncodeFastMapPointer(slot, table_ptr);
     table_ptr += FAST_MAP_TABLE_SIZE;
@@ -113,31 +114,31 @@ static void AllocateFastMap()
     {0xBFC00000, 0xBFC80000}  // BIOS
   };
 
-  u32 num_tables = 1; // unreachable table
-  for (u32 i = 0; i < countof(ranges); i++)
+  uint32_t num_tables = 1; // unreachable table
+  for (uint32_t i = 0; i < countof(ranges); i++)
     num_tables += GetTableCount(ranges[i][0], ranges[i][1]);
 
-  const u32 num_slots = FAST_MAP_TABLE_SIZE * num_tables;
+  const uint32_t num_slots = FAST_MAP_TABLE_SIZE * num_tables;
   if (!s_fast_map_pointers)
     s_fast_map_pointers = std::make_unique<CodeBlock::HostCodePointer[]>(num_slots);
 
   FastMapTable table_ptr = s_fast_map_pointers.get();
 
   // Fill the first table with invalid/unreachable.
-  for (u32 i = 0; i < FAST_MAP_TABLE_SIZE; i++)
+  for (uint32_t i = 0; i < FAST_MAP_TABLE_SIZE; i++)
     table_ptr[i] = InvalidCodeFunction;
 
   // And the remaining with block compile pointers.
-  for (u32 i = FAST_MAP_TABLE_SIZE; i < num_slots; i++)
+  for (uint32_t i = FAST_MAP_TABLE_SIZE; i < num_slots; i++)
     table_ptr[i] = FastCompileBlockFunction;
 
   // Mark everything as unreachable to begin with.
-  for (u32 i = 0; i < FAST_MAP_TABLE_COUNT; i++)
+  for (uint32_t i = 0; i < FAST_MAP_TABLE_COUNT; i++)
     s_fast_map[i] = EncodeFastMapPointer(i, table_ptr);
   table_ptr += FAST_MAP_TABLE_SIZE;
 
   // Allocate ranges.
-  for (u32 i = 0; i < countof(ranges); i++)
+  for (uint32_t i = 0; i < countof(ranges); i++)
     AllocateFastMapTables(ranges[i][0], ranges[i][1], table_ptr);
 }
 
@@ -146,13 +147,13 @@ static void ResetFastMap()
   if (!s_fast_map_pointers)
     return;
 
-  for (u32 i = 0; i < FAST_MAP_TABLE_COUNT; i++)
+  for (uint32_t i = 0; i < FAST_MAP_TABLE_COUNT; i++)
   {
     FastMapTable ptr = DecodeFastMapPointer(i, s_fast_map[i]);
     if (ptr == s_fast_map_pointers.get())
       continue;
 
-    for (u32 j = 0; j < FAST_MAP_TABLE_SIZE; j++)
+    for (uint32_t j = 0; j < FAST_MAP_TABLE_SIZE; j++)
       ptr[j] = FastCompileBlockFunction;
   }
 }
@@ -163,12 +164,12 @@ static void FreeFastMap()
   s_fast_map_pointers.reset();
 }
 
-static void SetFastMap(u32 pc, CodeBlock::HostCodePointer function)
+static void SetFastMap(uint32_t pc, CodeBlock::HostCodePointer function)
 {
   if (!s_fast_map_pointers)
     return;
 
-  const u32 slot = pc >> FAST_MAP_TABLE_SHIFT;
+  const uint32_t slot = pc >> FAST_MAP_TABLE_SHIFT;
   FastMapTable encoded_ptr = s_fast_map[slot];
 
   CodeBlock::HostCodePointer* ptr = OffsetFastMapPointer(encoded_ptr, pc);
@@ -177,7 +178,7 @@ static void SetFastMap(u32 pc, CodeBlock::HostCodePointer function)
 
 #endif
 
-using BlockMap = std::unordered_map<u32, CodeBlock*>;
+using BlockMap = std::unordered_map<uint32_t, CodeBlock*>;
 using HostCodeMap = std::map<CodeBlock::HostCodePointer, CodeBlock*>;
 
 /// Returns the block key for the current execution state.
@@ -196,7 +197,7 @@ static void AddBlockToPageMap(CodeBlock* block);
 static void RemoveBlockFromPageMap(CodeBlock* block);
 
 /// Link block from to to. Returns the successor index.
-static void LinkBlock(CodeBlock* from, CodeBlock* to, void* host_pc, void* host_resolve_pc, u32 host_pc_size);
+static void LinkBlock(CodeBlock* from, CodeBlock* to, void* host_pc, void* host_resolve_pc, uint32_t host_pc_size);
 
 /// Unlink all blocks which point to this block, and any that this block links to.
 static void UnlinkBlock(CodeBlock* block);
@@ -522,7 +523,7 @@ bool RevalidateBlock(CodeBlock* block, bool allow_flush)
 {
   for (const CodeBlockInstruction& cbi : block->instructions)
   {
-    u32 new_code = 0;
+    uint32_t new_code = 0;
     SafeReadInstruction(cbi.pc, &new_code);
     if (cbi.instruction.bits != new_code)
       goto recompile;
@@ -546,8 +547,8 @@ recompile:
   RemoveBlockFromHostCodeMap(block);
 #endif
 
-  const u32 frame_number = System::GetFrameNumber();
-  const u32 frame_diff = frame_number - block->recompile_frame_number;
+  const uint32_t frame_number = System::GetFrameNumber();
+  const uint32_t frame_diff = frame_number - block->recompile_frame_number;
   if (frame_diff <= RECOMPILE_FRAMES_TO_FALL_BACK_TO_INTERPRETER)
   {
     block->recompile_count++;
@@ -591,16 +592,15 @@ recompile:
 
 bool CompileBlock(CodeBlock* block, bool allow_flush)
 {
-  u32 pc = block->GetPC();
+  uint32_t pc = block->GetPC();
   bool is_branch_delay_slot = false;
-  bool is_load_delay_slot = false;
 
   block->icache_line_count = 0;
   block->uncached_fetch_ticks = 0;
   block->contains_double_branches = false;
   block->contains_loadstore_instructions = false;
 
-  u32 last_cache_line = ICACHE_LINES;
+  uint32_t last_cache_line = ICACHE_LINES;
 
   for (;;)
   {
@@ -610,19 +610,17 @@ bool CompileBlock(CodeBlock* block, bool allow_flush)
 
     cbi.pc = pc;
     cbi.is_branch_delay_slot = is_branch_delay_slot;
-    cbi.is_load_delay_slot = is_load_delay_slot;
     cbi.is_branch_instruction = IsBranchInstruction(cbi.instruction);
     cbi.is_direct_branch_instruction = IsDirectBranchInstruction(cbi.instruction);
     cbi.is_unconditional_branch_instruction = IsUnconditionalBranchInstruction(cbi.instruction);
     cbi.is_load_instruction = IsMemoryLoadInstruction(cbi.instruction);
     cbi.is_store_instruction = IsMemoryStoreInstruction(cbi.instruction);
     cbi.has_load_delay = InstructionHasLoadDelay(cbi.instruction);
-    cbi.can_trap = CanInstructionTrap(cbi.instruction, InUserMode());
     cbi.is_direct_branch_instruction = IsDirectBranchInstruction(cbi.instruction);
 
     if (g_settings.cpu_recompiler_icache)
     {
-      const u32 icache_line = GetICacheLine(pc);
+      const uint32_t icache_line = GetICacheLine(pc);
       if (icache_line != last_cache_line)
       {
         block->icache_line_count++;
@@ -665,17 +663,12 @@ bool CompileBlock(CodeBlock* block, bool allow_flush)
     // if this is a branch, we grab the next instruction (delay slot), and then exit
     is_branch_delay_slot = cbi.is_branch_instruction;
 
-    // same for load delay
-    is_load_delay_slot = cbi.has_load_delay;
-
     // is this a non-branchy exit? (e.g. syscall)
     if (IsExitBlockInstruction(cbi.instruction))
       break;
   }
 
-  if (!block->instructions.empty())
-    block->instructions.back().is_last_instruction = true;
-  else
+  if (block->instructions.empty())
     return false;
 
 #ifdef WITH_RECOMPILER
@@ -783,10 +776,10 @@ static void InvalidateBlock(CodeBlock* block, bool allow_frame_invalidation)
 
   if (block->can_link)
   {
-    const u32 frame_number = System::GetFrameNumber();
+    const uint32_t frame_number = System::GetFrameNumber();
     if (allow_frame_invalidation)
     {
-      const u32 frame_diff = frame_number - block->invalidate_frame_number;
+      const uint32_t frame_diff = frame_number - block->invalidate_frame_number;
       if (frame_diff <= INVALIDATE_THRESHOLD_TO_DISABLE_LINKING)
         block->can_link = false;
       else
@@ -809,7 +802,7 @@ static void InvalidateBlock(CodeBlock* block, bool allow_frame_invalidation)
 #endif
 }
 
-void InvalidateBlocksWithPageIndex(u32 page_index)
+void InvalidateBlocksWithPageIndex(uint32_t page_index)
 {
   auto& blocks = m_ram_block_map[page_index];
   for (CodeBlock* block : blocks)
@@ -860,9 +853,9 @@ void AddBlockToPageMap(CodeBlock* block)
   if (!block->IsInRAM())
     return;
 
-  const u32 start_page = block->GetStartPageIndex();
-  const u32 end_page = block->GetEndPageIndex();
-  for (u32 page = start_page; page <= end_page; page++)
+  const uint32_t start_page = block->GetStartPageIndex();
+  const uint32_t end_page = block->GetEndPageIndex();
+  for (uint32_t page = start_page; page <= end_page; page++)
   {
     m_ram_block_map[page].push_back(block);
     Bus::SetRAMCodePage(page);
@@ -874,9 +867,9 @@ void RemoveBlockFromPageMap(CodeBlock* block)
   if (!block->IsInRAM())
     return;
 
-  const u32 start_page = block->GetStartPageIndex();
-  const u32 end_page = block->GetEndPageIndex();
-  for (u32 page = start_page; page <= end_page; page++)
+  const uint32_t start_page = block->GetStartPageIndex();
+  const uint32_t end_page = block->GetEndPageIndex();
+  for (uint32_t page = start_page; page <= end_page; page++)
   {
     auto& page_blocks = m_ram_block_map[page];
     auto page_block_iter = std::find(page_blocks.begin(), page_blocks.end(), block);
@@ -884,7 +877,7 @@ void RemoveBlockFromPageMap(CodeBlock* block)
   }
 }
 
-void LinkBlock(CodeBlock* from, CodeBlock* to, void* host_pc, void* host_resolve_pc, u32 host_pc_size)
+void LinkBlock(CodeBlock* from, CodeBlock* to, void* host_pc, void* host_resolve_pc, uint32_t host_pc_size)
 {
   CodeBlock::LinkInfo li;
   li.block = to;
@@ -920,7 +913,7 @@ void UnlinkBlock(CodeBlock* block)
   for (CodeBlock::LinkInfo& li : block->link_predecessors)
   {
     auto iter = std::find_if(li.block->link_successors.begin(), li.block->link_successors.end(),
-                             [block](const CodeBlock::LinkInfo& li) { return li.block == block; });
+                             [block](const CodeBlock::LinkInfo& succ) { return succ.block == block; });
 
 #ifdef WITH_RECOMPILER
     // Restore blocks linked to this block back to the resolver
@@ -937,7 +930,7 @@ void UnlinkBlock(CodeBlock* block)
   for (CodeBlock::LinkInfo& li : block->link_successors)
   {
     auto iter = std::find_if(li.block->link_predecessors.begin(), li.block->link_predecessors.end(),
-                             [block](const CodeBlock::LinkInfo& li) { return li.block == block; });
+                             [block](const CodeBlock::LinkInfo& pred) { return pred.block == block; });
 
 #ifdef WITH_RECOMPILER
     // Restore blocks we're linking to back to the resolver, since the successor won't be linked to us to backpatch if
@@ -983,9 +976,10 @@ bool InitializeFastmem()
   const CPUFastmemMode mode = g_settings.cpu_fastmem_mode;
 
 #ifdef WITH_MMAP_FASTMEM
-  const auto handler = (mode == CPUFastmemMode::MMap) ? MMapPageFaultHandler : LUTPageFaultHandler;
+  const Common::PageFaultHandler::Callback handler =
+    (mode == CPUFastmemMode::MMap) ? MMapPageFaultHandler : LUTPageFaultHandler;
 #else
-  const auto handler = LUTPageFaultHandler;
+  const Common::PageFaultHandler::Callback handler = LUTPageFaultHandler;
 #endif
 
   s_code_buffer.ReserveCode(Common::PageFaultHandler::GetHandlerCodeSize());
@@ -1013,14 +1007,14 @@ void ShutdownFastmem()
 
 Common::PageFaultHandler::HandlerResult MMapPageFaultHandler(void* exception_pc, void* fault_address, bool is_write)
 {
-  if (static_cast<u8*>(fault_address) < g_state.fastmem_base ||
-      (static_cast<u8*>(fault_address) - g_state.fastmem_base) >= static_cast<ptrdiff_t>(Bus::FASTMEM_REGION_SIZE))
+  if (static_cast<uint8_t*>(fault_address) < g_state.fastmem_base ||
+      (static_cast<uint8_t*>(fault_address) - g_state.fastmem_base) >= static_cast<ptrdiff_t>(Bus::FASTMEM_REGION_SIZE))
   {
     return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
   }
 
   const PhysicalMemoryAddress fastmem_address =
-    static_cast<PhysicalMemoryAddress>(static_cast<ptrdiff_t>(static_cast<u8*>(fault_address) - g_state.fastmem_base));
+    static_cast<PhysicalMemoryAddress>(static_cast<ptrdiff_t>(static_cast<uint8_t*>(fault_address) - g_state.fastmem_base));
 
   // use upper_bound to find the next block after the pc
   HostCodeMap::iterator upper_iter =
@@ -1042,7 +1036,7 @@ Common::PageFaultHandler::HandlerResult MMapPageFaultHandler(void* exception_pc,
       if (is_write && !g_state.cop0_regs.sr.Isc && Bus::IsRAMAddress(fastmem_address))
       {
         // this is probably a code page, since we aren't going to fault due to requiring fastmem on RAM.
-        const u32 code_page_index = Bus::GetRAMCodePageIndex(fastmem_address);
+        const uint32_t code_page_index = Bus::GetRAMCodePageIndex(fastmem_address);
         if (Bus::IsRAMCodePage(code_page_index))
         {
           if (++lbi.fault_count < CODE_WRITE_FAULT_THRESHOLD_FOR_SLOWMEM)
@@ -1133,7 +1127,7 @@ JitCodeBuffer& GetCodeBuffer()
 
 #ifdef WITH_RECOMPILER
 
-void CPU::Recompiler::Thunks::ResolveBranch(CodeBlock* block, void* host_pc, void* host_resolve_pc, u32 host_pc_size)
+void CPU::Recompiler::Thunks::ResolveBranch(CodeBlock* block, void* host_pc, void* host_resolve_pc, uint32_t host_pc_size)
 {
   using namespace CPU::CodeCache;
 

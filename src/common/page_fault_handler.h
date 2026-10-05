@@ -9,11 +9,10 @@ enum class HandlerResult
 };
 
 using Callback = HandlerResult (*)(void* exception_pc, void* fault_address, bool is_write);
-using Handle = void*;
 
-u32 GetHandlerCodeSize();
+uint32_t GetHandlerCodeSize();
 
-bool InstallHandler(const void* owner, void* start_pc, u32 code_size, Callback callback);
+bool InstallHandler(const void* owner, void* start_pc, uint32_t code_size, Callback callback);
 bool RemoveHandler(const void* owner);
 
 } // namespace Common::PageFaultHandler

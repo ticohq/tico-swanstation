@@ -10,9 +10,9 @@ public:
   Texture(Texture&& moved);
   ~Texture();
 
-  bool Create(u32 width, u32 height, u32 samples, GLenum internal_format, GLenum format, GLenum type,
+  bool Create(uint32_t width, uint32_t height, uint32_t samples, GLenum internal_format, GLenum format, GLenum type,
               const void* data = nullptr, bool linear_filter = false, bool wrap = false);
-  void Replace(u32 width, u32 height, GLenum internal_format, GLenum format, GLenum type, const void* data);
+  void Replace(uint32_t width, uint32_t height, GLenum internal_format, GLenum format, GLenum type, const void* data);
   bool CreateFramebuffer();
 
   void Destroy();
@@ -20,9 +20,9 @@ public:
   bool IsValid() const { return m_id != 0; }
   bool IsMultisampled() const { return m_samples > 1; }
   GLuint GetGLId() const { return m_id; }
-  u32 GetWidth() const { return m_width; }
-  u32 GetHeight() const { return m_height; }
-  u32 GetSamples() const { return m_samples; }
+  uint32_t GetWidth() const { return m_width; }
+  uint32_t GetHeight() const { return m_height; }
+  uint32_t GetSamples() const { return m_samples; }
 
   GLenum GetGLTarget() const { return IsMultisampled() ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D; }
 
@@ -36,9 +36,9 @@ public:
 
 private:
   GLuint m_id = 0;
-  u32 m_width = 0;
-  u32 m_height = 0;
-  u32 m_samples = 0;
+  uint32_t m_width = 0;
+  uint32_t m_height = 0;
+  uint32_t m_samples = 0;
 
   GLuint m_fbo_id = 0;
 };

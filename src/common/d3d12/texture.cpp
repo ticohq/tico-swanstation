@@ -5,6 +5,7 @@
 #include "stream_buffer.h"
 #include "util.h"
 
+#include <cstring>
 namespace D3D12 {
 
 Texture::Texture() = default;
@@ -12,7 +13,7 @@ Texture::Texture() = default;
 Texture::Texture(ID3D12Resource* resource, D3D12_RESOURCE_STATES state) : m_resource(std::move(resource))
 {
   const D3D12_RESOURCE_DESC desc = GetDesc();
-  m_width = static_cast<u32>(desc.Width);
+  m_width = static_cast<uint32_t>(desc.Width);
   m_height = desc.Height;
   m_samples = desc.SampleDesc.Count;
   m_format = desc.Format;
@@ -67,7 +68,7 @@ D3D12_RESOURCE_DESC Texture::GetDesc() const
   return m_resource->GetDesc();
 }
 
-bool Texture::Create(u32 width, u32 height, u32 samples, DXGI_FORMAT format, DXGI_FORMAT srv_format,
+bool Texture::Create(uint32_t width, uint32_t height, uint32_t samples, DXGI_FORMAT format, DXGI_FORMAT srv_format,
                      DXGI_FORMAT rtv_format, DXGI_FORMAT dsv_format, D3D12_RESOURCE_FLAGS flags)
 {
   constexpr D3D12_HEAP_PROPERTIES heap_properties = {D3D12_HEAP_TYPE_DEFAULT};
@@ -188,10 +189,10 @@ void Texture::TransitionToState(D3D12_RESOURCE_STATES state) const
   m_state = state;
 }
 
-bool Texture::BeginStreamUpdate(u32 x, u32 y, u32 width, u32 height, void** out_data, u32* out_data_pitch)
+bool Texture::BeginStreamUpdate(uint32_t x, uint32_t y, uint32_t width, uint32_t height, void** out_data, uint32_t* out_data_pitch)
 {
-  const u32 copy_pitch = Common::AlignUpPow2(width * GetTexelSize(m_format), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-  const u32 upload_size = copy_pitch * height;
+  const uint32_t copy_pitch = Common::AlignUpPow2(width * GetTexelSize(m_format), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+  const uint32_t upload_size = copy_pitch * height;
 
   if (!g_d3d12_context->GetTextureStreamBuffer().ReserveMemory(upload_size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT))
   {
@@ -205,19 +206,19 @@ bool Texture::BeginStreamUpdate(u32 x, u32 y, u32 width, u32 height, void** out_
   return true;
 }
 
-void Texture::EndStreamUpdate(u32 x, u32 y, u32 width, u32 height)
+void Texture::EndStreamUpdate(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
-  const u32 copy_pitch = Common::AlignUpPow2(width * GetTexelSize(m_format), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-  const u32 upload_size = copy_pitch * height;
+  const uint32_t copy_pitch = Common::AlignUpPow2(width * GetTexelSize(m_format), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+  const uint32_t upload_size = copy_pitch * height;
 
   StreamBuffer& sb = g_d3d12_context->GetTextureStreamBuffer();
-  const u32 sb_offset = sb.GetCurrentOffset();
+  const uint32_t sb_offset = sb.GetCurrentOffset();
   sb.CommitMemory(upload_size);
 
   CopyFromBuffer(x, y, width, height, copy_pitch, sb.GetBuffer(), sb_offset);
 }
 
-void Texture::CopyFromBuffer(u32 x, u32 y, u32 width, u32 height, u32 pitch, ID3D12Resource* buffer, u32 buffer_offset)
+void Texture::CopyFromBuffer(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint32_t pitch, ID3D12Resource* buffer, uint32_t buffer_offset)
 {
   D3D12_TEXTURE_COPY_LOCATION src;
   src.pResource = buffer;
@@ -242,11 +243,11 @@ void Texture::CopyFromBuffer(u32 x, u32 y, u32 width, u32 height, u32 pitch, ID3
   TransitionToState(old_state);
 }
 
-bool Texture::LoadData(u32 x, u32 y, u32 width, u32 height, const void* data, u32 pitch)
+bool Texture::LoadData(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data, uint32_t pitch)
 {
-  const u32 texel_size = GetTexelSize(m_format);
-  const u32 upload_pitch = Common::AlignUpPow2(width * texel_size, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-  const u32 upload_size = upload_pitch * height;
+  const uint32_t texel_size = GetTexelSize(m_format);
+  const uint32_t upload_pitch = Common::AlignUpPow2(width * texel_size, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+  const uint32_t upload_size = upload_pitch * height;
   if (upload_size >= g_d3d12_context->GetTextureStreamBuffer().GetSize())
   {
     StagingTexture st;
@@ -262,7 +263,7 @@ bool Texture::LoadData(u32 x, u32 y, u32 width, u32 height, const void* data, u3
   }
 
   void* write_ptr;
-  u32 write_pitch;
+  uint32_t write_pitch;
   if (!BeginStreamUpdate(x, y, width, height, &write_ptr, &write_pitch))
     return false;
 
@@ -271,18 +272,18 @@ bool Texture::LoadData(u32 x, u32 y, u32 width, u32 height, const void* data, u3
   return true;
 }
 
-void Texture::CopyToUploadBuffer(const void* src_data, u32 src_pitch, u32 height, void* dst_data, u32 dst_pitch)
+void Texture::CopyToUploadBuffer(const void* src_data, uint32_t src_pitch, uint32_t height, void* dst_data, uint32_t dst_pitch)
 {
-  const u8* src_ptr = static_cast<const u8*>(src_data);
-  u8* dst_ptr = static_cast<u8*>(dst_data);
+  const uint8_t* src_ptr = static_cast<const uint8_t*>(src_data);
+  uint8_t* dst_ptr = static_cast<uint8_t*>(dst_data);
   if (src_pitch == dst_pitch)
   {
     std::memcpy(dst_ptr, src_ptr, dst_pitch * height);
   }
   else
   {
-    const u32 copy_size = std::min(src_pitch, dst_pitch);
-    for (u32 row = 0; row < height; row++)
+    const uint32_t copy_size = std::min(src_pitch, dst_pitch);
+    for (uint32_t row = 0; row < height; row++)
     {
       std::memcpy(dst_ptr, src_ptr, copy_size);
       src_ptr += src_pitch;

@@ -2,8 +2,6 @@
 #include <algorithm>
 #include <limits>
 #include <tuple>
-#include <type_traits>
-#include <cstring>
 
 namespace Common {
 
@@ -49,66 +47,26 @@ struct Rectangle
   /// Assignment operator.
   constexpr Rectangle& operator=(const Rectangle& rhs)
   {
-    std::memcpy(this, &rhs, sizeof(Rectangle));
+    left = rhs.left;
+    top = rhs.top;
+    right = rhs.right;
+    bottom = rhs.bottom;
     return *this;
   }
 
-  // Relational operators.
-#define RELATIONAL_OPERATOR(op)                                                                                        \
-  constexpr bool operator op(const Rectangle& rhs) const                                                               \
-  {                                                                                                                    \
-    return std::tie(left, top, right, bottom) op std::tie(rhs.left, rhs.top, rhs.right, rhs.bottom);                   \
+  /// Scales all four bounds by a constant. The only Rectangle arithmetic
+  /// operator with real callers: the VRAM dirty rectangle is multiplied
+  /// by the current resolution scale before any GPU readback.
+  constexpr Rectangle operator*(const T amount) const
+  {
+    return Rectangle(left * amount, top * amount, right * amount, bottom * amount);
   }
 
-  RELATIONAL_OPERATOR(==);
-  RELATIONAL_OPERATOR(!=);
-  RELATIONAL_OPERATOR(<);
-  RELATIONAL_OPERATOR(<=);
-  RELATIONAL_OPERATOR(>);
-  RELATIONAL_OPERATOR(>=);
-
-#undef RELATIONAL_OPERATOR
-
-  // Arithmetic operators.
-#define ARITHMETIC_OPERATOR(op)                                                                                        \
-  constexpr Rectangle& operator op##=(const T amount)                                                                  \
-  {                                                                                                                    \
-    left op## = amount;                                                                                                \
-    top op## = amount;                                                                                                 \
-    right op## = amount;                                                                                               \
-    bottom op## = amount;                                                                                              \
-  }                                                                                                                    \
-  constexpr Rectangle operator op(const T amount) const                                                                \
-  {                                                                                                                    \
-    return Rectangle(left op amount, top op amount, right op amount, bottom op amount);                                \
-  }
-
-  ARITHMETIC_OPERATOR(+);
-  ARITHMETIC_OPERATOR(-);
-  ARITHMETIC_OPERATOR(*);
-  ARITHMETIC_OPERATOR(/);
-  ARITHMETIC_OPERATOR(%);
-  ARITHMETIC_OPERATOR(>>);
-  ARITHMETIC_OPERATOR(<<);
-  ARITHMETIC_OPERATOR(|);
-  ARITHMETIC_OPERATOR(&);
-  ARITHMETIC_OPERATOR(^);
-
-#undef ARITHMETIC_OPERATOR
 
   /// Tests for intersection between two rectangles.
   constexpr bool Intersects(const Rectangle& rhs) const
   {
     return !(left >= rhs.right || rhs.left >= right || top >= rhs.bottom || rhs.top >= bottom);
-  }
-
-  /// Expands the bounds of the rectangle to contain the specified point.
-  constexpr void Include(T x, T y)
-  {
-    left = std::min(left, x);
-    right = std::max(right, x + static_cast<T>(1));
-    top = std::min(top, y);
-    bottom = std::max(bottom, y + static_cast<T>(1));
   }
 
   /// Expands the bounds of the rectangle to contain another rectangle.
@@ -127,15 +85,6 @@ struct Rectangle
     right = std::max(right, other_right);
     top = std::min(top, other_top);
     bottom = std::max(bottom, other_bottom);
-  }
-
-  /// Clamps the rectangle to the specified coordinates.
-  constexpr void Clamp(T x1, T y1, T x2, T y2)
-  {
-    left = std::clamp(left, x1, x2);
-    right = std::clamp(right, x1, x2);
-    top = std::clamp(top, y1, y2);
-    bottom = std::clamp(bottom, y1, y2);
   }
 
   /// Returns a new rectangle with clamped coordinates.
