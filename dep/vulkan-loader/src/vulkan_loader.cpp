@@ -12,7 +12,7 @@
 
 #include "vulkan_loader.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__SWITCH__)
 #include <dlfcn.h>
 #endif
 
@@ -100,6 +100,66 @@ void UnloadVulkanLibrary()
   ResetVulkanLibraryFunctionPointers();
   FreeLibrary(vulkan_module);
   vulkan_module = nullptr;
+}
+
+#elif defined(__SWITCH__)
+
+// Horizon has no dynamic loader: Mesa's NVK is linked statically, and its
+// vkGetInstanceProcAddr hands out every other entry point. Weak, so a build
+// without NVK linked reports Vulkan as unavailable instead of failing to link.
+extern "C" PFN_vkVoidFunction nx_vkGetInstanceProcAddr(VkInstance instance, const char* name) __asm__(
+  "vkGetInstanceProcAddr") __attribute__((weak));
+
+static std::atomic_int vulkan_module_ref_count = {0};
+
+bool LoadVulkanLibrary()
+{
+  if (vulkan_module_ref_count > 0)
+  {
+    vulkan_module_ref_count++;
+    return true;
+  }
+
+  if (!nx_vkGetInstanceProcAddr)
+  {
+    std::fprintf(stderr, "Vulkan: no driver linked\n");
+    return false;
+  }
+
+  bool required_functions_missing = false;
+  auto LoadFunction = [&](PFN_vkVoidFunction* func_ptr, const char* name, bool is_required) {
+    *func_ptr = nx_vkGetInstanceProcAddr(VK_NULL_HANDLE, name);
+    if (!(*func_ptr) && is_required)
+    {
+      std::fprintf(stderr, "Vulkan: Failed to load required module function %s\n", name);
+      required_functions_missing = true;
+    }
+  };
+
+  // vkGetInstanceProcAddr itself is the one name the driver resolves directly
+  vkGetInstanceProcAddr = nx_vkGetInstanceProcAddr;
+#define VULKAN_MODULE_ENTRY_POINT(name, required)                                                                      \
+  if (reinterpret_cast<void*>(&name) != reinterpret_cast<void*>(&vkGetInstanceProcAddr))                             \
+    LoadFunction(reinterpret_cast<PFN_vkVoidFunction*>(&name), #name, required);
+#include "vulkan_entry_points.inl"
+#undef VULKAN_MODULE_ENTRY_POINT
+
+  if (required_functions_missing)
+  {
+    ResetVulkanLibraryFunctionPointers();
+    return false;
+  }
+
+  vulkan_module_ref_count++;
+  return true;
+}
+
+void UnloadVulkanLibrary()
+{
+  if ((--vulkan_module_ref_count) > 0)
+    return;
+
+  ResetVulkanLibraryFunctionPointers();
 }
 
 #else

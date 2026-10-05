@@ -50,3 +50,8 @@ Generated Files
 *.o
 *.d
 /swanstation_libretro.so
+
+# tico
+/build/
+/build_check*/
+build_tico
