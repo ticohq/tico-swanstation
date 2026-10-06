@@ -2,6 +2,7 @@
 /// @brief Vulkan device, swapchain and ImGui renderer. See TicoVulkan.h.
 
 #include "TicoVulkan.h"
+#include "TicoGL.h"
 #include "TicoLogger.h"
 
 #include "imgui_impl_vulkan.h"
@@ -68,6 +69,8 @@ std::deque<std::pair<uint64_t, std::function<void()>>> s_deferred;
 std::vector<Texture> s_textures;
 
 DeviceFactory s_deviceFactory;
+bool s_gl = false;
+bool s_glZink = false;
 
 #ifndef __SWITCH__
 SDL_Window *s_window = nullptr;
@@ -470,6 +473,17 @@ bool InitImGui()
 // Lifecycle
 //==============================================================================
 
+void UseOpenGL(bool zink)
+{
+    s_gl = true;
+    s_glZink = zink;
+}
+
+bool IsOpenGL()
+{
+    return s_gl;
+}
+
 void SetDeviceFactory(DeviceFactory factory)
 {
     s_deviceFactory = std::move(factory);
@@ -477,6 +491,8 @@ void SetDeviceFactory(DeviceFactory factory)
 
 bool Init(SDL_Window *window, uint32_t width, uint32_t height)
 {
+    if (s_gl)
+        return TicoGL::Init(width, height, s_glZink);
 #ifndef __SWITCH__
     s_window = window;
 #else
@@ -496,6 +512,11 @@ bool Init(SDL_Window *window, uint32_t width, uint32_t height)
 
 void Shutdown()
 {
+    if (s_gl)
+    {
+        TicoGL::Shutdown();
+        return;
+    }
     if (s_ctx.device)
     {
         vkDeviceWaitIdle(s_ctx.device);
@@ -549,6 +570,11 @@ uint32_t FrameIndex() { return s_frameSlot; }
 
 void WaitIdle()
 {
+    if (s_gl)
+    {
+        TicoGL::WaitIdle();
+        return;
+    }
     if (s_ctx.device)
         vkDeviceWaitIdle(s_ctx.device);
 }
@@ -559,6 +585,8 @@ void WaitIdle()
 
 VkCommandBuffer BeginFrame()
 {
+    if (s_gl)
+        return TicoGL::BeginFrame() ? reinterpret_cast<VkCommandBuffer>(uintptr_t(1)) : VK_NULL_HANDLE;
     if (!s_ready)
         return VK_NULL_HANDLE;
     if (s_swapchainDirty && !RecreateSwapchain())
@@ -591,6 +619,11 @@ VkCommandBuffer BeginFrame()
 
 void EndFrame(ImDrawData *drawData)
 {
+    if (s_gl)
+    {
+        TicoGL::EndFrame(drawData);
+        return;
+    }
     if (!s_frameActive)
         return;
     PerFrame &f = s_frames[s_frameSlot];
@@ -683,6 +716,11 @@ void RequestScreenshot(const char *path)
 
 void Resize(uint32_t width, uint32_t height)
 {
+    if (s_gl)
+    {
+        TicoGL::Resize(width, height);
+        return;
+    }
     if (width == s_wantedExtent.width && height == s_wantedExtent.height &&
         width == s_swapExtent.width && height == s_swapExtent.height)
         return;
@@ -692,12 +730,22 @@ void Resize(uint32_t width, uint32_t height)
 
 void GetSwapExtent(uint32_t &width, uint32_t &height)
 {
+    if (s_gl)
+    {
+        TicoGL::GetSwapExtent(width, height);
+        return;
+    }
     width = s_swapExtent.width;
     height = s_swapExtent.height;
 }
 
 void SetVsync(bool enabled)
 {
+    if (s_gl)
+    {
+        TicoGL::SetVsync(enabled);
+        return;
+    }
     if (enabled == s_vsync)
         return;
     s_vsync = enabled;
@@ -893,6 +941,8 @@ void DeferDestroyBuffer(Buffer &buf)
 
 ImTextureID CreateTextureRGBA(const unsigned char *rgba, int width, int height)
 {
+    if (s_gl)
+        return TicoGL::CreateTextureRGBA(rgba, width, height);
     if (!s_imguiReady || !rgba || width <= 0 || height <= 0)
         return ImTextureID_Invalid;
 
@@ -934,6 +984,11 @@ ImTextureID CreateTextureRGBA(const unsigned char *rgba, int width, int height)
 
 void DestroyTexture(ImTextureID id)
 {
+    if (s_gl)
+    {
+        TicoGL::DestroyTexture(id);
+        return;
+    }
     if (id == ImTextureID_Invalid)
         return;
     auto it = std::find_if(s_textures.begin(), s_textures.end(), [id](const Texture &t) {

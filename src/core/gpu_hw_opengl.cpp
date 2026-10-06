@@ -211,6 +211,7 @@ static void APIENTRY GLDebugCallback(GLenum source, GLenum type, GLuint id, GLen
   }
 }
 
+#ifndef TICO_STANDALONE
 static bool TryDesktopVersions(retro_hw_render_callback* cb)
 {
   static constexpr std::array<std::tuple<uint32_t, uint32_t>, 11> desktop_versions_to_try = {
@@ -285,9 +286,22 @@ bool LibretroOpenGLHostDisplay::RequestHardwareRendererContext(retro_hw_render_c
   return false;
 }
 
+#endif
+
 bool LibretroOpenGLHostDisplay::CreateRenderDevice(const WindowInfo& wi, std::string_view adapter_name,
                                                    bool debug_device, bool threaded_presentation)
 {
+#ifdef TICO_STANDALONE
+  // the frontend made its desktop OpenGL 3.3 core context current already
+  m_window_info = wi;
+  m_is_gles = false;
+  if (!g_tico_gl_proc_address || !gladLoadGLLoader(reinterpret_cast<GLADloadproc>(g_tico_gl_proc_address)))
+  {
+    Log_ErrorPrintf("Failed to load GL functions");
+    return false;
+  }
+  return true;
+#else
   // gross - but can't do much because of the GLADloadproc below.
   static retro_hw_render_callback* cb;
   cb = static_cast<retro_hw_render_callback*>(wi.display_connection);
@@ -308,6 +322,7 @@ bool LibretroOpenGLHostDisplay::CreateRenderDevice(const WindowInfo& wi, std::st
   }
 
   return true;
+#endif
 }
 
 bool LibretroOpenGLHostDisplay::InitializeRenderDevice(std::string_view shader_cache_directory, bool debug_device,
@@ -453,7 +468,43 @@ void LibretroOpenGLHostDisplay::DestroyResources()
 
   m_cursor_program.Destroy();
   m_display_program.Destroy();
+
+#ifdef TICO_STANDALONE
+  if (m_frame_fbo != 0)
+    glDeleteFramebuffers(1, &m_frame_fbo);
+  if (m_frame_texture != 0)
+    glDeleteTextures(1, &m_frame_texture);
+  m_frame_fbo = m_frame_texture = 0;
+  m_frame_width = m_frame_height = 0;
+#endif
 }
+
+#ifdef TICO_STANDALONE
+bool LibretroOpenGLHostDisplay::CheckFramebufferSize(uint32_t width, uint32_t height)
+{
+  if (m_frame_fbo != 0 && m_frame_width == width && m_frame_height == height)
+    return true;
+  if (m_frame_texture == 0)
+    glGenTextures(1, &m_frame_texture);
+  if (m_frame_fbo == 0)
+    glGenFramebuffers(1, &m_frame_fbo);
+  glBindTexture(GL_TEXTURE_2D, m_frame_texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_frame_fbo);
+  glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_frame_texture, 0);
+  const bool complete = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+  if (!complete)
+    Log_ErrorPrintf("Frame framebuffer %ux%u is incomplete", width, height);
+  m_frame_width = width;
+  m_frame_height = height;
+  return complete;
+}
+#endif
 
 void LibretroOpenGLHostDisplay::RenderSoftwareCursor(int32_t left, int32_t bottom, int32_t width, int32_t height,
                                              HostDisplayTexture* texture_handle)
@@ -486,13 +537,25 @@ bool LibretroOpenGLHostDisplay::Render()
   // backend would frame-dupe cleanly.
   if (!HasDisplayTexture())
   {
+#ifdef TICO_STANDALONE
+    if (g_tico_gl_frame)
+      g_tico_gl_frame(0, 0, 0);
+#else
     g_retro_video_refresh_callback(nullptr, 0, 0, 0);
+#endif
     return true;
   }
 
+  const uint32_t resolution_scale = g_host_interface_storage.GetResolutionScale();
+#ifdef TICO_STANDALONE
+  if (!CheckFramebufferSize(static_cast<uint32_t>(m_display_width) * resolution_scale,
+                            static_cast<uint32_t>(m_display_height) * resolution_scale))
+    return false;
+  const GLuint fbo = m_frame_fbo;
+#else
   const GLuint fbo = static_cast<GLuint>(
     static_cast<retro_hw_render_callback*>(m_window_info.display_connection)->get_current_framebuffer());
-  const uint32_t resolution_scale = g_host_interface_storage.GetResolutionScale();
+#endif
   const uint32_t display_width = static_cast<uint32_t>(m_display_width) * resolution_scale;
   const uint32_t display_height = static_cast<uint32_t>(m_display_height) * resolution_scale;
   // Lightgun state was cached at controller-update time; do NOT call
@@ -535,7 +598,12 @@ bool LibretroOpenGLHostDisplay::Render()
     RenderSoftwareCursor(out_left, display_height - out_top - out_height, out_width, out_height, m_cursor_texture.get());
   }
 
+#ifdef TICO_STANDALONE
+  if (g_tico_gl_frame)
+    g_tico_gl_frame(m_frame_texture, display_width, display_height);
+#else
   g_retro_video_refresh_callback(RETRO_HW_FRAME_BUFFER_VALID, display_width, display_height, 0);
+#endif
 
   GL::Program::ResetLastProgram();
   return true;

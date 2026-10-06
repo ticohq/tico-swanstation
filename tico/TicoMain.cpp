@@ -12,6 +12,8 @@
 #include "TicoAudio.h"
 #include "TicoShaderChain.h"
 #include "TicoVulkan.h"
+#include "TicoGL.h"
+#include "core/gpu_hw_opengl.h"
 #include "overlay/imgui_overlay.h"
 #include "overlay/overlay_ui.h"
 #include "overlay/tico_config.h"
@@ -410,6 +412,27 @@ static void VulkanFrame(VkImage image, VkImageView view, uint32_t width, uint32_
 }
 void (*g_tico_vulkan_frame)(VkImage, VkImageView, uint32_t, uint32_t) = VulkanFrame;
 
+// The OpenGL renderer's finished frame, in the shared EGL context: drawn
+// straight from its texture (no shader chain on OpenGL). Texture 0 keeps the
+// last frame up.
+static struct
+{
+    uint32_t texture = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+} g_glFrame;
+
+static void GLFrame(uint32_t texture, uint32_t width, uint32_t height)
+{
+    if (!texture)
+        return;
+    g_glFrame = {texture, width, height};
+    if (g_core)
+        g_core->SetFrameSize(static_cast<int>(width), static_cast<int>(height));
+}
+void (*g_tico_gl_frame)(uint32_t, uint32_t, uint32_t) = GLFrame;
+void *(*g_tico_gl_proc_address)(const char *) = TicoGL::GetProcAddress;
+
 // The renderer picked in Settings > Video, fixed for the run.
 static SwanHost::Renderer ConfiguredRenderer()
 {
@@ -482,11 +505,20 @@ static void SaveStatePicture(const std::string &path)
 {
     // The Vulkan renderer's frames never reach the CPU: read the picture back
     // from the shader chain's output instead (RGBA, turned into BGRA here).
-    if (g_lastFrame.data.empty() && g_chain)
+    if (g_lastFrame.data.empty() && (g_chain || g_glFrame.texture))
     {
         std::vector<uint8_t> rgba;
         uint32_t width = 0, height = 0;
-        if (g_chain->ReadOutput(rgba, width, height) && width && height)
+        bool read;
+        if (g_chain)
+            read = g_chain->ReadOutput(rgba, width, height);
+        else
+        {
+            width = g_glFrame.width;
+            height = g_glFrame.height;
+            read = TicoGL::ReadTexture(g_glFrame.texture, width, height, rgba);
+        }
+        if (read && width && height)
         {
             for (size_t i = 0; i + 3 < rgba.size(); i += 4)
                 std::swap(rgba[i], rgba[i + 2]);
@@ -558,8 +590,11 @@ bool InitImGui()
 #endif
     int w, h;
     GetDisplayResolution(w, h);
-    if (ConfiguredRenderer() == SwanHost::Renderer::Vulkan)
+    const SwanHost::Renderer renderer = ConfiguredRenderer();
+    if (renderer == SwanHost::Renderer::Vulkan)
         ShareVulkanDevice();
+    else if (renderer == SwanHost::Renderer::OpenGL || renderer == SwanHost::Renderer::Zink)
+        TicoVulkan::UseOpenGL(renderer == SwanHost::Renderer::Zink);
     if (!TicoVulkan::Init(g_window, (uint32_t)w, (uint32_t)h))
     {
         LOG_ERROR("HOME", "Vulkan initialization failed");
@@ -1272,6 +1307,14 @@ static void DrawGame(VkCommandBuffer cmd, ImDrawList *dl, ImVec2 displaySize)
     if (!g_core)
         return; // the library: no game, and no stale frame behind it
     const ImVec4 rect = ComputeGameRect(displaySize);
+    if (TicoVulkan::IsOpenGL())
+    {
+        // the OpenGL renderer's texture, bottom-left origin: flipped
+        if (g_glFrame.texture && rect.z >= 1.0f && rect.w >= 1.0f)
+            dl->AddImage(static_cast<ImTextureID>(g_glFrame.texture), ImVec2(rect.x, rect.y),
+                         ImVec2(rect.x + rect.z, rect.y + rect.w), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+        return;
+    }
     if (!g_chain || !cmd || rect.z < 1.0f || rect.w < 1.0f)
         return;
     const float ar = g_core ? g_core->GetAspectRatio() : 4.0f / 3.0f;
@@ -2016,8 +2059,10 @@ int main(int argc, char *argv[])
     }
     LOG_INFO("HOME", "InitImGui succeeded");
 
-    g_chain = std::make_unique<TicoShaderChain>();
-    if (!g_chain->Init())
+    // slang shaders run on Vulkan; the OpenGL renderers draw without them
+    if (!TicoVulkan::IsOpenGL())
+        g_chain = std::make_unique<TicoShaderChain>();
+    if (g_chain && !g_chain->Init())
     {
         LOG_ERROR("HOME", "Shader chain initialization failed");
         g_chain.reset();
@@ -2087,7 +2132,8 @@ int main(int argc, char *argv[])
         struct stat st;
         return g_core && slot >= 1 && stat(StatePath(slot - 1).c_str(), &st) == 0;
     });
-    RegisterShaderMenu();
+    if (g_chain)
+        RegisterShaderMenu();
     OverlayUI::ReloadSettings();
 
     // tico launches with argv[1] = console slug, argv[2] = ROM path,

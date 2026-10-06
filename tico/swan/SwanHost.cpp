@@ -15,6 +15,7 @@
 #include "core/analog_controller.h"
 #include "core/digital_controller.h"
 #include "core/gpu.h"
+#include "core/gpu_hw_opengl.h"
 #include "core/gpu_hw_vulkan.h"
 #include "core/host_interface.h"
 #include "core/settings.h"
@@ -639,14 +640,13 @@ void HostInterface::AcquireHostDisplay()
     case Renderer::Vulkan:
         display = std::make_unique<LibretroVulkanHostDisplay>();
         break;
-    default:
-        // OpenGL comes with the frontend's GL path; until then, software
+    case Renderer::OpenGL:
+    case Renderer::Zink:
+        // the frontend's EGL context is current on this thread
+        display = std::make_unique<LibretroOpenGLHostDisplay>();
+        break;
+    case Renderer::Software:
         display = std::make_unique<TicoSoftwareDisplay>();
-        if (SwanHost::Get().renderer != Renderer::Software)
-        {
-            Log_WarningPrintf("OpenGL renderer not available yet, using software");
-            g_settings.gpu_renderer = GPURenderer::Software;
-        }
         break;
     }
     if (!display->CreateRenderDevice(wi, {}, false, false) ||

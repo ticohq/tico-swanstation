@@ -23,6 +23,15 @@
 #include <string>
 #include <libretro.h>
 
+#ifdef TICO_STANDALONE
+// The standalone tico frontend runs the same EGL context: Render() hands it
+// each finished frame as a GL texture (bottom-left origin, width x height),
+// or texture 0 when the last one should be shown again. GL entry points are
+// resolved through g_tico_gl_proc_address.
+extern void (*g_tico_gl_frame)(uint32_t texture, uint32_t width, uint32_t height);
+extern void* (*g_tico_gl_proc_address)(const char* name);
+#endif
+
 class LibretroOpenGLHostDisplay final : public HostDisplay
 {
 public:
@@ -83,6 +92,16 @@ private:
   std::vector<uint8_t> m_gles_pixels_repack_buffer;
 
   bool m_is_gles = false;
+
+#ifdef TICO_STANDALONE
+  bool CheckFramebufferSize(uint32_t width, uint32_t height);
+
+  // the frame the frontend draws, in place of libretro's framebuffer
+  GLuint m_frame_fbo = 0;
+  GLuint m_frame_texture = 0;
+  uint32_t m_frame_width = 0;
+  uint32_t m_frame_height = 0;
+#endif
 };
 
 class GPU_HW_OpenGL : public GPU_HW

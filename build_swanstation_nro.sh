@@ -131,6 +131,7 @@ SWAN_SOURCES=(
 )
 
 TICO_SOURCES=(
+    "$TICO_DIR/TicoGL.cpp"
     "$TICO_DIR/UsbStorage.cpp"
     "$TICO_DIR/TicoVulkan.cpp"
     "$TICO_DIR/TicoShaderChain.cpp"
@@ -157,9 +158,12 @@ IMGUI_SOURCES=(
     "$IMGUI_DIR/imgui_widgets.cpp"
     "$IMGUI_DIR/imgui_demo.cpp"
     "$IMGUI_DIR/backends/imgui_impl_vulkan.cpp"
+    "$IMGUI_DIR/backends/imgui_impl_opengl3.cpp"
 )
 
-IMGUI_FLAGS="-I$IMGUI_DIR -I$IMGUI_DIR/backends"
+# ImGui's OpenGL backend loads through the core's glad (no dlopen on Horizon)
+IMGUI_FLAGS="-I$IMGUI_DIR -I$IMGUI_DIR/backends -I$ROOT_DIR/dep/glad/include"
+IMGUI_FLAGS="$IMGUI_FLAGS -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM -include glad.h"
 
 # rcheevos sources
 RCHEEVOS_DIR="$ROOT_DIR/rcheevos"
@@ -248,8 +252,11 @@ LINK_FLAGS="$LINK_FLAGS -Wl,--gc-sections -Wl,-Map=$BUILD_DIR/swanstation_tico.m
 LINK_LIBS="-L$TICO_DIR/deps/usbhsfs/lib -L$PORTLIBS/lib -L$LIBNX/lib"
 LINK_LIBS="$LINK_LIBS -lSDL2_mixer -lmpg123 -lmodplug -lopusfile -lopus -lvorbisidec -logg -lSDL2"
 
-# SDL2's EGL helpers are satisfied by stubs in TicoStubs.cpp: linking the
-# portlibs Mesa GL stack too would duplicate Mesa's util code inside NVK.
+# Mesa's EGL and desktop GL for the OpenGL and Zink renderers, beside NVK,
+# as tico-drastic links them; Zink reaches NVK through its ICD entry points.
+LINK_FLAGS="$LINK_FLAGS -Wl,-u,vk_icdGetInstanceProcAddr -Wl,-u,vk_icdNegotiateLoaderICDInterfaceVersion"
+LINK_LIBS="$LINK_LIBS -l:libGL.a -l:libEGL.a -l:libglapi.a"
+LINK_LIBS="$LINK_LIBS -l:libmesa_util_c11.a -l:libblake3.a -l:libmesa_util.a -l:libmesa_util_simd.a -l:libxmlconfig.a"
 LINK_LIBS="$LINK_LIBS $NVK_DEPS"
 
 # Mesa merges NVK's archives with the host ar, which leaves the Rust members

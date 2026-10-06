@@ -55,6 +55,12 @@ struct DeviceFactory
 };
 void SetDeviceFactory(DeviceFactory factory);
 
+/// Run the frontend on OpenGL instead (TicoGL), for a core that renders with
+/// OpenGL: Init and the frame and texture calls below forward there. Call
+/// before Init. BeginFrame then returns a placeholder (never recorded into).
+void UseOpenGL(bool zink);
+bool IsOpenGL();
+
 /// Bring up instance, surface, device, swapchain and ImGui's Vulkan backend.
 /// `window` is the SDL window on the desktop and ignored on Switch. An ImGui
 /// context must exist.
