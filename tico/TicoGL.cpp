@@ -99,7 +99,19 @@ bool Init(uint32_t width, uint32_t height, bool zink)
              reinterpret_cast<const char *>(glGetString(GL_RENDERER)), zink ? "Zink" : "nvc0");
 
     eglSwapInterval(s_display, 1);
-    if (!ImGui_ImplOpenGL3_Init("#version 330 core"))
+    return true;
+}
+
+bool IsReady()
+{
+    return s_context != EGL_NO_CONTEXT;
+}
+
+bool InitOverlay()
+{
+    if (s_imguiReady)
+        return true;
+    if (s_context == EGL_NO_CONTEXT || !ImGui_ImplOpenGL3_Init("#version 330 core"))
     {
         LOG_ERROR(kTag, "ImGui_ImplOpenGL3_Init failed");
         return false;
@@ -108,13 +120,24 @@ bool Init(uint32_t width, uint32_t height, bool zink)
     return true;
 }
 
-void Shutdown()
+void ShutdownOverlay()
 {
     if (s_imguiReady)
     {
         ImGui_ImplOpenGL3_Shutdown();
         s_imguiReady = false;
     }
+}
+
+void BeginOverlayFrame()
+{
+    if (s_imguiReady)
+        ImGui_ImplOpenGL3_NewFrame();
+}
+
+void Shutdown()
+{
+    ShutdownOverlay();
     if (s_display != EGL_NO_DISPLAY)
     {
         eglMakeCurrent(s_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -131,10 +154,7 @@ void Shutdown()
 
 bool BeginFrame()
 {
-    if (s_context == EGL_NO_CONTEXT)
-        return false;
-    ImGui_ImplOpenGL3_NewFrame();
-    return true;
+    return s_context != EGL_NO_CONTEXT;
 }
 
 void EndFrame(ImDrawData *drawData)
@@ -147,7 +167,7 @@ void EndFrame(ImDrawData *drawData)
     glDisable(GL_SCISSOR_TEST);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    if (drawData)
+    if (drawData && s_imguiReady)
         ImGui_ImplOpenGL3_RenderDrawData(drawData);
     eglSwapBuffers(s_display, s_surface);
 }

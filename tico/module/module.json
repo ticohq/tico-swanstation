@@ -2,7 +2,7 @@
   "id": "swanstation",
   "name": "SwanStation",
   "nro": "tico-swanstation.nro",
-  "launch": "\"{nro}\" \"{slug}\" \"{rom}\" \"{title}\"",
+  "launch": "\"{nro}\" \"{rom}\" \"{title}\" \"{slug}\"",
   "settings": "config/modules/swanstation/settings.json",
   "config_file": "swanstation.jsonc",
   "is_libretro": true,

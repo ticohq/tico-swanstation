@@ -17,9 +17,15 @@
 namespace TicoGL
 {
 
-/// Bring up EGL and ImGui's OpenGL backend. `zink` runs OpenGL on NVK.
+/// Bring up EGL and the OpenGL context. `zink` runs OpenGL on NVK.
 bool Init(uint32_t width, uint32_t height, bool zink);
 void Shutdown();
+bool IsReady();
+
+/// ImGui's OpenGL backend, once an ImGui context exists.
+bool InitOverlay();
+void ShutdownOverlay();
+void BeginOverlayFrame();
 
 /// The default framebuffer, cleared, for the next frame.
 bool BeginFrame();

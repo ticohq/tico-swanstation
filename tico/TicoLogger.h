@@ -3,12 +3,19 @@
 #pragma once
 #include <cstdarg>
 #include <cstdio>
+#include <functional>
 #include <string>
 #include <unordered_map>
 
 #ifdef __SWITCH__
 #include <sys/stat.h>
 #endif
+
+namespace Tico {
+/// Line-oriented log sink for the emulator-agnostic layer (Tico::Main and
+/// Tico::CoreRuntime), so it need not know about the macro logger.
+using LogCallback = std::function<void(const std::string &)>;
+} // namespace Tico
 
 /// @brief Singleton logger with per-category filtering and log levels
 class Logger {

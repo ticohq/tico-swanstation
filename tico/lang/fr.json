@@ -82,5 +82,8 @@
     "emulator_pad_joycon_left": "Joy-Con (G)",
     "emulator_pad_joycon_right": "Joy-Con (D)",
     "emulator_pad_gamecube": "Manette GameCube",
-    "emulator_pad_other": "Manette"
+    "emulator_pad_other": "Manette",
+    "emulator_disc": "Disque",
+    "emulator_bios_openbios": "Aucun BIOS PlayStation n'a été trouvé : le jeu tourne donc sur OpenBIOS, avec lequel certains jeux ne fonctionnent pas. Placez un BIOS comme %s dans %s",
+    "emulator_bios_use_openbios": "Continuer avec OpenBIOS"
 }

@@ -10,10 +10,10 @@
 #include "libretro.h" // only for retro_pixel_format, which the shader chain takes
 #include "imgui.h"
 #include "swan/SwanHost.h"
+#include "TicoOverlayHost.h" // RAAlertPosition, RANotification
 
 #ifdef __SWITCH__
 #include <switch.h>
-#include <SDL_mixer.h>
 #endif
 
 #include <mutex>
@@ -27,26 +27,6 @@ struct TicoMemoryMap {
     uint32_t start;
     uint32_t length;
     uint8_t* ptr;
-};
-
-/// @brief Alert position for RA notifications
-enum class RAAlertPosition {
-    TopLeft = 0,
-    TopRight,
-    BottomLeft,
-    BottomRight
-};
-
-/// @brief RA notification for the overlay
-struct RANotification {
-    std::string title;
-    std::string description;
-    std::string badge_name;     // badge identifier or "ra_icon" for session start
-    ImTextureID textureId = ImTextureID_Invalid; // badge texture
-    float timer = 0.0f;
-    float duration = 4.0f; // total display time
-    float slideIn = 0.4f;  // slide-in duration
-    float slideOut = 0.4f; // slide-out duration
 };
 
 /// @brief SwanStation, as the overlay drives a core
@@ -108,17 +88,17 @@ public:
     /// @brief Get current game path
     std::string GetGamePath() const { return m_gamePath; }
 
-    /// @brief Cheats for the game, from sdmc:/tico/cheats/<slug>/<game>.cht
-    /// (RetroArch's format, as in libretro's cheat database) or .cheats
-    /// ("# Name" then its codes): GameShark lines ("80012345 0063"). Every
-    /// cheat starts off; toggles last the session.
-    struct Cheat {
-        std::string name;
-        std::vector<std::string> codes;
-        bool enabled = false;
-    };
-    const std::vector<Cheat> &GetCheats() const { return m_cheats; }
-    void ToggleCheat(size_t index);
+    /// @brief Discs: the one in the drive, and a swap to another (a disc of
+    /// the .m3u the game started from, or another image)
+    std::string CurrentDiscPath() const;
+    bool SwapDiskByPath(const std::string &discPath);
+    bool IsSwapPending() const { return false; }
+
+    /// @brief Player 2's pad is plugged in while a second controller is connected
+    void SetPortConnected(unsigned port, bool connected);
+
+    /// @brief Stops every controller's vibration (the menu pauses the game)
+    static void StopRumble();
 
     /// @brief Save states
     /// The state goes to `path`, rc_client's achievement progress beside it
@@ -167,9 +147,6 @@ private:
 
     void LoadSaveData();
     void SaveSaveData();
-    void LoadCheats();
-    void ApplyCheats();
-    std::vector<Cheat> m_cheats;
 
     /// Memory card 1 as last read or written, to skip unchanged writes.
     std::vector<uint8_t> m_savedCard;
@@ -221,7 +198,6 @@ private:
     void SaveRAToken(const std::string& token);
     static void RAIdentifyGame(rc_client_t* c, TicoCore* core);
 
-    Mix_Chunk* m_trophySound = nullptr;
     static void RALoginWithPassword(rc_client_t* c, TicoCore* core);
 
 public:

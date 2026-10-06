@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "imgui.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "deps/stb/stb_image.h"
 // nanosvg is implemented in ra_alerts.cpp
 #include "deps/nanosvg/nanosvg.h"
@@ -22,6 +21,7 @@
 #endif
 
 #include "TicoLogger.h"
+#include "TicoOverlayHost.h"
 #include "TicoVulkan.h"
 #include "overlay/ra_alerts.h"
 #include "overlay/tico_config.h"
@@ -29,6 +29,19 @@
 namespace SwitchFrontend::ImGuiOverlay {
 namespace {
 
+constexpr std::array<const char*, 4> kFontPaths = {{
+    "romfs:/fonts/font.ttf",
+    "sdmc:/tico/fonts/font.ttf",
+    "sdmc:/tico/assets/fonts/font.ttf",
+    "sdmc:/tico/assets/font.ttf",
+}};
+// RetroAchievements descriptions use the lighter face
+constexpr std::array<const char*, 4> kDescriptionFontPaths = {{
+    "romfs:/fonts/description.ttf",
+    "sdmc:/tico/fonts/description.ttf",
+    "sdmc:/tico/assets/fonts/description.ttf",
+    "sdmc:/tico/assets/description.ttf",
+}};
 constexpr std::array<const char*, 6> kAvatarPaths = {{
     "sdmc:/tico/assets/avatar.jpg",
     "sdmc:/tico/assets/avatar.jpeg",
@@ -45,26 +58,84 @@ constexpr std::array<const char*, 13> kBorderSlugs = {{
     "default", "aqua", "violet", "sunset", "lime", "rose", "gold", "ice", "ember", "mint",
     "lagoon", "cobalt", "original",
 }};
+// the overlay's layout is designed for a 720p display
+constexpr float kDesignHeight = 720.0f;
 
 bool s_initialized = false;
 bool s_visible = false;
 bool s_psm_initialized = false;
+bool s_pl_initialized = false;
+IOverlayHost* s_host = nullptr;
+ImFont* s_description_font = nullptr;
 OverlayUI::NavInput s_nav{};
 OverlayUI::Action s_action = OverlayUI::Action::None;
-ImTextureID s_avatar_texture = ImTextureID_Invalid;
-ImTextureID s_border_texture = ImTextureID_Invalid;
+std::function<void(ImDrawList*, ImVec2)> s_background;
+ImTextureID s_avatar_texture = 0;
+ImTextureID s_border_texture = 0;
 // the quick menu sidebar's icons: Settings, Restart, Exit Game
-std::array<ImTextureID, 3> s_side_icons = {ImTextureID_Invalid, ImTextureID_Invalid, ImTextureID_Invalid};
+std::array<ImTextureID, 3> s_side_icons{};
 
-// Uploads an RGBA image decoded by stb_image and frees it. Returns the
-// texture, or ImTextureID_Invalid when there was no image.
+const char* FirstExisting(const std::array<const char*, 4>& paths) {
+    for (const char* path : paths) {
+        if (std::FILE* fp = std::fopen(path, "rb")) {
+            std::fclose(fp);
+            return path;
+        }
+    }
+    return nullptr;
+}
+
+// Fills in the characters a font lacks, so every overlay language renders:
+// tico's font.ttf for CJK, then the console's system fonts (which also
+// cover Cyrillic, Korean and traditional Chinese). The first font that has
+// a glyph wins; glyphs load as they are first drawn.
+void MergeFallbacks(float size, const char* skip) {
+    ImGuiIO& io = ImGui::GetIO();
+    ImFontConfig merge;
+    merge.MergeMode = true;
+    if (const char* main = FirstExisting(kFontPaths); main && main != skip) {
+        io.Fonts->AddFontFromFileTTF(main, size, &merge);
+    }
+#ifdef __SWITCH__
+    if (!s_pl_initialized) {
+        s_pl_initialized = R_SUCCEEDED(plInitialize(PlServiceType_User));
+    }
+    if (!s_pl_initialized) {
+        return;
+    }
+    merge.FontDataOwnedByAtlas = false; // the system keeps the font data mapped
+    for (const PlSharedFontType type :
+         {PlSharedFontType_Standard, PlSharedFontType_ChineseSimplified,
+          PlSharedFontType_ExtChineseSimplified, PlSharedFontType_ChineseTraditional,
+          PlSharedFontType_KO}) {
+        PlFontData font{};
+        if (R_SUCCEEDED(plGetSharedFontByType(&font, type))) {
+            io.Fonts->AddFontFromMemoryTTF(font.address, static_cast<int>(font.size), size,
+                                           &merge);
+        }
+    }
+#endif
+}
+
+ImFont* AddFirstFont(const std::array<const char*, 4>& paths, float size) {
+    const char* path = FirstExisting(paths);
+    ImFont* font = path ? ImGui::GetIO().Fonts->AddFontFromFileTTF(path, size) : nullptr;
+    if (!font) {
+        return nullptr;
+    }
+    LOG_INFO("OVERLAY", "loaded font: %s", path);
+    MergeFallbacks(size, path);
+    return font;
+}
+
+// Uploads an RGBA image decoded by stb_image and frees it.
 ImTextureID Upload(unsigned char* rgba, int width, int height, const char* source) {
     if (!rgba) {
-        return ImTextureID_Invalid;
+        return 0;
     }
-    const ImTextureID texture = TicoVulkan::CreateTextureRGBA(rgba, width, height);
+    const ImTextureID texture = s_host ? s_host->CreateTextureRGBA(rgba, width, height) : 0;
     stbi_image_free(rgba);
-    if (texture != ImTextureID_Invalid) {
+    if (texture) {
         LOG_INFO("OVERLAY", "loaded %s (%dx%d)", source, width, height);
     }
     return texture;
@@ -85,7 +156,7 @@ void LoadBorder() {
     int channels = 0;
     s_border_texture =
         Upload(stbi_load(path.c_str(), &width, &height, &channels, 4), width, height, path.c_str());
-    if (s_border_texture == ImTextureID_Invalid) {
+    if (!s_border_texture) {
         LOG_WARN("OVERLAY", "no selection border strip at %s", path.c_str());
     }
     OverlayUI::SetBorderTextureId(static_cast<unsigned long long>(s_border_texture));
@@ -136,7 +207,7 @@ bool LoadAvatarFromAccount() {
         accountProfileClose(&profile);
     }
     accountExit();
-    return s_avatar_texture != ImTextureID_Invalid;
+    return s_avatar_texture != 0;
 }
 #endif
 
@@ -146,28 +217,26 @@ void LoadAvatar() {
         int height = 0;
         int channels = 0;
         s_avatar_texture = Upload(stbi_load(path, &width, &height, &channels, 4), width, height, path);
-        if (s_avatar_texture != ImTextureID_Invalid) {
+        if (s_avatar_texture) {
             break;
         }
     }
 #ifdef __SWITCH__
-    if (s_avatar_texture == ImTextureID_Invalid && !LoadAvatarFromAccount()) {
+    if (!s_avatar_texture && !LoadAvatarFromAccount()) {
         LOG_INFO("OVERLAY", "no avatar image found");
     }
 #endif
     OverlayUI::SetAvatarTextureId(static_cast<unsigned long long>(s_avatar_texture));
 }
 
-} // namespace
-
 // A white SVG icon rasterized to a size x size texture.
 ImTextureID LoadSvgIcon(const std::string& path, int size) {
     NSVGimage* image = nsvgParseFromFile(path.c_str(), "px", 96.0f);
     if (!image) {
         LOG_WARN("OVERLAY", "no icon at %s", path.c_str());
-        return ImTextureID_Invalid;
+        return 0;
     }
-    ImTextureID texture = ImTextureID_Invalid;
+    ImTextureID texture = 0;
     if (NSVGrasterizer* rast = nsvgCreateRasterizer()) {
         std::vector<unsigned char> rgba(static_cast<std::size_t>(size) * size * 4, 0);
         const float longest = std::max(image->width, image->height);
@@ -177,18 +246,14 @@ ImTextureID LoadSvgIcon(const std::string& path, int size) {
         const float dy = (size - (image->height * scale)) * 0.5f;
         nsvgRasterize(rast, image, dx, dy, scale, rgba.data(), size, size, size * 4);
         nsvgDeleteRasterizer(rast);
-        texture = TicoVulkan::CreateTextureRGBA(rgba.data(), size, size);
+        texture = s_host ? s_host->CreateTextureRGBA(rgba.data(), size, size) : 0;
     }
     nsvgDelete(image);
     return texture;
 }
 
 void LoadSidebarIcons() {
-#ifdef __SWITCH__
     const std::string dir = "romfs:/assets/icons/";
-#else
-    const std::string dir = "tico/assets/icons/";
-#endif
     const char* names[] = {"gear.svg", "rotate-left.svg", "right-from-bracket.svg"};
     for (std::size_t i = 0; i < s_side_icons.size(); ++i) {
         s_side_icons[i] = LoadSvgIcon(dir + names[i], 64);
@@ -198,18 +263,44 @@ void LoadSidebarIcons() {
                                       static_cast<unsigned long long>(s_side_icons[2]));
 }
 
-bool Init() {
+} // namespace
+
+bool Init(IOverlayHost* host) {
     if (s_initialized) {
         return true;
     }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
+    io.LogFilename = nullptr;
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    if (ImFont* font = AddFirstFont(kFontPaths, 32.0f)) {
+        io.FontDefault = font;
+    } else {
+        LOG_WARN("OVERLAY", "could not load overlay font, using ImGui default");
+        io.FontDefault = io.Fonts->AddFontDefault();
+    }
+    s_description_font = AddFirstFont(kDescriptionFontPaths, 24.0f);
+    ImGui::StyleColorsDark();
+
+    if (!TicoVulkan::InitOverlayRenderer()) {
+        LOG_WARN("OVERLAY", "ImGui Vulkan overlay renderer unavailable");
+        ImGui::DestroyContext();
+        return false;
+    }
+
 #ifdef __SWITCH__
     if (!s_psm_initialized && R_SUCCEEDED(psmInitialize())) {
         s_psm_initialized = true;
     }
 #endif
+    s_host = host;
     LoadAvatar();
     LoadBorder();
     LoadSidebarIcons();
+
     s_visible = false;
     s_action = OverlayUI::Action::None;
     s_initialized = true;
@@ -223,14 +314,16 @@ void Shutdown() {
     }
     for (ImTextureID* texture : {&s_avatar_texture, &s_border_texture, &s_side_icons[0],
                                  &s_side_icons[1], &s_side_icons[2]}) {
-        if (*texture != ImTextureID_Invalid) {
-            TicoVulkan::DestroyTexture(*texture);
-            *texture = ImTextureID_Invalid;
+        if (*texture && s_host) {
+            s_host->DestroyTexture(*texture);
         }
+        *texture = 0;
     }
     OverlayUI::SetSidebarIconTextures(0, 0, 0);
     OverlayUI::SetAvatarTextureId(0);
     OverlayUI::SetBorderTextureId(0);
+    TicoVulkan::ShutdownOverlayRenderer();
+    ImGui::DestroyContext();
     OverlayUI::SetVisible(false);
     OverlayUI::ShowToast(std::string{});
 #ifdef __SWITCH__
@@ -238,7 +331,13 @@ void Shutdown() {
         psmExit();
         s_psm_initialized = false;
     }
+    if (s_pl_initialized) {
+        plExit();
+        s_pl_initialized = false;
+    }
 #endif
+    s_host = nullptr;
+    s_description_font = nullptr;
     s_initialized = false;
 }
 
@@ -265,18 +364,36 @@ void FeedTouch(const OverlayUI::TouchInput& touch) {
     OverlayUI::FeedTouch(touch);
 }
 
-void Draw(TicoCore* core, float width, float height, float delta_time) {
+void SetBackgroundDraw(std::function<void(ImDrawList*, ImVec2)> draw) {
+    s_background = std::move(draw);
+}
+
+ImDrawData* BuildFrame(float width, float height, float delta_time) {
     if (!s_initialized) {
-        return;
+        return nullptr;
     }
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(width, height);
+    io.DeltaTime = delta_time > 0.0f ? delta_time : 1.0f / 60.0f;
+    io.FontGlobalScale = height / kDesignHeight;
     OverlayUI::FeedNav(s_nav);
     s_nav = {};
+
+    TicoVulkan::BeginOverlayFrame();
+    ImGui::NewFrame();
+    if (s_background) {
+        s_background(ImGui::GetBackgroundDrawList(), io.DisplaySize);
+    }
     const OverlayUI::Action action =
         OverlayUI::Render(static_cast<int>(width), static_cast<int>(height));
-    RAAlerts::Render(core, ImGui::GetForegroundDrawList(), ImVec2(width, height), delta_time);
+    RAAlerts::EnsureIcon(s_host);
+    RAAlerts::Render(s_host, ImGui::GetForegroundDrawList(), io.DisplaySize, io.DeltaTime,
+                     s_description_font);
+    ImGui::Render();
     if (action != OverlayUI::Action::None) {
         s_action = action;
     }
+    return ImGui::GetDrawData();
 }
 
 OverlayUI::Action ConsumeAction() {

@@ -124,7 +124,16 @@ SWAN_FLAGS="$SWAN_FLAGS -I$ROOT_DIR/dep/xxhash/include -I$ROOT_DIR/dep/stb/inclu
 # Tico C++ sources
 # these include the core's headers (SWAN_FLAGS)
 SWAN_SOURCES=(
+    "$TICO_DIR/SwanEntry.cpp"
+    "$TICO_DIR/SwanRuntime.cpp"
+    "$TICO_DIR/SwanBios.cpp"
+    "$TICO_DIR/SwanCheats.cpp"
+    "$TICO_DIR/SwanDiscs.cpp"
+    "$TICO_DIR/SwanLibrary.cpp"
+    "$TICO_DIR/SwanSaves.cpp"
+    "$TICO_DIR/SwanShaders.cpp"
     "$TICO_DIR/TicoMain.cpp"
+    "$TICO_DIR/TicoChainload.cpp"
     "$TICO_DIR/TicoCore.cpp"
     "$TICO_DIR/swan/SwanHost.cpp"
     "$ROOT_DIR/src/libretro/libretro_game_settings.cpp"

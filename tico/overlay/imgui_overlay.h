@@ -5,30 +5,38 @@
 #pragma once
 
 #include "overlay/overlay_ui.h"
+#include "imgui.h"
 
-class TicoCore;
+#include <functional>
+
+struct ImDrawData;
+class IOverlayHost;
 
 namespace SwitchFrontend::ImGuiOverlay {
 
-// Loads the avatar and the selection border as Vulkan textures. Call once
-// TicoVulkan and the ImGui context are up.
-bool Init();
+// Creates the ImGui context, fonts and the Vulkan overlay renderer, and
+// uploads the avatar and selection border through the host.
+bool Init(IOverlayHost* host);
 void Shutdown();
 
 // Shows or hides the quick menu (the HUD and toasts are drawn either way).
 void SetVisible(bool visible);
 bool IsVisible();
 
-// Edge-triggered menu navigation for the next drawn frame.
+// Edge-triggered menu navigation for the next built frame.
 void FeedNav(const OverlayUI::NavInput& nav);
 // The touchscreen's current state, read while the menu is open.
 void FeedTouch(const OverlayUI::TouchInput& touch);
 
-// Draws the menu, HUD, toasts and RetroAchievements alerts into the current
-// ImGui frame, over a width x height display.
-void Draw(TicoCore* core, float width, float height, float delta_time);
+// Draws under everything in the frame being built (the game, when the
+// renderer shows it through ImGui); null to draw nothing there.
+void SetBackgroundDraw(std::function<void(ImDrawList* list, ImVec2 size)> draw);
 
-// The action the menu returned while drawing, once; None when there was none.
+// Builds this frame's overlay for a width x height surface. Returns the draw
+// data to composite over the game.
+ImDrawData* BuildFrame(float width, float height, float delta_time);
+
+// The action the menu returned while building, once; None when there was none.
 OverlayUI::Action ConsumeAction();
 
 } // namespace SwitchFrontend::ImGuiOverlay

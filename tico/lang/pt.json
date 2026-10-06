@@ -82,5 +82,8 @@
     "emulator_pad_joycon_left": "Joy-Con (E)",
     "emulator_pad_joycon_right": "Joy-Con (D)",
     "emulator_pad_gamecube": "Controle de GameCube",
-    "emulator_pad_other": "Controle"
+    "emulator_pad_other": "Controle",
+    "emulator_disc": "Disco",
+    "emulator_bios_openbios": "Nenhuma BIOS do PlayStation foi encontrada, então o jogo roda no OpenBIOS, com o qual alguns jogos não funcionam. Coloque uma BIOS como %s em %s",
+    "emulator_bios_use_openbios": "Continuar com OpenBIOS"
 }

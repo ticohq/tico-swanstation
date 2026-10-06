@@ -82,5 +82,8 @@
     "emulator_pad_joycon_left": "Joy-Con (L)",
     "emulator_pad_joycon_right": "Joy-Con (R)",
     "emulator_pad_gamecube": "GameCube 手柄",
-    "emulator_pad_other": "手柄"
+    "emulator_pad_other": "手柄",
+    "emulator_disc": "光盘",
+    "emulator_bios_openbios": "未找到 PlayStation BIOS，游戏将使用 OpenBIOS 运行，部分游戏无法在其上运行。请将 %s 等 BIOS 放入 %s",
+    "emulator_bios_use_openbios": "使用 OpenBIOS 继续"
 }

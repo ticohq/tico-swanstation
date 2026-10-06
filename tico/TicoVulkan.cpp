@@ -473,6 +473,47 @@ bool InitImGui()
 // Lifecycle
 //==============================================================================
 
+bool InitOverlayRenderer()
+{
+    if (s_gl)
+        return TicoGL::InitOverlay();
+    return s_imguiReady || InitImGui();
+}
+
+void ShutdownOverlayRenderer()
+{
+    if (s_gl)
+    {
+        TicoGL::ShutdownOverlay();
+        return;
+    }
+    if (s_imguiReady)
+    {
+        if (s_ctx.device)
+            vkDeviceWaitIdle(s_ctx.device);
+        RunDeferred(true);
+        for (Texture &tex : s_textures)
+        {
+            ImGui_ImplVulkan_RemoveTexture(tex.descriptor);
+            DestroyImage(tex.image);
+        }
+        s_textures.clear();
+        ImGui_ImplVulkan_Shutdown();
+        s_imguiReady = false;
+    }
+}
+
+void BeginOverlayFrame()
+{
+    if (s_gl)
+        TicoGL::BeginOverlayFrame();
+}
+
+bool IsReady()
+{
+    return s_gl ? TicoGL::IsReady() : s_ready;
+}
+
 void UseOpenGL(bool zink)
 {
     s_gl = true;
@@ -501,7 +542,7 @@ bool Init(SDL_Window *window, uint32_t width, uint32_t height)
     s_wantedExtent = {width, height};
 
     if (!CreateInstance() || !CreateSurface() || !CreateDevice() ||
-        !CreateSwapchain() || !CreateFrameResources() || !InitImGui())
+        !CreateSwapchain() || !CreateFrameResources())
     {
         Shutdown();
         return false;

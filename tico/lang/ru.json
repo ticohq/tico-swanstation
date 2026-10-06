@@ -81,5 +81,8 @@
     "emulator_pad_joycon_left": "Joy-Con (L)",
     "emulator_pad_joycon_right": "Joy-Con (R)",
     "emulator_pad_gamecube": "Контроллер GameCube",
-    "emulator_pad_other": "Контроллер"
+    "emulator_pad_other": "Контроллер",
+    "emulator_disc": "Диск",
+    "emulator_bios_openbios": "BIOS PlayStation не найден, поэтому игра запускается на OpenBIOS, с которым некоторые игры не работают. Поместите BIOS, например %s, в %s",
+    "emulator_bios_use_openbios": "Продолжить с OpenBIOS"
 }

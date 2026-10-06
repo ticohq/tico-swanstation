@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <json.hpp>
 #include <SDL.h>
-#include <SDL_mixer.h>
+#include "TicoAudio.h"
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -404,9 +404,22 @@ std::string ContentRoot(const char *key, const char *defaultRoot)
 } // namespace
 
 namespace TicoConfig {
+namespace {
+std::string s_slug = "psx";
+}
+
+void SetSlug(const std::string &launchSlug, const std::string &romPath)
+{
+    (void)romPath; // one console: the slug only changes when tico passes one
+    if (!launchSlug.empty())
+        s_slug = launchSlug;
+}
+
+const std::string &Slug() { return s_slug; }
+
 std::string SystemPath() { return ContentRoot("tico_system_path", "sdmc:/tico/system/") + "psx/"; }
-std::string SavesPath() { return ContentRoot("tico_saves_path", "sdmc:/tico/saves/") + CURRENT_SLUG + "/"; }
-std::string StatesPath() { return ContentRoot("tico_states_path", "sdmc:/tico/states/") + CURRENT_SLUG + "/"; }
+std::string SavesPath() { return ContentRoot("tico_saves_path", "sdmc:/tico/saves/") + s_slug + "/"; }
+std::string StatesPath() { return ContentRoot("tico_states_path", "sdmc:/tico/states/") + s_slug + "/"; }
 
 void MakeDirs(const std::string &path)
 {
@@ -446,11 +459,6 @@ TicoCore::~TicoCore()
     }
 
     StopRAWorker();
-
-    if (m_trophySound) {
-        Mix_FreeChunk(m_trophySound);
-        m_trophySound = nullptr;
-    }
 
     if (m_rcClient) {
         rc_client_destroy(m_rcClient);
@@ -528,13 +536,16 @@ bool TicoCore::Init()
         audioIn.close();
     }
     if (soundEnabled) {
+        // The chime is mixed into the game's audio stream by TicoAudio (the
+        // Switch can't open a second audio device), so it must be a WAV that
+        // SDL_LoadWAV can decode device-free. See assets/trophy.wav.
 #ifdef __SWITCH__
-        m_trophySound = Mix_LoadWAV("romfs:/assets/trophy.mp3");
+        const char *trophyPath = "romfs:/assets/trophy.wav";
 #else
-        m_trophySound = Mix_LoadWAV("tico/assets/trophy.mp3");
+        const char *trophyPath = "tico/assets/trophy.wav";
 #endif
-        if (m_trophySound) tico_debug_log("RA: Loaded trophy.mp3 successfully.");
-        else tico_debug_log("RA: Failed to load trophy.mp3 -> %s", Mix_GetError());
+        if (TicoAudio::LoadTrophyGlobal(trophyPath)) tico_debug_log("RA: Loaded trophy.wav successfully.");
+        else tico_debug_log("RA: Failed to load trophy.wav");
     }
 
     // The core reads settings, prints messages and plays audio through these
@@ -590,17 +601,13 @@ bool TicoCore::Init()
                         std::string desc = event->achievement->description;
                         std::string badge = event->achievement->badge_name;
                         s_instance->PushRANotification(title, desc, badge);
-                        if (s_instance->m_trophySound) {
-                            Mix_PlayChannel(-1, s_instance->m_trophySound, 0);
-                        }
+                        TicoAudio::PlayTrophyGlobal();
                         tico_debug_log("RA: Achievement triggered: %s (badge: %s)", title.c_str(), badge.c_str());
                     }
                     break;
                 case RC_CLIENT_EVENT_GAME_COMPLETED:
                     s_instance->PushRANotification("Game Mastered!", "All achievements unlocked!", "ra_icon");
-                    if (s_instance->m_trophySound) {
-                        Mix_PlayChannel(-1, s_instance->m_trophySound, 0);
-                    }
+                    TicoAudio::PlayTrophyGlobal();
                     break;
                 case RC_CLIENT_EVENT_LEADERBOARD_SUBMITTED:
                     if (event->leaderboard) {
@@ -694,7 +701,6 @@ bool TicoCore::LoadGame(const std::string &path)
 
     // Load native save data, falling back to legacy .srm saves when needed.
     LoadSaveData();
-    LoadCheats();
 
     return true;
 }
@@ -786,143 +792,46 @@ void TicoCore::Reset()
 }
 
 //==============================================================================
-// Cheats
+// Discs and ports
 //==============================================================================
-static std::string CheatsBase(const std::string &gamePath)
+
+std::string TicoCore::CurrentDiscPath() const
 {
-    std::string name = gamePath;
-    const size_t slash = name.find_last_of("/\\");
-    if (slash != std::string::npos)
-        name = name.substr(slash + 1);
-    const size_t dot = name.find_last_of('.');
-    if (dot != std::string::npos)
-        name = name.substr(0, dot);
-    const std::string dir = "sdmc:/tico/cheats/" + TicoConfig::CURRENT_SLUG + "/";
-    TicoConfig::MakeDirs(dir);
-    return dir + name;
+    if (!System::IsValid())
+        return m_gamePath;
+    if (System::HasMediaSubImages())
+        return System::GetMediaSubImagePath(System::GetMediaSubImageIndex());
+    const std::string media = System::GetMediaFileName();
+    return media.empty() ? m_gamePath : media;
 }
 
-// One cheat's codes: GameShark lines ("80012345 0063") joined with + or ;
-static void SplitCodes(const std::string &text, std::vector<std::string> &out)
+// A disc of the playlist the game started from (.m3u), or another image put
+// in the drive in place of the current one.
+bool TicoCore::SwapDiskByPath(const std::string &discPath)
 {
-    std::string code;
-    for (const char c : text + ";")
+    if (!m_gameLoaded || !System::IsValid())
+        return false;
+    if (System::HasMediaSubImages())
     {
-        if (c == '+' || c == ';' || c == ',')
-        {
-            code = TicoUtils::Trim(code);
-            if (!code.empty())
-                out.push_back(code);
-            code.clear();
-        }
-        else
-            code += c;
+        for (uint32_t i = 0; i < System::GetMediaSubImageCount(); ++i)
+            if (System::GetMediaSubImagePath(i) == discPath)
+                return System::SwitchMediaSubImage(i);
     }
+    tico_debug_log("Disc swap to %s", discPath.c_str());
+    return System::InsertMedia(discPath.c_str());
 }
 
-void TicoCore::LoadCheats()
+void TicoCore::SetPortConnected(unsigned port, bool connected)
 {
-    m_cheats.clear();
-    const std::string base = CheatsBase(m_gamePath);
-
-    // RetroArch .cht: cheatN_desc / cheatN_code (enable flags are ignored:
-    // every cheat starts off)
-    std::ifstream cht(base + ".cht");
-    if (cht.is_open())
-    {
-        std::map<int, Cheat> byIndex;
-        std::string line;
-        while (std::getline(cht, line))
-        {
-            const size_t eq = line.find('=');
-            if (eq == std::string::npos)
-                continue;
-            const std::string key = TicoUtils::Trim(line.substr(0, eq));
-            std::string value = TicoUtils::Trim(line.substr(eq + 1));
-            if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
-                value = value.substr(1, value.size() - 2);
-            int index = -1;
-            char field[16] = {0};
-            if (sscanf(key.c_str(), "cheat%d_%15s", &index, field) != 2 || index < 0)
-                continue;
-            if (!strcmp(field, "desc"))
-                byIndex[index].name = value;
-            else if (!strcmp(field, "code"))
-                SplitCodes(value, byIndex[index].codes);
-        }
-        for (auto &entry : byIndex)
-        {
-            if (entry.second.codes.empty())
-                continue;
-            if (entry.second.name.empty())
-                entry.second.name = "Cheat " + std::to_string(entry.first + 1);
-            m_cheats.push_back(entry.second);
-        }
-    }
-
-    // .cheats: "# Name", then one code (or several joined with +) per line
-    std::ifstream simple(base + ".cheats");
-    if (simple.is_open())
-    {
-        std::string line;
-        while (std::getline(simple, line))
-        {
-            const std::string text = TicoUtils::Trim(line);
-            if (text.empty() || text[0] == '!')
-                continue;
-            if (text[0] == '#')
-            {
-                m_cheats.push_back(Cheat());
-                m_cheats.back().name = TicoUtils::Trim(text.substr(1));
-                continue;
-            }
-            if (m_cheats.empty())
-            {
-                m_cheats.push_back(Cheat());
-                m_cheats.back().name = "Cheat";
-            }
-            SplitCodes(text, m_cheats.back().codes);
-        }
-    }
-    tico_debug_log("CHEATS: %zu for %s", m_cheats.size(), base.c_str());
-}
-
-// A cheat's lines stay one code: conditional GameShark lines (D0/E0...)
-// guard the line after them.
-void TicoCore::ApplyCheats()
-{
-    if (!m_gameLoaded)
+    if (port == 0 || port >= 2)
+        return; // player 1 always has a pad; ports 3-4 need a multitap
+    SwanHost::PadType &pad = SwanHost::Get().pads[port];
+    const SwanHost::PadType wanted = connected ? ParsePadType(GetConfigValue("pad2_type", "DualShock"))
+                                               : SwanHost::PadType::None;
+    if (pad == wanted)
         return;
-    std::unique_ptr<CheatList> list;
-    uint32_t index = 0;
-    for (const Cheat &cheat : m_cheats)
-    {
-        if (!cheat.enabled)
-            continue;
-        std::string joined;
-        for (const std::string &code : cheat.codes)
-            joined += (joined.empty() ? "" : "+") + code;
-        CheatCode cc;
-        cc.description = cheat.name;
-        cc.enabled = true;
-        if (!CheatList::ParseLibretroCheat(&cc, joined.c_str()))
-        {
-            tico_debug_log("CHEATS: cannot read %s", cheat.name.c_str());
-            continue;
-        }
-        if (!list)
-            list = std::make_unique<CheatList>();
-        list->SetCode(index++, std::move(cc));
-    }
-    System::SetCheatList(std::move(list));
-}
-
-void TicoCore::ToggleCheat(size_t index)
-{
-    if (index >= m_cheats.size() || IsHardcoreActive())
-        return;
-    m_cheats[index].enabled = !m_cheats[index].enabled;
-    ApplyCheats();
+    pad = wanted;
+    m_variablesUpdated = true; // the core plugs it in or out with the settings
 }
 
 bool TicoCore::IsHardcoreActive() const
@@ -1149,6 +1058,21 @@ void TicoCore::SetRumble(unsigned port, float large, float small)
         v[i].amp_high = small;
     }
     hidSendVibrationValues(s_vibrationHandles[device], v, 2);
+#endif
+}
+
+void TicoCore::StopRumble()
+{
+#ifdef __SWITCH__
+    if (!s_vibrationInitialized)
+        return;
+    for (int device = 0; device < 5; ++device)
+    {
+        HidVibrationValue *v = s_currentVibration[device];
+        for (int i = 0; i < 2; ++i)
+            v[i].amp_low = v[i].amp_high = 0.0f;
+        hidSendVibrationValues(s_vibrationHandles[device], v, 2);
+    }
 #endif
 }
 

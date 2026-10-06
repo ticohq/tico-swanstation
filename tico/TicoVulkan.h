@@ -66,6 +66,13 @@ bool IsOpenGL();
 /// context must exist.
 bool Init(SDL_Window *window, uint32_t width, uint32_t height);
 void Shutdown();
+bool IsReady();
+
+/// ImGui's renderer backend, once an ImGui context exists (the overlay makes
+/// it after Init); BeginOverlayFrame before each ImGui::NewFrame.
+bool InitOverlayRenderer();
+void ShutdownOverlayRenderer();
+void BeginOverlayFrame();
 
 const Context &Ctx();
 
