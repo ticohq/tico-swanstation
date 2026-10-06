@@ -1038,7 +1038,7 @@ void SwanRuntime::RunMenuAction()
 // out of the game.
 void SwanRuntime::UpdateFastForward(const FrameInput &input)
 {
-    ffButton_ = PadBitFor(OverlayConfig::GetConfigValue("fast_forward_hotkey", "ZR"));
+    ffButton_ = PadBitFor(OverlayConfig::GetConfigValue("fast_forward_hotkey", "None"));
     const bool down = ffButton_ && (input.players[0].buttons & ffButton_);
     bool active;
     if (OverlayConfig::GetConfigValue("fast_forward_mode", "hold") == "toggle")
@@ -1093,7 +1093,7 @@ void SwanRuntime::ApplyCoreInput(const FrameInput &input)
 {
     core_->ClearInputs();
     UpdateFastForward(input);
-    const bool analogDpad = OverlayConfig::GetConfigValue("analog_dpad", "disabled") != "disabled";
+    const bool analogDpad = OverlayConfig::GetConfigValue("analog_dpad", "false") == "true";
 
     // Resolve the mapping once per frame; both ports share it.
     uint64_t bits[std::size(kButtonMappings)];
