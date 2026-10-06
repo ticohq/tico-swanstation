@@ -1,19 +1,20 @@
 /// @file TicoCore.h
-/// @brief Simplified libretro frontend for swanstation with tico overlay
+/// @brief SwanStation for the tico overlay, driven without libretro (SwanHost)
 #pragma once
 
 #include <string>
 #include <map>
 #include <cstdint>
-#include <EGL/egl.h>
 #include <SDL.h>
 #include <vector>
-#include "libretro.h"
+#include "libretro.h" // only for retro_pixel_format, which the shader chain takes
+#include "imgui.h"
+#include "swan/SwanHost.h"
 
 #ifdef __SWITCH__
 #include <switch.h>
-#endif
 #include <SDL_mixer.h>
+#endif
 
 #include <mutex>
 #include <condition_variable>
@@ -41,16 +42,14 @@ struct RANotification {
     std::string title;
     std::string description;
     std::string badge_name;     // badge identifier or "ra_icon" for session start
-    unsigned int textureId = 0; // GL texture for the badge (0 = no badge)
+    ImTextureID textureId = ImTextureID_Invalid; // badge texture
     float timer = 0.0f;
     float duration = 4.0f; // total display time
     float slideIn = 0.4f;  // slide-in duration
     float slideOut = 0.4f; // slide-out duration
 };
 
-class IRenderer;
-
-/// @brief Simplified libretro core wrapper for swanstation
+/// @brief SwanStation, as the overlay drives a core
 class TicoCore
 {
 public:
@@ -60,14 +59,16 @@ public:
     /// @brief Initialize the core
     bool Init();
 
-    /// @brief Load a game ROM
+    /// @brief Boot a disc image, EXE or PSF by path
     bool LoadGame(const std::string &path);
     bool GetVariable(const char *key, const char **value);
-    
-    // OSD Messages
+
+
+    /// @brief OSD notification accessors
     const std::string& GetOSDMessage() const { return m_osdMessage; }
     int GetOSDFrames() const { return m_osdFrames; }
     void DecrementOSD() { if (m_osdFrames > 0) m_osdFrames--; }
+    void ShowOSD(const std::string &msg, int frames) { m_osdMessage = msg; m_osdFrames = frames; }
 
     /// @brief Unload current game
     void UnloadGame();
@@ -90,37 +91,60 @@ public:
     void ClearInputs();
 
     /// @brief Video/Audio info
-    unsigned int GetFrameTextureID() const { return m_frameTexture; }
     float GetAspectRatio() const { return m_aspectRatio; }
     int GetFrameWidth() const { return m_frameWidth; }
     int GetFrameHeight() const { return m_frameHeight; }
-    int GetFBOWidth() const { return m_fboWidth; }
-    int GetFBOHeight() const { return m_fboHeight; }
     double GetFPS() const { return m_fps; }
-    bool IsHWRender() const { return m_hwRender; }
+    double GetSampleRate() const { return m_sampleRate; }
+    /// The size of the frame the GPU renderer last handed over
+    void SetFrameSize(int width, int height) { m_frameWidth = width; m_frameHeight = height; }
+
+    /// @brief Receives every new software frame from the core (the Vulkan
+    /// renderer hands its image to g_tico_vulkan_frame instead)
+    typedef void (*VideoCallback_t)(const void *data, unsigned width, unsigned height,
+                                    size_t pitch, retro_pixel_format format);
+    void SetVideoCallback(VideoCallback_t cb) { m_videoCallback = cb; }
 
     /// @brief Get current game path
     std::string GetGamePath() const { return m_gamePath; }
 
+    /// @brief Cheats for the game, from sdmc:/tico/cheats/<slug>/<game>.cht
+    /// (RetroArch's format, as in libretro's cheat database) or .cheats
+    /// ("# Name" then its codes): GameShark lines ("80012345 0063"). Every
+    /// cheat starts off; toggles last the session.
+    struct Cheat {
+        std::string name;
+        std::vector<std::string> codes;
+        bool enabled = false;
+    };
+    const std::vector<Cheat> &GetCheats() const { return m_cheats; }
+    void ToggleCheat(size_t index);
+
     /// @brief Save states
-    void SaveState(const std::string &path);
-    void LoadState(const std::string &path);
+    /// The state goes to `path`, rc_client's achievement progress beside it
+    /// (`path` + ".ra"). Loading is refused while hardcore is active.
+    bool SaveState(const std::string &path);
+    bool LoadState(const std::string &path);
 
-    /// @brief Disk control
-    bool HasDiskControl() const { return m_hasDiskControl; }
-    unsigned GetDiskCount() const;
-    unsigned GetCurrentDiskIndex() const;
-    bool SwapDisk(unsigned index);
-    bool SwapDiskByPath(const std::string &discPath);
-    bool GetDiskLabel(unsigned index, std::string &label) const;
+    /// True while rc_client runs the session in hardcore mode. Loading states
+    /// (and rewind, cheats, slow motion) must stay unavailable then.
+    bool IsHardcoreActive() const;
 
-    /// @brief Set EGL contexts for HW rendering
-    void SetHWRenderContext(SDL_Window *window, EGLContext mainCtx, EGLContext hwCtx);
+    /// Hardcore rate-limits pausing so it can't be used to slow the game
+    /// down. False while a pause isn't allowed yet; `secondsRemaining` then
+    /// says how long until it is. Always true outside hardcore.
+    bool CanPause(int &secondsRemaining);
 
-    /// @brief Set renderer for texture creation
-    void SetRenderer(IRenderer *renderer) { m_renderer = renderer; }
+    /// Keeps the RetroAchievements session alive while emulation is paused
+    /// (the quick menu is open): pings, server callbacks, badge uploads.
+    void Idle();
 
-    // Audio callbacks
+    /// @brief Core options. LoadConfig reads swanstation.jsonc (once); SetOption
+    /// changes one, which the core re-reads before the next frame.
+    void EnsureConfigLoaded() { LoadConfig(); }
+    void SetOption(const std::string &key, const std::string &value);
+
+    /// @brief Audio callback types
     typedef void (*AudioSampleCallback_t)(int16_t left, int16_t right);
     typedef size_t (*AudioSampleBatchCallback_t)(const int16_t *data, size_t frames);
     typedef void (*AudioFlushCallback_t)();
@@ -140,88 +164,49 @@ public:
 private:
     void InitializeCore();
     void SetupCallbacks();
-    bool InitEGLDualContext();
-    void BindHWContext(bool enable);
 
-    // SRAM handling (SaveRAM)
-    void LoadSRAM();
-    void SaveSRAM();
+    void LoadSaveData();
+    void SaveSaveData();
+    void LoadCheats();
+    void ApplyCheats();
+    std::vector<Cheat> m_cheats;
 
-    // Libretro callbacks
-    static bool EnvironmentCallback(unsigned cmd, void *data);
-    static void VideoRefreshCallback(const void *data, unsigned width, unsigned height, size_t pitch);
-    static void AudioSampleCallback(int16_t left, int16_t right);
-    static size_t AudioSampleBatchCallback(const int16_t *data, size_t frames);
-    static void InputPollCallback();
-    static int16_t InputStateCallback(unsigned port, unsigned device, unsigned index, unsigned id);
-    static void LogCallback(enum retro_log_level level, const char *fmt, ...);
-    static bool SetRumbleStateCallback(unsigned port, enum retro_rumble_effect effect, uint16_t strength);
+    /// Memory card 1 as last read or written, to skip unchanged writes.
+    std::vector<uint8_t> m_savedCard;
+    int m_saveCheckFrames = 0;
 
-    // Instance callbacks
-    bool HandleEnvironment(unsigned cmd, void *data);
-    void HandleVideoRefresh(const void *data, unsigned width, unsigned height, size_t pitch);
-    void HandleAudioBatch(const int16_t *data, size_t frames);
-    int16_t HandleInputState(unsigned port, unsigned device, unsigned index, unsigned id);
+    void SetRumble(unsigned port, float large, float small);
+    static SwanHost::PadType ParsePadType(const std::string &value);
 
-    // State
     bool m_initialized = false;
     bool m_gameLoaded = false;
     bool m_paused = false;
-    bool m_hwRender = false;
     bool m_variablesUpdated = true;
+    enum retro_pixel_format m_pixelFormat = RETRO_PIXEL_FORMAT_0RGB1555;
 
-    // Video
-    unsigned int m_frameTexture = 0;
-    unsigned int m_fbo = 0;
-    unsigned int m_fbo_rbo = 0; // Depth/Stencil Renderbuffer
-    int m_frameWidth = 640;
-    int m_frameHeight = 480;
-    int m_fboWidth = 0; // Actual FBO texture dimensions
-    int m_fboHeight = 0;
+    int m_frameWidth = 256;
+    int m_frameHeight = 224;
     float m_aspectRatio = 4.0f / 3.0f;
     double m_fps = 60.0;
-    void ResizeFBO(int width, int height);
+    double m_sampleRate = 44100.0;
+    VideoCallback_t m_videoCallback = nullptr;
 
-    // Audio
     AudioSampleCallback_t m_audioSampleCallback = nullptr;
     AudioSampleBatchCallback_t m_audioSampleBatchCallback = nullptr;
     AudioFlushCallback_t m_audioFlushCallback = nullptr;
 
-    // Input
     bool m_inputState[4][16] = {};
     int16_t m_analogState[4][2][2] = {};
 
-    // Disk Control
-    retro_disk_control_ext_callback m_diskControl = {};
-    bool m_hasDiskControl = false;
-    
-    // Delayed Disk Swap
-    bool m_swapPending = false;
-    int m_swapDelayFrames = 0;
-    std::string m_pendingSwapPath;
-
-    // EGL contexts
-    SDL_Window *m_window = nullptr;
-    EGLDisplay m_eglDisplay = EGL_NO_DISPLAY;
-    EGLContext m_mainContext = EGL_NO_CONTEXT;
-    EGLContext m_hwContext = EGL_NO_CONTEXT;
-    EGLSurface m_eglSurface = EGL_NO_SURFACE;
-
-    // Renderer
-    IRenderer *m_renderer = nullptr;
-
-    // Paths
     std::string m_systemDir;
     std::string m_saveDir;
     std::string m_gamePath;
 
-    // Configuration
     std::string GetConfigValue(const std::string &key, const std::string &defaultVal = "");
     void LoadConfig();
     std::map<std::string, std::string> m_configOptions;
     bool m_configLoaded = false;
-    
-    // OSD Notification State
+
     std::string m_osdMessage = "";
     int m_osdFrames = 0;
 
@@ -246,11 +231,11 @@ public:
     void PushRANotification(const std::string& title, const std::string& desc,
                            const std::string& badge = "");
     
-    // RA badge cache (badge_name -> GL texture)
-    std::map<std::string, unsigned int> m_raBadgeCache;
-    unsigned int m_raIconTexture = 0;        // ra.svg icon
+    // RA badge cache (badge_name -> texture)
+    std::map<std::string, ImTextureID> m_raBadgeCache;
+    ImTextureID m_raIconTexture = ImTextureID_Invalid; // ra.svg icon
     void LoadRAIcon();                        // load ra.svg as texture
-    unsigned int GetRABadgeTexture(const std::string& badge_name);
+    ImTextureID GetRABadgeTexture(const std::string& badge_name);
     void DownloadAndCacheBadge(const std::string& badge_name); // runs on worker
     void PreloadRABadges();                   // called after game identification
     std::vector<std::pair<std::string, std::vector<unsigned char>>> m_raPendingBadgeUploads;

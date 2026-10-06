@@ -162,6 +162,7 @@ void LibretroVulkanHostDisplay::EndSetDisplayPixels()
                                          static_cast<uint32_t>(m_display_texture_view_height));
 }
 
+#ifndef TICO_STANDALONE
 static bool RetroCreateVulkanDevice(struct retro_vulkan_context* context, VkInstance instance, VkPhysicalDevice gpu,
                                     VkSurfaceKHR surface, PFN_vkGetInstanceProcAddr get_instance_proc_addr,
                                     const char** required_device_extensions, unsigned num_required_device_extensions,
@@ -237,9 +238,21 @@ bool LibretroVulkanHostDisplay::RequestHardwareRendererContext(retro_hw_render_c
                                       &s_vulkan_context_negotiation_interface);
 }
 
+#endif
+
 bool LibretroVulkanHostDisplay::CreateRenderDevice(const WindowInfo& wi, std::string_view adapter_name,
                                                    bool debug_device, bool threaded_presentation)
 {
+#ifdef TICO_STANDALONE
+  // the frontend created the device (and g_vulkan_context) before booting
+  m_window_info = wi;
+  if (!g_vulkan_context)
+  {
+    Log_ErrorPrintf("No Vulkan context from the frontend");
+    return false;
+  }
+  return true;
+#else
   retro_hw_render_interface* ri = nullptr;
   if (!g_retro_environment_callback(RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE, &ri))
   {
@@ -263,6 +276,7 @@ bool LibretroVulkanHostDisplay::CreateRenderDevice(const WindowInfo& wi, std::st
   // TODO: Grab queue? it should be the same
   m_ri = reinterpret_cast<retro_hw_render_interface_vulkan*>(ri);
   return true;
+#endif
 }
 
 bool LibretroVulkanHostDisplay::InitializeRenderDevice(std::string_view shader_cache_directory, bool debug_device,
@@ -285,8 +299,11 @@ void LibretroVulkanHostDisplay::DestroyRenderDevice()
   DestroyResources();
 
   Vulkan::ShaderCache::Destroy();
+#ifndef TICO_STANDALONE
+  // with tico the context is the frontend's device, kept for the whole run
   Vulkan::Context::Destroy();
   Vulkan::ResetVulkanLibraryFunctionPointers();
+#endif
 }
 
 bool LibretroVulkanHostDisplay::CreateResources()
@@ -427,6 +444,10 @@ void LibretroVulkanHostDisplay::ResizeRenderWindow(int32_t new_window_width, int
 
 bool LibretroVulkanHostDisplay::ChangeRenderWindow(const WindowInfo& new_wi)
 {
+#ifdef TICO_STANDALONE
+  m_window_info = new_wi;
+  return true;
+#else
   // re-query hardware render interface - in vulkan, things get recreated without us being notified
   retro_hw_render_interface* ri = nullptr;
   if (!g_retro_environment_callback(RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE, &ri))
@@ -450,6 +471,7 @@ bool LibretroVulkanHostDisplay::ChangeRenderWindow(const WindowInfo& new_wi)
   }
 
   return true;
+#endif
 }
 
 bool LibretroVulkanHostDisplay::Render()
@@ -460,7 +482,12 @@ bool LibretroVulkanHostDisplay::Render()
   // gpu_hw_opengl.cpp::Render().
   if (!HasDisplayTexture())
   {
+#ifdef TICO_STANDALONE
+    if (g_tico_vulkan_frame)
+      g_tico_vulkan_frame(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+#else
     g_retro_video_refresh_callback(nullptr, 0, 0, 0);
+#endif
     return true;
   }
 
@@ -513,6 +540,14 @@ bool LibretroVulkanHostDisplay::Render()
   vkCmdEndRenderPass(cmdbuffer);
   m_frame_texture.TransitionToLayout(cmdbuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   m_frame_view.image_layout = m_frame_texture.GetLayout();
+#ifdef TICO_STANDALONE
+  // Same queue, same thread: the frontend samples the image in a later
+  // submission, which queue order runs after this one.
+  g_vulkan_context->SubmitCommandBuffer();
+  g_vulkan_context->MoveToNextCommandBuffer();
+  if (g_tico_vulkan_frame)
+    g_tico_vulkan_frame(m_frame_texture.GetImage(), m_frame_texture.GetView(), display_width, display_height);
+#else
   m_ri->set_image(m_ri->handle, &m_frame_view, 0, nullptr, VK_QUEUE_FAMILY_IGNORED);
 
   // TODO: We can't use this because it doesn't support passing fences...
@@ -523,6 +558,7 @@ bool LibretroVulkanHostDisplay::Render()
   g_vulkan_context->MoveToNextCommandBuffer();
 
   g_retro_video_refresh_callback(RETRO_HW_FRAME_BUFFER_VALID, display_width, display_height, 0);
+#endif
   return true;
 }
 

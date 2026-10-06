@@ -162,114 +162,15 @@ if(MSB_FIRST)
   add_definitions("-DMSB_FIRST=1")
 endif()
 
+# The standalone tico frontend (tico/, built by build_swanstation_nro.sh)
+# drives the core directly: the libretro glue is left out and the libretro
+# display classes compile out.
+option(TICO_STANDALONE "Build the core for the standalone tico frontend" OFF)
+if(TICO_STANDALONE)
+  add_definitions("-DTICO_STANDALONE")
+endif()
+
 # Recursively include the source tree.
 enable_testing()
 add_subdirectory(dep)
 add_subdirectory(src)
-
-option(USE_TICO "Build with tico overlay UI (requires LIBNX=ON)" OFF)
-
-if("${PLATFORM}" STREQUAL "libnx" AND USE_TICO)
-	add_executable(swanstation_tico
-		tico/TicoMain.cpp
-		tico/TicoCore.cpp
-		tico/TicoOverlay.cpp
-		tico/TicoStubs.cpp
-		tico/TicoTranslationManager.cpp
-		dep/imgui/imgui.cpp
-		dep/imgui/imgui_draw.cpp
-		dep/imgui/imgui_tables.cpp
-		dep/imgui/imgui_widgets.cpp
-		dep/imgui/backends/imgui_impl_sdl2.cpp
-		dep/imgui/backends/imgui_impl_opengl3.cpp
-		rcheevos/src/rcheevos/alloc.c
-		rcheevos/src/rcheevos/condition.c
-		rcheevos/src/rcheevos/condset.c
-		rcheevos/src/rcheevos/consoleinfo.c
-		rcheevos/src/rcheevos/format.c
-		rcheevos/src/rcheevos/lboard.c
-		rcheevos/src/rcheevos/memref.c
-		rcheevos/src/rcheevos/operand.c
-		rcheevos/src/rcheevos/rc_validate.c
-		rcheevos/src/rcheevos/richpresence.c
-		rcheevos/src/rcheevos/trigger.c
-		rcheevos/src/rcheevos/value.c
-		rcheevos/src/rcheevos/runtime.c
-		rcheevos/src/rcheevos/runtime_progress.c
-		rcheevos/src/rc_client.c
-		rcheevos/src/rc_client_raintegration.c
-		rcheevos/src/rc_compat.c
-		rcheevos/src/rc_util.c
-		rcheevos/src/rapi/rc_api_common.c
-		rcheevos/src/rapi/rc_api_editor.c
-		rcheevos/src/rapi/rc_api_info.c
-		rcheevos/src/rapi/rc_api_runtime.c
-		rcheevos/src/rapi/rc_api_user.c
-		rcheevos/src/rhash/cdreader.c
-		rcheevos/src/rhash/hash.c
-		rcheevos/src/rhash/hash_disc.c
-		rcheevos/src/rhash/hash_rom.c
-		rcheevos/src/rhash/md5.c
-		rcheevos/src/rhash/hash_zip.c
-		rcheevos/src/rhash/hash_encrypted.c
-		rcheevos/src/rhash/aes.c
-	)
-	
-	target_compile_definitions(swanstation_tico PRIVATE 
-		LIBRETRO HAVE_LIBNX HAVE_OPENGL USE_TICO USE_SDL USE_SDL_AUDIO
-		IMGUI_IMPL_OPENGL_LOADER_CUSTOM HAVE_EGL
-		IMGUI_DISABLE_DEFAULT_SHELL_FUNCTIONS IMGUI_DEFINE_MATH_OPERATORS
-		__SWITCH__ RC_CLIENT_SUPPORTS_HASH)
-		
-	target_include_directories(swanstation_tico PRIVATE 
-		tico
-		"dep/libretro-common/include"
-		"dep/nlohmann"
-    "dep/imgui"
-    "dep/imgui/backends"
-    "rcheevos/include")
-		
-    find_package(SDL2 REQUIRED)
-    target_include_directories(swanstation_tico PRIVATE ${SDL2_INCLUDE_DIRS})
-		
-    # link against the core library, glad, SDL2, and custom Mesa EGL libraries
-	set(MESA_DIR "/mesa-new")
-	set(MESA_LIBRARIES 
-    ${MESA_DIR}/src/egl/libEGL.a
-    ${MESA_DIR}/src/mapi/es2api/libGLESv2.a
-    ${MESA_DIR}/src/mapi/shared-glapi/libglapi.a
-    ${MESA_DIR}/src/gallium/drivers/nouveau/libnouveau.a
-    ${MESA_DIR}/src/nouveau/codegen/libnouveau_codegen.a
-    ${MESA_DIR}/src/gallium/winsys/nouveau/switch/libnouveauwinsys.a
-    ${MESA_DIR}/libdrm_nouveau/lib/libdrm_nouveau.a
-	)
-
-	# Satisfy the internal dependencies that were previously manually merged
-	set(INTERNAL_DEPS core common libretro-common libchdr zlib xxhash zstd lzma stb)
-	foreach(DEP glslang SPIRV)
-		if(TARGET ${DEP})
-			list(APPEND INTERNAL_DEPS ${DEP})
-		endif()
-	endforeach()
-
-  target_link_libraries(swanstation_tico PRIVATE swanstation_libretro glad -lSDL2_mixer -lmpg123 -lmodplug -lopusfile -lopus -lvorbisidec -logg SDL2 -lcurl -lmbedtls -lmbedx509 -lmbedcrypto ${MESA_LIBRARIES} ${INTERNAL_DEPS} -lzstd)
-
-	# Setup ROMFS with assets from main project
-	set(ROMFS_DIR "${CMAKE_CURRENT_BINARY_DIR}/romfs")
-	file(MAKE_DIRECTORY ${ROMFS_DIR})
-	
-	# Copy fonts and images from tico-Refactored/assets
-	file(COPY "${CMAKE_SOURCE_DIR}/tico/fonts" DESTINATION ${ROMFS_DIR})
-	file(COPY "${CMAKE_SOURCE_DIR}/tico/lang" DESTINATION ${ROMFS_DIR})
-	file(MAKE_DIRECTORY "${ROMFS_DIR}/assets")
-	file(COPY "${CMAKE_SOURCE_DIR}/tico/assets/trophy.mp3" DESTINATION "${ROMFS_DIR}/assets")
-	file(COPY "${CMAKE_SOURCE_DIR}/tico/assets/ra.svg" DESTINATION "${ROMFS_DIR}/assets")
-	
-	# Generate NRO
-	nx_generate_nacp(swanstation_tico.nacp
-		NAME "Swanstation"
-		AUTHOR "libretro"
-		VERSION "1.0.0"
-	)
-	nx_create_nro(swanstation_tico NACP swanstation_tico.nacp ROMFS ${ROMFS_DIR})
-endif()

@@ -10,9 +10,17 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#ifdef __SWITCH__
+#include <switch.h>
+#include <switch/kernel/mutex.h>
+#include <switch/kernel/condvar.h>
+extern "C" {
+
+}
+#endif
 #include "TicoLogger.h"
 
-/// Thread-safe lock-free ring buffer for audio samples
+/// @brief Thread-safe lock-free SPSC ring buffer for audio samples
 template <typename T>
 class TicoRingBuffer
 {
@@ -97,18 +105,26 @@ private:
     std::atomic<size_t> m_tail;
 };
 
-/// Audio manager for libretro cores
-/// Uses Mix_HookMusic for callback-based audio with natural backpressure
+/// @brief Audio manager for libretro cores
+/// @details Uses Mix_HookMusic callback with ring buffer and optional resampling
 class TicoAudio
 {
 public:
-    static constexpr int SAMPLE_RATE = 44100;
+    static constexpr int SAMPLE_RATE = 48000;
     static constexpr int CHANNELS = 2;
-    static constexpr size_t BUFFER_SIZE = SAMPLE_RATE * 4; // ~4 seconds buffer (RingBuffer capacity)
-    static constexpr size_t QUEUE_THRESHOLD = 4096 * 2;    // ~46ms latency target (SDL_QueueAudio)
+    static constexpr size_t BUFFER_SIZE = SAMPLE_RATE * 6;
+    
+    // Strict 50ms latency target to prevent cumulative audio delay
+    static constexpr size_t MAX_BUFFERED_SAMPLES = (SAMPLE_RATE * 50 / 1000) * CHANNELS; // 50ms (4410 samples)
+    static constexpr size_t SDL_QUEUE_MAX_BYTES = MAX_BUFFERED_SAMPLES * sizeof(int16_t);
 
     TicoAudio() : m_buffer(BUFFER_SIZE), m_resampler(nullptr), m_deviceId(0),
-                  m_initialized(false), m_paused(false), m_coreSampleRate(SAMPLE_RATE) {}
+                  m_initialized(false), m_paused(false), m_fastForward(false), m_coreSampleRate(SAMPLE_RATE) {
+#ifdef __SWITCH__
+        mutexInit(&m_audioMutex);
+        condvarInit(&m_audioCond);
+#endif
+    }
 
     ~TicoAudio()
     {
@@ -129,13 +145,11 @@ public:
                 return false;
             }
             m_deviceId = deviceId;
-            SDL_PauseAudioDevice(m_deviceId, 0); // Unpause
+            SDL_PauseAudioDevice(m_deviceId, 0);
             LOG_AUDIO("Initialized with SDL_QueueAudio (Push)");
         }
         else
         {
-            // SDL_mixer should already be initialized by the app
-            // Hook our audio callback
             Mix_HookMusic(AudioCallback, this);
             LOG_AUDIO("Initialized with callback-based audio");
         }
@@ -180,12 +194,11 @@ public:
         int coreSR = static_cast<int>(sampleRate);
         if (coreSR == m_coreSampleRate && m_resampler != nullptr)
         {
-            return; // No change needed
+            return;
         }
 
         m_coreSampleRate = coreSR;
 
-        // Recreate resampler if sample rates differ
         if (m_resampler)
         {
             SDL_FreeAudioStream(m_resampler);
@@ -210,23 +223,25 @@ public:
         if (!m_initialized)
             return;
 
+        if (m_fastForward)
+            return; // Drop audio completely during fast forward to prevent desync/memory bleed
+
+        // Non-blocking: never stall the emulation thread on audio. If the buffer
+        // is full (latency cap reached) drop the sample — vsync paces the frame,
+        // not audio back-pressure.
         if (TicoConfig::USE_SDLQUEUEAUDIO)
         {
-            // Block if queue full (backpressure)
-            while (SDL_GetQueuedAudioSize(m_deviceId) > QUEUE_THRESHOLD && !m_paused)
-            {
-                SDL_Delay(1);
-            }
+            if (SDL_GetQueuedAudioSize(m_deviceId) >= SDL_QUEUE_MAX_BYTES)
+                return;
+
             int16_t samples[2] = {left, right};
             SDL_QueueAudio(m_deviceId, samples, sizeof(samples));
         }
         else
         {
-            // Block if buffer is full (backpressure)
-            while (m_buffer.GetAvailableWrite() < 2 && !m_paused)
-            {
-                SDL_Delay(1);
-            }
+            if (m_buffer.Available() >= MAX_BUFFERED_SAMPLES)
+                return;
+
             int16_t samples[2] = {left, right};
             m_buffer.Write(samples, 2);
         }
@@ -238,31 +253,32 @@ public:
         if (!m_initialized || !data || frames == 0)
             return 0;
 
+        if (m_fastForward)
+            return frames;
+
         size_t samplesNeeded = frames * CHANNELS;
 
+        // Non-blocking: drop the batch if the buffer is at the latency cap rather
+        // than stalling the emulation thread. The ring buffer's Write() also
+        // self-limits to free space, so partial writes degrade gracefully.
         if (TicoConfig::USE_SDLQUEUEAUDIO)
         {
-            // Block if queue full (backpressure)
-            while (SDL_GetQueuedAudioSize(m_deviceId) > QUEUE_THRESHOLD && !m_paused)
-            {
-                SDL_Delay(1);
-            }
+            if (SDL_GetQueuedAudioSize(m_deviceId) >= SDL_QUEUE_MAX_BYTES)
+                return frames;
+
             SDL_QueueAudio(m_deviceId, data, samplesNeeded * sizeof(int16_t));
         }
         else
         {
-            // Block if buffer is full (backpressure)
-            while (m_buffer.GetAvailableWrite() < samplesNeeded && !m_paused)
-            {
-                SDL_Delay(1);
-            }
+            if (m_buffer.Available() >= MAX_BUFFERED_SAMPLES)
+                return frames;
+
             m_buffer.Write(data, samplesNeeded);
         }
         return frames;
     }
 
-    /// Flush/clear the audio buffer (for state loading, etc.)
-    /// Flush/clear the audio buffer (for state loading, etc.)
+    /// Flush/clear the audio buffer
     void Flush()
     {
         if (TicoConfig::USE_SDLQUEUEAUDIO)
@@ -284,8 +300,12 @@ public:
     void SetPaused(bool paused) { m_paused = paused; }
     bool IsPaused() const { return m_paused; }
 
+    /// Enable/disable fast forward
+    void SetFastForward(bool ff) { m_fastForward = ff; }
+    bool IsFastForwarding() const { return m_fastForward; }
+
 private:
-    /// SDL_mixer callback - pulls audio when needed
+    /// @brief SDL_mixer pull callback — reads from ring buffer with optional resampling
     static void AudioCallback(void *userdata, uint8_t *stream, int len)
     {
         TicoAudio *self = static_cast<TicoAudio *>(userdata);
@@ -295,48 +315,68 @@ private:
             return;
         }
 
-        // Read from ring buffer
-        size_t available = self->m_buffer.Available();
-        if (available > 4096)
-            available = 4096; // Limit batch size
-
-        if (available > 0)
+#ifdef __SWITCH__
+        static thread_local bool s_audioThreadPinned = false;
+        if (!s_audioThreadPinned)
         {
-            int16_t tempBuf[4096];
-            size_t read = self->m_buffer.Read(tempBuf, available);
-
-            // Feed to resampler or directly to stream
-            if (self->m_resampler)
-            {
-                SDL_AudioStreamPut(self->m_resampler, tempBuf, read * sizeof(int16_t));
-            }
-            else
-            {
-                // No resampling needed - copy directly
-                size_t bytesToCopy = std::min(read * sizeof(int16_t), static_cast<size_t>(len));
-                memcpy(stream, tempBuf, bytesToCopy);
-                if (bytesToCopy < static_cast<size_t>(len))
-                {
-                    memset(stream + bytesToCopy, 0, len - bytesToCopy);
-                }
-                return;
-            }
+            const int preferredCore = 1;
+            Result rc = svcSetThreadCoreMask(CUR_THREAD_HANDLE, preferredCore, 1u << preferredCore);
+            if (R_SUCCEEDED(rc))
+                LOG_AUDIO("Pinned audio callback thread to core %d", preferredCore);
+            s_audioThreadPinned = true;
         }
+#endif
 
-        // Get resampled data
-        int bytesRead = 0;
+        memset(stream, 0, len);
+
+        size_t bytesRead = 0;
+        const size_t requestedSamples = static_cast<size_t>(len) / sizeof(int16_t);
+
         if (self->m_resampler)
         {
-            bytesRead = SDL_AudioStreamGet(self->m_resampler, stream, len);
+            int availableBytes = SDL_AudioStreamAvailable(self->m_resampler);
+
+            while (availableBytes < len)
+            {
+                int16_t tempBuf[4096];
+                size_t bufferedSamples = self->m_buffer.Available();
+                size_t toRead = std::min(bufferedSamples, sizeof(tempBuf) / sizeof(tempBuf[0]));
+                if (toRead == 0)
+                    break;
+
+                size_t read = self->m_buffer.Read(tempBuf, toRead);
+                if (read == 0)
+                    break;
+
+                SDL_AudioStreamPut(self->m_resampler, tempBuf, read * sizeof(int16_t));
+                availableBytes = SDL_AudioStreamAvailable(self->m_resampler);
+            }
+
+            int resampled = SDL_AudioStreamGet(self->m_resampler, stream, len);
+            if (resampled > 0)
+                bytesRead = static_cast<size_t>(resampled);
+        }
+        else
+        {
+            size_t bufferedSamples = self->m_buffer.Available();
+            size_t toRead = std::min(bufferedSamples, requestedSamples);
+            size_t read = self->m_buffer.Read(reinterpret_cast<int16_t *>(stream), toRead);
+            bytesRead = read * sizeof(int16_t);
         }
 
-        // Fill underflow with silence
-        if (bytesRead < len)
+        if (bytesRead < static_cast<size_t>(len) && !self->m_paused)
         {
-            if (bytesRead < 0)
-                bytesRead = 0;
-            memset(stream + bytesRead, 0, len - bytesRead);
+            uint32_t underrunCount = self->m_underrunCount.fetch_add(1, std::memory_order_relaxed) + 1;
+            if ((underrunCount % 120) == 1)
+            {
+                LOG_WARN("AUDIO", "Audio underrun #%u (requested=%d bytes, provided=%zu bytes, buffered=%zu samples)",
+                         underrunCount, len, bytesRead, self->m_buffer.Available());
+            }
         }
+
+#ifdef __SWITCH__
+        condvarWakeAll(&self->m_audioCond);
+#endif
     }
 
     TicoRingBuffer<int16_t> m_buffer;
@@ -344,5 +384,12 @@ private:
     SDL_AudioDeviceID m_deviceId;
     bool m_initialized;
     bool m_paused;
+    bool m_fastForward;
     int m_coreSampleRate;
+    std::atomic<uint32_t> m_underrunCount{0};
+
+#ifdef __SWITCH__
+    Mutex m_audioMutex;
+    CondVar m_audioCond;
+#endif
 };

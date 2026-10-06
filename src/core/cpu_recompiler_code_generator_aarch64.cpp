@@ -2241,17 +2241,14 @@ CodeCache::DispatcherFunction CodeGenerator::CompileDispatcher()
   m_emit->ldr(a64::w8, a64::MemOperand(GetHostReg64(RCPUPTR), offsetof(State, regs.pc)));
 
   // x9 <- s_fast_map[pc >> 16]
-  // EmitLoadGlobalAddress(10, CodeCache::GetFastMapPointer());
-  // m_emit->lsr(a64::w9, a64::w8, 16);
-  // m_emit->lsr(a64::w8, a64::w8, 2);
-  // m_emit->ldr(a64::x9, a64::MemOperand(a64::x10, a64::x9, a64::LSL, 3));
+  EmitLoadGlobalAddress(10, CodeCache::GetFastMapPointer());
+  m_emit->lsr(a64::w9, a64::w8, 16);
+  m_emit->lsr(a64::w8, a64::w8, 2);
+  m_emit->ldr(a64::x9, a64::MemOperand(a64::x10, a64::x9, a64::LSL, 3));
 
-  // blr(x9[pc * 2]) (fast_map[pc >> 2])
-  // m_emit->ldr(a64::x8, a64::MemOperand(a64::x9, a64::x8, a64::LSL, 3));
-  // m_emit->blr(a64::x8);
-
-  // DEBUG: Bypass FastMap and always call FastCompileBlockFunction
-  EmitCall(reinterpret_cast<const void*>(&CodeCache::FastCompileBlockFunction));
+  // blr(x9[pc * 2]) (fast_map[pc >> 2]); the map holds RX code pointers
+  m_emit->ldr(a64::x8, a64::MemOperand(a64::x9, a64::x8, a64::LSL, 3));
+  m_emit->blr(a64::x8);
 
   // end while
   m_emit->Bind(&downcount_hit);

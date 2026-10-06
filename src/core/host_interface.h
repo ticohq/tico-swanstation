@@ -164,6 +164,13 @@ public:
   /// Checks and fixes up any incompatible settings.
   void FixIncompatibleSettings(bool display_osd_messages);
 
+#ifdef TICO_STANDALONE
+  // The standalone tico frontend (tico/swan/SwanHost.cpp): settings come from
+  // its config instead of retro_variables.
+  void ReloadSettingsForBoot();
+  void ApplyFrontendSettings();
+#endif
+
   /// Checks for settings changes, std::move() the old settings away for comparing beforehand.
   void CheckForSettingsChanges(const Settings& old_settings);
 

@@ -1,16 +1,25 @@
-/// @file Logger.h
+/// @file TicoLogger.h
+/// @brief Category-filtered logging system with file output on Switch
 #pragma once
 #include <cstdarg>
 #include <cstdio>
 #include <string>
 #include <unordered_map>
 
+#ifdef __SWITCH__
+#include <sys/stat.h>
+#endif
+
+/// @brief Singleton logger with per-category filtering and log levels
 class Logger {
 public:
+  /// @brief Log severity levels
   enum class Level { DEBUG, INFO, WARNING, ERROR };
+
+  /// @brief Flags to control log output behavior
   enum Flags : uint32_t {
     None = 0,
-    SwitchOnly = 1 << 0 // Log only on Switch
+    SwitchOnly = 1 << 0
   };
 
   static Logger &Instance() {
@@ -18,7 +27,7 @@ public:
     return instance;
   }
 
-  // Enable/disable categories at runtime
+  /// @brief Enable or disable a logging category at runtime
   void EnableCategory(const std::string &category, bool enabled = true) {
     m_categoryStates[category] = enabled;
   }
@@ -32,7 +41,7 @@ public:
     if (it != m_categoryStates.end()) {
       return it->second;
     }
-    return true; // Default: enabled if not explicitly set
+    return true;
   }
 
   void Log(Level level, const char *category, uint32_t flags,
@@ -40,20 +49,20 @@ public:
 #ifdef DISABLE_LOGGING
     return;
 #endif
-    // Check flags
     if (flags & SwitchOnly) {
 #ifndef __SWITCH__
       return; // Skip if not on Switch
 #endif
     }
 
-    // Check if category is enabled
     if (!IsCategoryEnabled(category)) {
       return;
     }
 
 #ifdef __SWITCH__
     if (!m_file) {
+      mkdir("sdmc:/tico", 0777);
+      mkdir("sdmc:/tico/debug", 0777);
       m_file = fopen("sdmc:/tico/debug/swanstation.txt", "a");
     }
     if (!m_file)
@@ -67,7 +76,7 @@ public:
     va_end(args);
 
     fprintf(m_file, "\n");
-    fflush(m_file); // Ensure writes in case of crash
+    fflush(m_file);
 #else
     printf("[%s][%s] ", LevelToString(level), category);
 
@@ -80,8 +89,20 @@ public:
 #endif
   }
 
-  // Set minimum log level
+  /// @brief Set minimum log level threshold
   void SetMinLevel(Level level) { m_minLevel = level; }
+
+  void ResetLogFile() {
+#ifdef __SWITCH__
+    if (m_file) {
+      fflush(m_file);
+      fclose(m_file);
+      m_file = nullptr;
+    }
+#endif
+  }
+
+  void CloseLogFile() { ResetLogFile(); }
 
   bool ShouldLog(Level level) const {
 #ifdef DISABLE_LOGGING
@@ -91,11 +112,7 @@ public:
   }
 
   ~Logger() {
-#ifdef __SWITCH__
-    if (m_file) {
-      fclose(m_file);
-    }
-#endif
+    ResetLogFile();
   }
 
 private:
@@ -103,26 +120,21 @@ private:
 #ifdef __SWITCH__
     m_file = nullptr;
 #endif
-    // Initialize default category states
     InitializeCategories();
   }
 
   void InitializeCategories() {
-    // Configure which categories are enabled by default
-    // You can change these at compile time or runtime
 #ifdef _DEBUG
     m_categoryStates["EGL"] = true;
     m_categoryStates["CORE"] = true;
-    m_categoryStates["RENDER"] = false; // Disable noisy render logs
+    m_categoryStates["RENDER"] = false;
     m_categoryStates["INPUT"] = true;
     m_categoryStates["AUDIO"] = true;
     m_categoryStates["LOADER"] = true;
     m_categoryStates["EMULATOR"] = true;
     m_categoryStates["HOME"] = true;
 #else
-    // Release build: only errors and warnings
-    m_categoryStates["EGL"] =
-        true; // Enabled for now based on user debugging needs
+    m_categoryStates["EGL"] = true;
     m_categoryStates["CORE"] = true;
     m_categoryStates["RENDER"] = false;
     m_categoryStates["INPUT"] = false;
@@ -156,7 +168,9 @@ private:
 #endif
 };
 
-// Convenience macros with category filtering built-in
+/// @name Log macros
+/// @brief Convenience macros with category filtering
+/// @{
 #ifdef DISABLE_LOGGING
 #define LOG_DEBUG(cat, ...)                                                    \
   do {                                                                         \
@@ -219,7 +233,7 @@ private:
     }                                                                          \
   } while (0)
 
-// Macros with flags support
+/// @name Flag-aware log macros
 #define LOG_DEBUG_FLAGS(flags, cat, ...)                                       \
   do {                                                                         \
     if (Logger::Instance().IsCategoryEnabled(cat) &&                           \
@@ -253,7 +267,7 @@ private:
   } while (0)
 #endif
 
-// Category-specific convenience macros (optional)
+/// @name Category-specific shorthand macros
 #define LOG_EGL(...) LOG_DEBUG("EGL", __VA_ARGS__)
 #define LOG_CORE(...) LOG_DEBUG("CORE", __VA_ARGS__)
 #define LOG_RENDER(...) LOG_DEBUG("RENDER", __VA_ARGS__)

@@ -17,6 +17,13 @@
 #define HAVE_VULKAN
 #include <libretro_vulkan.h>
 
+#ifdef TICO_STANDALONE
+// The standalone tico frontend renders on the same device: Render() hands it
+// each finished frame (an image in SHADER_READ_ONLY_OPTIMAL, width x height),
+// or a null image when the last one should be shown again.
+extern void (*g_tico_vulkan_frame)(VkImage image, VkImageView view, uint32_t width, uint32_t height);
+#endif
+
 class LibretroVulkanHostDisplay final : public HostDisplay
 {
 public:

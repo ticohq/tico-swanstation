@@ -159,7 +159,9 @@ int mprotect(void *addr, size_t len, int prot)
    return 0;
 }
 
-#elif !defined(HAVE_MMAN)
+#elif !defined(HAVE_MMAN) && !defined(TICO_STANDALONE)
+/* (The standalone tico build links Mesa, whose Horizon port provides
+ * mmap/munmap for its own mappings; nothing here uses the shim.) */
 void* mmap(void *addr, size_t len, int prot, int flags,
       int fildes, size_t offset)
 {

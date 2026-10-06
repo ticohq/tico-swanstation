@@ -1,0 +1,11 @@
+{
+  "core_id": "swanstation",
+  "display_name": "SwanStation",
+  "config_file": "swanstation.jsonc",
+  "slugs": [
+    "psx"
+  ],
+  "bool_true_value": "true",
+  "bool_false_value": "false",
+  "tabs": []
+}

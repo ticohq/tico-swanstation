@@ -1,0 +1,44 @@
+{
+  "id": "swanstation",
+  "name": "SwanStation",
+  "nro": "tico-swanstation.nro",
+  "launch": "\"{nro}\" \"{slug}\" \"{rom}\" \"{title}\"",
+  "settings": "config/modules/swanstation/settings.json",
+  "config_file": "swanstation.jsonc",
+  "is_libretro": true,
+  "achievements": true,
+  "systems": [
+    {
+      "slug": "psx",
+      "title": "PlayStation",
+      "short_title": "PSX",
+      "extensions": [
+        ".cue",
+        ".chd",
+        ".iso",
+        ".m3u",
+        ".pbp",
+        ".ecm",
+        ".exe",
+        ".psexe",
+        ".psf"
+      ],
+      "disc_based": true,
+      "naming": "redump",
+      "games_file": "psx.json",
+      "retroachievements_id": 12,
+      "bios": [
+        {
+          "any_of_size": 524288,
+          "example": "scph5501.bin"
+        }
+      ],
+      "colors": {
+        "start": "9FA8B8",
+        "end": "7A6FE6",
+        "start_dark": "727985",
+        "end_dark": "574FA8"
+      }
+    }
+  ]
+}

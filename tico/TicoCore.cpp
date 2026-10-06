@@ -1,21 +1,36 @@
 /// @file TicoCore.cpp
-/// @brief Simplified libretro frontend for swanstation with tico overlay
-/// Based on LibretroCoreStatic.cpp but stripped of multi-core switching
+/// @brief SwanStation driven directly (SwanHost), with the tico overlay.
+/// Frames go to TicoShaderChain (software pixels, or the Vulkan renderer's
+/// image on the shared device); memory card 1 is kept as <game>.mcd.
 
 #include "TicoCore.h"
+#include "TicoVulkan.h"
+#include "swan/SwanHost.h"
+#include "common/byte_stream.h"
+#include "core/bus.h"
+#include "core/cheats.h"
+#include "core/cpu_core.h"
+#include "core/host_interface.h"
+#include "core/memory_card.h"
+#include "core/pad.h"
+#include "core/settings.h"
+#include "core/system.h"
+#include "libretro/libretro_audio_stream.h"
 #include "TicoConfig.h"
+#include "TicoSafeFile.h"
+#include "TicoUtils.h"
+#include <algorithm>
 #include <json.hpp>
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <cstring>
+#include <ctime>
 #include <fstream>
-#include <iostream>
-#include <EGL/egl.h>
-#include <GLES2/gl2.h>
-#include <glad/glad.h>
-#include <stdarg.h>
 #include <string.h>
-#include <stdio.h> // Keep this from original
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <vector>
 #include "TicoLogger.h"
 
 // RetroAchievements
@@ -24,154 +39,93 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <vector>
+#include "TicoLogger.h"
 #include "deps/stb/stb_image.h"
+
+
 
 #ifdef __SWITCH__
 #include <switch.h>
 
-// Global vibration state for Switch
-// Index: 0=Handheld, 1=P1, 2=P2, 3=P3, 4=P4
+/// @brief Switch vibration handles and state
 static HidVibrationDeviceHandle s_vibrationHandles[5][2] = {};
 static HidVibrationValue s_currentVibration[5][2] = {};
 static bool s_vibrationInitialized = false;
-
-#else
-#include <glad/glad.h>
 #endif
 
-//==============================================================================
-// SRAM Handling
-//==============================================================================
 
-void TicoCore::LoadSRAM()
+
+#define tico_debug_log(...) LOG_CORE(__VA_ARGS__)
+
+// Earlier versions kept in backups/ beside each file: the last few sessions'
+// saves, and the state each slot held before it was saved over.
+static constexpr int kSaveBackups = 3;
+static constexpr int kStateBackups = 1;
+
+// Memory card 1 with the "Libretro" type is the frontend's to keep, as
+// <game>.mcd beside the other saves (a raw 128 KB card image, the format
+// RetroArch's .srm uses too).
+static MemoryCardImage::DataArray *FrontendCard()
 {
-    size_t size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-    if (!size)
-        return;
-
-    void *data = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-    if (!data)
-        return;
-
-    // Extract ROM name
-    std::string filename = m_gamePath;
-    size_t lastSlash = filename.find_last_of("/\\");
-    if (lastSlash != std::string::npos)
-        filename = filename.substr(lastSlash + 1);
-    size_t lastDot = filename.find_last_of(".");
-    if (lastDot != std::string::npos)
-        filename = filename.substr(0, lastDot);
-
-    std::string savePathMCD = std::string(TicoConfig::SAVES_PATH) + filename + ".mcd";
-    std::string savePathMCR = std::string(TicoConfig::SAVES_PATH) + filename + ".mcr";
-    std::string savePathSRM = std::string(TicoConfig::SAVES_PATH) + filename + ".srm";
-
-    std::ifstream file(savePathMCD, std::ios::binary);
-    if (file)
-    {
-        file.read((char *)data, size);
-        LOG_CORE("Loaded SRAM from %s", savePathMCD.c_str());
-        return;
-    }
-
-    file.open(savePathMCR, std::ios::binary);
-    if (file)
-    {
-        file.read((char *)data, size);
-        LOG_CORE("Loaded SRAM from %s", savePathMCR.c_str());
-        return;
-    }
-
-    file.open(savePathSRM, std::ios::binary);
-    if (file)
-    {
-        file.read((char *)data, size);
-        LOG_CORE("Loaded SRAM from %s", savePathSRM.c_str());
-        return;
-    }
-
-    LOG_WARN("CORE", "No SRAM file found (.mcd, .mcr, or .srm) at %s", TicoConfig::SAVES_PATH);
+    if (!System::IsValid() || g_settings.memory_card_types[0] != MemoryCardType::Libretro)
+        return nullptr;
+    MemoryCard *card = g_pad.GetMemoryCard(0);
+    return card ? &card->GetData() : nullptr;
 }
 
-void TicoCore::SaveSRAM()
+static std::string SaveBase(const std::string &gamePath)
 {
-    size_t size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-    if (!size)
-        return;
-
-    void *data = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-    if (!data)
-        return;
-
-    // Extract ROM name
-    std::string filename = m_gamePath;
-    size_t lastSlash = filename.find_last_of("/\\");
+    std::string filename = gamePath;
+    const size_t lastSlash = filename.find_last_of("/\\");
     if (lastSlash != std::string::npos)
         filename = filename.substr(lastSlash + 1);
-    size_t lastDot = filename.find_last_of(".");
+    const size_t lastDot = filename.find_last_of('.');
     if (lastDot != std::string::npos)
         filename = filename.substr(0, lastDot);
+    return TicoConfig::SavesPath() + filename;
+}
 
-    // Ensure directory exists
-    struct stat st = {0};
-    if (stat(TicoConfig::SAVES_PATH, &st) == -1)
+void TicoCore::LoadSaveData()
+{
+    MemoryCardImage::DataArray *card = FrontendCard();
+    if (!card)
+        return;
+    for (const char *ext : {".mcd", ".srm"})
     {
-#ifdef __SWITCH__
-        mkdir(TicoConfig::SAVES_PATH, 0777);
-#else
-        mkdir(TicoConfig::SAVES_PATH, 0777);
-#endif
+        const std::string path = SaveBase(m_gamePath) + ext;
+        std::ifstream file(path, std::ios::binary);
+        if (file && file.read(reinterpret_cast<char *>(card->data()), card->size()))
+        {
+            tico_debug_log("Loaded memory card from %s", path.c_str());
+            m_savedCard.assign(card->begin(), card->end());
+            return;
+        }
     }
+}
 
-    std::string savePath = std::string(TicoConfig::SAVES_PATH) + filename + ".mcd";
-
-    std::ofstream file(savePath, std::ios::binary);
-    if (file)
+void TicoCore::SaveSaveData()
+{
+    MemoryCardImage::DataArray *card = FrontendCard();
+    if (!card)
+        return;
+    // unchanged since it was loaded or last written
+    if (m_savedCard.size() == card->size() && std::equal(card->begin(), card->end(), m_savedCard.begin()))
+        return;
+    TicoConfig::MakeDirs(TicoConfig::SavesPath());
+    const std::string path = SaveBase(m_gamePath) + ".mcd";
+    if (TicoSafeFile::Write(path, card->data(), card->size(), kSaveBackups))
     {
-        file.write((const char *)data, size);
-        LOG_CORE("Saved SRAM to %s", savePath.c_str());
+        m_savedCard.assign(card->begin(), card->end());
+        tico_debug_log("Saved memory card to %s", path.c_str());
     }
     else
-    {
-        LOG_ERROR("CORE", "Failed to save SRAM to %s", savePath.c_str());
-    }
+        tico_debug_log("ERROR: could not save memory card to %s", path.c_str());
 }
-
-// Include libretro API
-#include "libretro.h"
-
-// Forward declarations for swanstation core functions
-extern "C"
-{
-    void retro_init(void);
-    void retro_deinit(void);
-    void retro_set_environment(retro_environment_t);
-    void retro_set_video_refresh(retro_video_refresh_t);
-    void retro_set_audio_sample(retro_audio_sample_t);
-    void retro_set_audio_sample_batch(retro_audio_sample_batch_t);
-    void retro_set_input_poll(retro_input_poll_t);
-    void retro_set_input_state(retro_input_state_t);
-    void retro_get_system_info(struct retro_system_info *info);
-    void retro_get_system_av_info(struct retro_system_av_info *info);
-    void retro_set_controller_port_device(unsigned port, unsigned device);
-    void retro_reset(void);
-    void retro_run(void);
-    bool retro_load_game(const struct retro_game_info *game);
-    void retro_unload_game(void);
-    size_t retro_serialize_size(void);
-    bool retro_serialize(void *data, size_t size);
-    bool retro_unserialize(const void *data, size_t size);
-    void *retro_get_memory_data(unsigned id);
-    size_t retro_get_memory_size(unsigned id);
-}
-
-
 
 // Static instance for callbacks
 static TicoCore *s_instance = nullptr;
+static const char *RAUserAgent();
 
-// HW render callback storage
-static retro_hw_render_callback s_hwRenderCallback = {};
 
 //==============================================================================
 // RetroAchievements Callbacks
@@ -180,26 +134,20 @@ static uint32_t RC_CCONV RAReadMemory(uint32_t address, uint8_t* buffer, uint32_
 {
     if (!s_instance) return 0;
     
-    // Check memory maps provided by RETRO_ENVIRONMENT_SET_MEMORY_MAPS
-    if (!s_instance->m_memoryMaps.empty()) {
-        for (const auto& map : s_instance->m_memoryMaps) {
-            if (address >= map.start && address + num_bytes <= map.start + map.length) {
-                memcpy(buffer, map.ptr + (address - map.start), num_bytes);
-                return num_bytes;
-            }
-        }
+    // rcheevos' PlayStation map: 2 MB of RAM at 0, the 1 KB scratchpad at 0x200000
+    if (!System::IsValid())
         return 0;
-    }
-    
-    // Fallback if no memory maps
-    uint8_t* wram = (uint8_t*)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
-    size_t wram_size = retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
-    if (wram && address + num_bytes <= wram_size) {
-        memcpy(buffer, wram + address, num_bytes);
+    if (address < 0x200000) {
+        if (address + num_bytes > Bus::g_ram_size)
+            return 0;
+        memcpy(buffer, Bus::g_ram + address, num_bytes);
         return num_bytes;
     }
-    
-    return 0;
+    const uint32_t offset = address - 0x200000;
+    if (offset + num_bytes > CPU::g_state.dcache.size())
+        return 0;
+    memcpy(buffer, CPU::g_state.dcache.data() + offset, num_bytes);
+    return num_bytes;
 }
 
 static size_t CurlWriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
@@ -207,8 +155,10 @@ static size_t CurlWriteCallback(void *contents, size_t size, size_t nmemb, void 
     return size * nmemb;
 }
 
+// Persistent RA worker thread entry point
 void TicoCore::RAWorkerEntry(void* arg) {
     TicoCore* self = (TicoCore*)arg;
+    
     while (true) {
         RAJob job;
         {
@@ -216,21 +166,33 @@ void TicoCore::RAWorkerEntry(void* arg) {
             self->m_raJobCond.wait(lock, [self]() {
                 return !self->m_raJobQueue.empty() || !self->m_raWorkerRunning;
             });
-            if (!self->m_raWorkerRunning && self->m_raJobQueue.empty()) break;
+            
+            if (!self->m_raWorkerRunning && self->m_raJobQueue.empty())
+                break;
+            
             job = std::move(self->m_raJobQueue.front());
             self->m_raJobQueue.pop_front();
         }
+        
+        // Handle badge download jobs specially
         if (job.url == "__badge__") {
             self->DownloadAndCacheBadge(job.post_data);
             continue;
         }
+        
+        // Do the HTTP request on this worker thread
         CURL *curl = curl_easy_init();
         std::string readBuffer;
         long http_code = 0;
+        std::string errorMsg;
         std::string requestUrl = job.url;
+        
         if (curl) {
             curl_easy_setopt(curl, CURLOPT_URL, job.url.c_str());
-            if (!job.post_data.empty()) curl_easy_setopt(curl, CURLOPT_POSTFIELDS, job.post_data.c_str());
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, RAUserAgent());
+            if (!job.post_data.empty()) {
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, job.post_data.c_str());
+            }
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -238,22 +200,40 @@ void TicoCore::RAWorkerEntry(void* arg) {
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
             curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
             curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+            
             CURLcode res = curl_easy_perform(curl);
-            if (res == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-            else http_code = 500;
+            if (res == CURLE_OK) {
+                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            } else {
+                errorMsg = curl_easy_strerror(res);
+                http_code = 500;
+            }
             curl_easy_cleanup(curl);
         }
+        
+        // Queue result callback for main thread
         {
             std::lock_guard<std::mutex> lock(self->m_raCallbackMutex);
-            self->m_raPendingCallbacks.push_back([job, http_code, readBuffer]() {
-                rc_api_server_response_t response;
-                memset(&response, 0, sizeof(response));
-                response.body = readBuffer.c_str();
-                response.body_length = readBuffer.size();
-                response.http_status_code = http_code;
-                rc_client_server_callback_t cb = (rc_client_server_callback_t)job.callback;
-                if (cb) cb(&response, job.callback_data);
-            });
+            self->m_raPendingCallbacks.push_back(
+                [job, http_code, readBuffer, errorMsg, requestUrl]() {
+                    tico_debug_log("RA: HTTP Request -> %s", requestUrl.c_str());
+                    if (!errorMsg.empty()) {
+                        tico_debug_log("RA HTTP Error: %s", errorMsg.c_str());
+                    }
+                    tico_debug_log("RA: HTTP Response %ld (size: %zu)", http_code, readBuffer.size());
+                    
+                    rc_api_server_response_t response;
+                    memset(&response, 0, sizeof(response));
+                    response.body = readBuffer.c_str();
+                    response.body_length = readBuffer.size();
+                    response.http_status_code = http_code;
+                    
+                    rc_client_server_callback_t cb = (rc_client_server_callback_t)job.callback;
+                    if (cb) {
+                        cb(&response, job.callback_data);
+                    }
+                }
+            );
         }
     }
 }
@@ -262,37 +242,67 @@ void TicoCore::StartRAWorker() {
 #ifdef __SWITCH__
     m_raWorkerRunning = true;
     memset(&m_raThread, 0, sizeof(m_raThread));
+    // Pin to core 0 (free for emulators), priority 0x2C (normal), stack 256KB
     Result rc = threadCreate(&m_raThread, RAWorkerEntry, this, NULL, 0x40000, 0x2C, 0);
     if (R_SUCCEEDED(rc)) {
-        if (R_SUCCEEDED(threadStart(&m_raThread))) {
+        rc = threadStart(&m_raThread);
+        if (R_SUCCEEDED(rc)) {
             m_raThreadCreated = true;
+            tico_debug_log("RA: Worker thread started (core 0, 256KB stack)");
         } else {
+            tico_debug_log("RA: threadStart failed: 0x%x", rc);
             threadClose(&m_raThread);
             m_raWorkerRunning = false;
         }
     } else {
+        tico_debug_log("RA: threadCreate failed: 0x%x", rc);
         m_raWorkerRunning = false;
     }
+#else
+    // Stub
 #endif
 }
 
 void TicoCore::StopRAWorker() {
 #ifdef __SWITCH__
     if (!m_raThreadCreated) return;
+    
     {
         std::lock_guard<std::mutex> lock(m_raJobMutex);
         m_raWorkerRunning = false;
     }
     m_raJobCond.notify_one();
+    
     threadWaitForExit(&m_raThread);
     threadClose(&m_raThread);
     m_raThreadCreated = false;
+    tico_debug_log("RA: Worker thread stopped");
 #endif
+}
+
+#ifndef TICO_APP_VERSION
+#define TICO_APP_VERSION "dev"
+#endif
+
+// How RetroAchievements identifies this client: the frontend, the libretro
+// core and the rcheevos integration, like other libretro frontends report it.
+static const char *RAUserAgent()
+{
+    static std::string agent;
+    if (agent.empty())
+    {
+        agent = std::string("tico-swanstation/") + TICO_APP_VERSION + " (Nintendo Switch) SwanStation";
+        char clause[64] = "";
+        if (rc_client_get_user_agent_clause(nullptr, clause, sizeof(clause)) > 0)
+            agent += std::string(" ") + clause;
+    }
+    return agent.c_str();
 }
 
 static void RC_CCONV RAServerCall(const rc_api_request_t* request, rc_client_server_callback_t callback, void* callback_data, rc_client_t* client)
 {
     if (!s_instance) return;
+    
     TicoCore::RAJob job;
     job.url = request->url;
     if (request->post_data) job.post_data = request->post_data;
@@ -305,22 +315,28 @@ static void RC_CCONV RAServerCall(const rc_api_request_t* request, rc_client_ser
         s_instance->m_raJobQueue.push_back(std::move(job));
         s_instance->m_raJobCond.notify_one();
     } else {
+        // Fallback: synchronous if worker not running
+        tico_debug_log("RA: HTTP Request (sync) -> %s", request->url);
         CURL *curl = curl_easy_init();
         std::string readBuffer;
         long http_code = 0;
         if (curl) {
             curl_easy_setopt(curl, CURLOPT_URL, request->url);
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, RAUserAgent());
             if (request->post_data) curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request->post_data);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
             CURLcode res = curl_easy_perform(curl);
             if (res == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-            else http_code = 500;
+            else { tico_debug_log("RA HTTP Error: %s", curl_easy_strerror(res)); http_code = 500; }
             curl_easy_cleanup(curl);
         }
+        tico_debug_log("RA: HTTP Response %ld (size: %zu)", http_code, readBuffer.size());
         rc_api_server_response_t response;
         memset(&response, 0, sizeof(response));
         response.body = readBuffer.c_str();
@@ -329,6 +345,8 @@ static void RC_CCONV RAServerCall(const rc_api_request_t* request, rc_client_ser
         if (callback) callback(&response, callback_data);
     }
 #else
+    // On non-Switch: just do it synchronously
+    tico_debug_log("RA: HTTP Request -> %s", request->url);
     CURL *curl = curl_easy_init();
     std::string readBuffer;
     long http_code = 0;
@@ -340,11 +358,14 @@ static void RC_CCONV RAServerCall(const rc_api_request_t* request, rc_client_ser
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
         CURLcode res = curl_easy_perform(curl);
         if (res == CURLE_OK) curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-        else http_code = 500;
+        else { tico_debug_log("RA HTTP Error: %s", curl_easy_strerror(res)); http_code = 500; }
         curl_easy_cleanup(curl);
     }
+    tico_debug_log("RA: HTTP Response %ld (size: %zu)", http_code, readBuffer.size());
     rc_api_server_response_t response;
     memset(&response, 0, sizeof(response));
     response.body = readBuffer.c_str();
@@ -355,6 +376,48 @@ static void RC_CCONV RAServerCall(const rc_api_request_t* request, rc_client_ser
 }
 
 //==============================================================================
+// Content paths
+//==============================================================================
+
+namespace {
+std::string ContentRoot(const char *key, const char *defaultRoot)
+{
+    static nlohmann::json config = [] {
+#ifdef __SWITCH__
+        std::ifstream f("sdmc:/tico/config/cores/swanstation.jsonc");
+#else
+        std::ifstream f("tico/config/cores/swanstation.jsonc");
+#endif
+        nlohmann::json j = f.good() ? nlohmann::json::parse(f, nullptr, false, true)
+                                    : nlohmann::json::object();
+        return j.is_object() ? j : nlohmann::json::object();
+    }();
+
+    std::string root = defaultRoot;
+    auto it = config.find(key);
+    if (it != config.end() && it->is_string() && !it->get<std::string>().empty())
+        root = it->get<std::string>();
+    if (root.back() != '/')
+        root += '/';
+    return root;
+}
+} // namespace
+
+namespace TicoConfig {
+std::string SystemPath() { return ContentRoot("tico_system_path", "sdmc:/tico/system/") + "psx/"; }
+std::string SavesPath() { return ContentRoot("tico_saves_path", "sdmc:/tico/saves/") + CURRENT_SLUG + "/"; }
+std::string StatesPath() { return ContentRoot("tico_states_path", "sdmc:/tico/states/") + CURRENT_SLUG + "/"; }
+
+void MakeDirs(const std::string &path)
+{
+    // A custom root may not exist yet, so create every missing level.
+    for (size_t at = path.find('/', path.find(":/") != std::string::npos ? path.find(":/") + 2 : 1);
+         at != std::string::npos; at = path.find('/', at + 1))
+        mkdir(path.substr(0, at).c_str(), 0777);
+}
+} // namespace TicoConfig
+
+//==============================================================================
 // Construction
 //==============================================================================
 
@@ -363,28 +426,27 @@ TicoCore::TicoCore()
     memset(m_inputState, 0, sizeof(m_inputState));
     memset(m_analogState, 0, sizeof(m_analogState));
 
-    m_systemDir = TicoConfig::SYSTEM_PATH;
-    m_saveDir = TicoConfig::SAVES_PATH;
-
+    m_systemDir = TicoConfig::SystemPath();
+    m_saveDir = TicoConfig::SavesPath();
+    TicoConfig::MakeDirs(m_systemDir);
+    TicoConfig::MakeDirs(m_saveDir);
 }
 
 TicoCore::~TicoCore()
 {
+    tico_debug_log("~TicoCore: destroying (gameLoaded=%d, initialized=%d)",
+             m_gameLoaded, m_initialized);
+
     UnloadGame();
 
     if (m_initialized)
     {
-        retro_deinit();
+        SwanHost::Shutdown();
         m_initialized = false;
     }
 
-    if (s_instance == this)
-    {
-        s_instance = nullptr;
-    }
-
     StopRAWorker();
-    
+
     if (m_trophySound) {
         Mix_FreeChunk(m_trophySound);
         m_trophySound = nullptr;
@@ -394,6 +456,13 @@ TicoCore::~TicoCore()
         rc_client_destroy(m_rcClient);
         m_rcClient = nullptr;
     }
+
+    if (s_instance == this)
+    {
+        s_instance = nullptr;
+    }
+
+    tico_debug_log("~TicoCore: done");
 }
 
 //==============================================================================
@@ -407,6 +476,8 @@ bool TicoCore::Init()
 
     s_instance = this;
 
+    tico_debug_log("=== TicoCore::Init() ===");
+
 #ifdef __SWITCH__
     if (!s_vibrationInitialized)
     {
@@ -418,7 +489,6 @@ bool TicoCore::Init()
             }
         }
         
-        // Initialize Handheld and Player 1-4
         hidInitializeVibrationDevices(s_vibrationHandles[0], 2, HidNpadIdType_Handheld, HidNpadStyleTag_NpadHandheld);
         hidInitializeVibrationDevices(s_vibrationHandles[1], 2, HidNpadIdType_No1, HidNpadStyleTag_NpadJoyDual);
         hidInitializeVibrationDevices(s_vibrationHandles[2], 2, HidNpadIdType_No2, HidNpadStyleTag_NpadJoyDual);
@@ -426,16 +496,20 @@ bool TicoCore::Init()
         hidInitializeVibrationDevices(s_vibrationHandles[4], 2, HidNpadIdType_No4, HidNpadStyleTag_NpadJoyDual);
         
         s_vibrationInitialized = true;
-        LOG_CORE("Vibration devices initialized for P1-P4");
+        tico_debug_log("Vibration devices initialized for P1-P4");
     }
 #endif
 
-    // Set environment callback before init
-    retro_set_environment(EnvironmentCallback);
+    // Ensure the system directory exists (the BIOS images)
+    struct stat st = {0};
+    if (stat(m_systemDir.c_str(), &st) == -1) {
+        mkdir(m_systemDir.c_str(), 0777);
+    }
+    tico_debug_log("System dir: %s", m_systemDir.c_str());
 
     // Load configuration to ensure variables are ready for init
     LoadConfig();
-    LoadRAConfig();
+    tico_debug_log("Config loaded, %lu options", m_configOptions.size());
 
     bool soundEnabled = false;
 #ifdef __SWITCH__
@@ -459,19 +533,52 @@ bool TicoCore::Init()
 #else
         m_trophySound = Mix_LoadWAV("tico/assets/trophy.mp3");
 #endif
+        if (m_trophySound) tico_debug_log("RA: Loaded trophy.mp3 successfully.");
+        else tico_debug_log("RA: Failed to load trophy.mp3 -> %s", Mix_GetError());
     }
 
-    // Initialize the core
-    retro_init();
+    // The core reads settings, prints messages and plays audio through these
+    SwanHost::Frontend &host = SwanHost::Get();
+    host.option = [this](const std::string &key) -> const std::string * {
+        auto it = m_configOptions.find(key);
+        return it != m_configOptions.end() ? &it->second : nullptr;
+    };
+    host.osd = [this](const std::string &message, float seconds) {
+        ShowOSD(message, static_cast<int>(seconds * 60.0f));
+    };
+    host.audio = [this](const int16_t *samples, uint32_t frames) {
+        if (m_audioSampleBatchCallback)
+            m_audioSampleBatchCallback(samples, frames);
+    };
+    host.softwareFrame = [this](const void *data, uint32_t width, uint32_t height, uint32_t pitch,
+                                HostDisplayPixelFormat format) {
+        if (!data)
+            return; // the previous frame stays up
+        m_frameWidth = static_cast<int>(width);
+        m_frameHeight = static_cast<int>(height);
+        if (m_videoCallback)
+            m_videoCallback(data, width, height, pitch,
+                            format == HostDisplayPixelFormat::BGRA8 ? RETRO_PIXEL_FORMAT_XRGB8888
+                                                                    : RETRO_PIXEL_FORMAT_RGB565);
+    };
+    host.systemDir = m_systemDir;
+    host.savesDir = m_saveDir;
+    host.cacheDir = TicoConfig::CachePath();
+    host.renderer = SwanHost::ParseRenderer(GetConfigValue("swanstation_GPU_Renderer", "Vulkan"));
+    host.pads[0] = ParsePadType(GetConfigValue("pad1_type", "DualShock"));
+    host.pads[1] = ParsePadType(GetConfigValue("pad2_type", "DualShock"));
+    if (!SwanHost::Initialize())
+    {
+        tico_debug_log("ERROR: SwanStation host failed to initialize");
+        return false;
+    }
+    tico_debug_log("SwanStation ready (renderer %s)", GetConfigValue("swanstation_GPU_Renderer", "Vulkan").c_str());
 
-    // Set all callbacks
-    retro_set_video_refresh(VideoRefreshCallback);
-    retro_set_audio_sample(AudioSampleCallback);
-    retro_set_audio_sample_batch(AudioSampleBatchCallback);
-    retro_set_input_poll(InputPollCallback);
-    retro_set_input_state(InputStateCallback);
-
-    // Initialize RetroAchievements
+    // ------------------------------------------------------------------
+    // Setup RetroAchievements Client
+    // ------------------------------------------------------------------
+    LoadRAConfig();
+    
     m_rcClient = rc_client_create(RAReadMemory, RAServerCall);
     if (m_rcClient) {
         rc_client_set_event_handler(m_rcClient, [](const rc_client_event_t* event, rc_client_t* client) {
@@ -479,17 +586,36 @@ bool TicoCore::Init()
             switch (event->type) {
                 case RC_CLIENT_EVENT_ACHIEVEMENT_TRIGGERED:
                     if (event->achievement) {
-                        s_instance->PushRANotification(event->achievement->title, event->achievement->description, event->achievement->badge_name);
-                        if (s_instance->m_trophySound) Mix_PlayChannel(-1, s_instance->m_trophySound, 0);
+                        std::string title = event->achievement->title;
+                        std::string desc = event->achievement->description;
+                        std::string badge = event->achievement->badge_name;
+                        s_instance->PushRANotification(title, desc, badge);
+                        if (s_instance->m_trophySound) {
+                            Mix_PlayChannel(-1, s_instance->m_trophySound, 0);
+                        }
+                        tico_debug_log("RA: Achievement triggered: %s (badge: %s)", title.c_str(), badge.c_str());
                     }
                     break;
                 case RC_CLIENT_EVENT_GAME_COMPLETED:
                     s_instance->PushRANotification("Game Mastered!", "All achievements unlocked!", "ra_icon");
-                    if (s_instance->m_trophySound) Mix_PlayChannel(-1, s_instance->m_trophySound, 0);
+                    if (s_instance->m_trophySound) {
+                        Mix_PlayChannel(-1, s_instance->m_trophySound, 0);
+                    }
                     break;
                 case RC_CLIENT_EVENT_LEADERBOARD_SUBMITTED:
                     if (event->leaderboard) {
                         s_instance->PushRANotification("Leaderboard", event->leaderboard->title, "ra_icon");
+                    }
+                    break;
+                case RC_CLIENT_EVENT_RESET:
+                    // rc_client asks for a reset when hardcore turns on mid-game,
+                    // so nothing from the softcore session carries over.
+                    tico_debug_log("RA: reset requested by rc_client");
+                    s_instance->Reset();
+                    break;
+                case RC_CLIENT_EVENT_SERVER_ERROR:
+                    if (event->server_error) {
+                        tico_debug_log("RA: Server error: %s", event->server_error->error_message);
                     }
                     break;
                 default:
@@ -497,229 +623,78 @@ bool TicoCore::Init()
             }
         });
         rc_client_set_hardcore_enabled(m_rcClient, m_raHardcore);
-
+        
         StartRAWorker();
-
+        
         if (!m_raUsername.empty() && !m_raToken.empty()) {
-            LOG_CORE("RA: Existent token found. Auto login as %s...", m_raUsername.c_str());
+            tico_debug_log("RA: Existent token found. Auto login as %s...", m_raUsername.c_str());
             rc_client_begin_login_with_token(m_rcClient, m_raUsername.c_str(), m_raToken.c_str(),
                 [](int res, const char* err, rc_client_t* c, void* ud) {
                     TicoCore* self = (TicoCore*)ud;
                     if (res == RC_OK) {
-                        LOG_CORE("RA login success with token!");
+                        tico_debug_log("RA login success with token!");
                         // Token valid, let's identify the game
                         if (self->m_gameLoaded && !self->m_gamePath.empty()) {
                             RAIdentifyGame(c, self);
                         }
                     } else if (res == RC_INVALID_CREDENTIALS && !self->m_raPassword.empty()) {
-                        LOG_CORE("RA token invalid or expired. Trying password...");
+                        tico_debug_log("RA token invalid or expired. Trying password...");
                         RALoginWithPassword(c, self);
                     } else {
-                        LOG_CORE("RA login failed -> %s", err ? err : "Unknown");
+                        tico_debug_log("RA login failed -> %s", err ? err : "Unknown");
                         self->PushRANotification("Login Failed", "Check your credentials.", "ra_icon");
                     }
                 }, this);
         } else if (!m_raUsername.empty() && !m_raPassword.empty()) {
-            LOG_CORE("RA: Auto login using password...");
+            tico_debug_log("RA: Auto login using password...");
             RALoginWithPassword(m_rcClient, this);
         }
     }
 
-    // Get core info
-    struct retro_system_info sysInfo = {};
-    retro_get_system_info(&sysInfo);
-
-    LOG_CORE("Initialized: %s %s",
-             sysInfo.library_name ? sysInfo.library_name : "Unknown",
-             sysInfo.library_version ? sysInfo.library_version : "");
-
     m_initialized = true;
     return true;
-}
-
-void TicoCore::SetHWRenderContext(SDL_Window *window, EGLContext mainCtx, EGLContext hwCtx)
-{
-    m_window = window;
-    m_mainContext = mainCtx;
-    m_hwContext = hwCtx;
-    m_eglDisplay = eglGetCurrentDisplay();
-    m_eglSurface = eglGetCurrentSurface(EGL_DRAW);
-}
-
-bool TicoCore::InitEGLDualContext()
-{
-    m_eglDisplay = eglGetCurrentDisplay();
-    EGLContext currentCtx = eglGetCurrentContext();
-
-    if (m_eglDisplay == EGL_NO_DISPLAY || currentCtx == EGL_NO_CONTEXT)
-    {
-        LOG_ERROR("CORE", "Failed to get current EGL context");
-        return false;
-    }
-
-    m_mainContext = currentCtx;
-    m_eglSurface = eglGetCurrentSurface(EGL_DRAW);
-    m_hwContext = m_mainContext; // Single context mode
-
-    // Use FBO dimensions (max resolution) so the core's internal resolution fits
-    int fboW = m_fboWidth > 0 ? m_fboWidth : m_frameWidth;
-    int fboH = m_fboHeight > 0 ? m_fboHeight : m_frameHeight;
-
-    // Create HW render texture at max resolution
-    glGenTextures(1, &m_frameTexture);
-    glBindTexture(GL_TEXTURE_2D, m_frameTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fboW, fboH, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // Create FBO if not exists
-    if (m_fbo == 0)
-    {
-        glGenFramebuffers(1, &m_fbo);
-        glGenRenderbuffers(1, &m_fbo_rbo);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-
-    // Setup RBO (Depth24 Stencil8) at max resolution
-    glBindRenderbuffer(GL_RENDERBUFFER, m_fbo_rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, fboW, fboH);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_fbo_rbo);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_frameTexture, 0);
-
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE)
-    {
-        LOG_ERROR("CORE", "FBO incomplete: 0x%x", status);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return false;
-    }
-
-    // Set viewport to FBO dimensions before clearing, otherwise we don't clear the whole texture!
-    glViewport(0, 0, fboW, fboH);
-
-    // Clear FBO to black
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    LOG_CORE("Created HW render texture: %u (%dx%d) FBO: %u",
-             m_frameTexture, fboW, fboH, m_fbo);
-
-    return true;
-}
-
-void TicoCore::BindHWContext(bool enable)
-{
-    (void)enable; // Single context mode - no-op
 }
 
 //==============================================================================
 // Game Loading
 //==============================================================================
 
-// Debug logging helper removed - using TicoLogger.h
-
 bool TicoCore::LoadGame(const std::string &path)
 {
-    LOG_CORE("LoadGame: Enter: %s", path.c_str());
+    tico_debug_log("=== TicoCore::LoadGame ===");
+    tico_debug_log("  path: %s", path.c_str());
 
     m_gamePath = path;
 
     if (!m_initialized)
     {
-        LOG_CORE("LoadGame: Not initialized, calling Init()");
+        tico_debug_log("Not initialized, calling Init()");
         if (!Init())
         {
-            LOG_ERROR("CORE", "LoadGame: Init() failed");
+            tico_debug_log("ERROR: Init() failed");
             return false;
         }
     }
 
-    LOG_CORE("LoadGame: Opening file...");
-
-    // SwanStation libretro core supports `need_fullpath = true`.
-    // We send only the path instead of reading up to 700MB into RAM synchronously.
-    struct retro_game_info gameInfo = {};
-    gameInfo.path = path.c_str();
-    gameInfo.data = nullptr;
-    gameInfo.size = 0;
-
-    LOG_CORE("LoadGame: Calling retro_load_game...");
-    LOG_CORE("  gameInfo.path = %s", gameInfo.path);
-    LOG_CORE("  gameInfo.size = %zu", gameInfo.size);
-    LOG_CORE("  gameInfo.data = %p", gameInfo.data);
-
-    if (!retro_load_game(&gameInfo))
+    // Disc images (.cue/.bin, .chd, .iso, .m3u playlists, .pbp), EXEs and
+    // PSFs: the core opens them by path.
+    if (!SwanHost::Boot(path))
     {
-        LOG_ERROR("CORE", "LoadGame: retro_load_game failed");
+        tico_debug_log("ERROR: SwanStation could not boot %s", path.c_str());
         return false;
     }
-    LOG_CORE("LoadGame: retro_load_game succeeded");
-
-    // Get AV info
-    LOG_CORE("LoadGame: Getting AV info...");
-    struct retro_system_av_info avInfo = {};
-    retro_get_system_av_info(&avInfo);
-
-    m_frameWidth = avInfo.geometry.base_width;
-    m_frameHeight = avInfo.geometry.base_height;
-    m_aspectRatio = avInfo.geometry.aspect_ratio > 0
-                        ? avInfo.geometry.aspect_ratio
-                        : (float)m_frameWidth / m_frameHeight;
-    m_fps = avInfo.timing.fps > 0 ? avInfo.timing.fps : 60.0;
-
-    // Match LibretroCoreStatic: FBO sized to frame dimensions, not max VRAM
-    m_fboWidth = m_frameWidth;
-    m_fboHeight = m_frameHeight;
-
-    LOG_CORE("LoadGame: Game loaded: %dx%d @ %.2f fps",
-             m_frameWidth, m_frameHeight, m_fps);
-
-    // Initialize HW rendering if needed
-    if (m_hwRender)
-    {
-        LOG_CORE("LoadGame: Initializing HW render context...");
-        if (InitEGLDualContext())
-        {
-            if (s_hwRenderCallback.context_reset)
-            {
-                LOG_CORE("LoadGame: Calling context_reset...");
-                s_hwRenderCallback.context_reset();
-                LOG_CORE("LoadGame: context_reset done");
-            }
-        }
-    }
-
-    // Set controller
-    LOG_CORE("LoadGame: Setting controller port device...");
-
-#ifndef RETRO_DEVICE_PS_DUALSHOCK
-#define RETRO_DEVICE_PS_DUALSHOCK 261
-#endif
-
-    unsigned device = RETRO_DEVICE_JOYPAD;
-    // Default to true for analog on PSX if not present, unless user specified false.
-    if (GetConfigValue("analog", "true") == "true")
-    {
-        device = RETRO_DEVICE_PS_DUALSHOCK;
-        LOG_CORE("LoadGame: PSX Analog Mode: Using RETRO_DEVICE_PS_DUALSHOCK (%u)", device);
-    }
-    
-    // Set for ports 0 and 1 (Player 1 and 2)
-    retro_set_controller_port_device(0, device);
-    retro_set_controller_port_device(1, device);
+    m_aspectRatio = SwanHost::AspectRatio();
+    m_fps = SwanHost::FrameRate();
+    m_sampleRate = LibretroAudioStream::SAMPLE_RATE;
+    tico_debug_log("Booted: %.2f fps, aspect %.3f", m_fps, m_aspectRatio);
 
     m_gameLoaded = true;
     m_paused = false;
-    LOG_CORE("LoadGame: Complete!");
+    tico_debug_log("LoadGame: Complete!");
 
-    // Load SRAM
-    LoadSRAM();
+    // Load native save data, falling back to legacy .srm saves when needed.
+    LoadSaveData();
+    LoadCheats();
 
     return true;
 }
@@ -729,36 +704,10 @@ void TicoCore::UnloadGame()
     if (!m_gameLoaded)
         return;
 
-    // Save SRAM before unloading
-    SaveSRAM();
-
-    retro_unload_game();
+    SaveSaveData();
+    SwanHost::Unload();
     m_gameLoaded = false;
 
-    if (m_frameTexture != 0)
-    {
-        glDeleteTextures(1, &m_frameTexture);
-        m_frameTexture = 0;
-    }
-
-    if (m_fbo != 0)
-    {
-        glDeleteFramebuffers(1, &m_fbo);
-        m_fbo = 0;
-    }
-
-    if (m_fbo_rbo != 0)
-    {
-        glDeleteRenderbuffers(1, &m_fbo_rbo);
-        m_fbo_rbo = 0;
-    }
-
-    // Reset GL state
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glUseProgram(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 //==============================================================================
@@ -770,93 +719,244 @@ void TicoCore::RunFrame()
     if (!m_gameLoaded || m_paused)
         return;
 
-    if (m_swapPending && m_swapDelayFrames > 0)
+    if (m_variablesUpdated)
     {
-        m_swapDelayFrames--;
-        if (m_swapDelayFrames == 0)
-        {
-            retro_game_info info = {m_pendingSwapPath.c_str(), nullptr, 0, ""};
-            if (m_diskControl.replace_image_index(0, &info) && m_diskControl.set_image_index(0))
-            {
-                m_diskControl.set_eject_state(false);
-                LOG_CORE("Delayed SwapDisk executed successfully.");
-            }
-            else
-            {
-                LOG_ERROR("CORE", "Delayed SwapDisk failed during replace/set index.");
-                m_diskControl.set_eject_state(false);
-            }
-            m_swapPending = false;
-        }
+        m_variablesUpdated = false;
+        SwanHost::ReloadSettings();
     }
 
+    // the overlay's pads, as PlayStation buttons (SwanHost::Button bits) and sticks
+    for (unsigned port = 0; port < 2; ++port)
+    {
+        uint32_t buttons = 0;
+        for (unsigned id = 0; id < SwanHost::ButtonCount; ++id)
+            if (m_inputState[port][id])
+                buttons |= 1u << id;
+        std::array<float, 4> axes = {};
+        for (unsigned stick = 0; stick < 2; ++stick)
+            for (unsigned axis = 0; axis < 2; ++axis)
+                axes[stick * 2 + axis] = m_analogState[port][stick][axis] / 32767.0f;
+        SwanHost::SetPad(port, buttons, axes);
+    }
+
+    SwanHost::RunFrame();
+    m_aspectRatio = SwanHost::AspectRatio();
+    m_fps = SwanHost::FrameRate();
+
+    for (unsigned port = 0; port < 2; ++port)
+    {
+        float large = 0.0f, small = 0.0f;
+        SwanHost::GetRumble(port, large, small);
+        SetRumble(port, large, small);
+    }
+
+    // memory card changes reach the SD card within a few seconds
+    if (++m_saveCheckFrames >= 300)
+    {
+        m_saveCheckFrames = 0;
+        SaveSaveData();
+    }
+
+    // RetroAchievements frame tick
     if (m_rcClient) {
         rc_client_do_frame(m_rcClient);
     }
     
-    // We no longer process timers here; TicoOverlay::RenderRAAlerts does it
-    // using deltaTime to stay speed-independent.
+    // Process async badge uploads
+    ProcessPendingBadgeUploads();
     
-    // Process queued callbacks
-    std::vector<std::function<void()>> callbacks;
+    // Execute pending RA callbacks on main thread
+    std::vector<std::function<void()>> cbs;
     {
         std::lock_guard<std::mutex> lock(m_raCallbackMutex);
-        std::swap(callbacks, m_raPendingCallbacks);
+        cbs = std::move(m_raPendingCallbacks);
     }
-    for (auto& cb : callbacks) cb();
-    
-    ProcessPendingBadgeUploads();
-
-    retro_run();
-
-    // CRITICAL: Unbind core's FBO so subsequent rendering
-    // (glClear, ImGui) targets the default framebuffer (FBO 0)
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void TicoCore::ResizeFBO(int width, int height)
-{
-    if (m_frameTexture == 0 || m_fbo == 0)
-        return;
-
-    LOG_CORE("ResizeFBO: %dx%d", width, height);
-
-    glBindTexture(GL_TEXTURE_2D, m_frameTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glBindRenderbuffer(GL_RENDERBUFFER, m_fbo_rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_frameTexture, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_fbo_rbo);
-
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE)
-    {
-        LOG_ERROR("CORE", "ResizeFBO incomplete: 0x%x", status);
-    }
-    else
-    {
-        glViewport(0, 0, width, height);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    for(auto& cb : cbs) cb();
 }
 
 void TicoCore::Reset()
 {
     if (m_gameLoaded)
     {
-        retro_reset();
+        g_host_interface->ResetSystem();
+        // achievement progress restarts with the game
+        if (m_rcClient)
+            rc_client_reset(m_rcClient);
     }
+}
+
+//==============================================================================
+// Cheats
+//==============================================================================
+static std::string CheatsBase(const std::string &gamePath)
+{
+    std::string name = gamePath;
+    const size_t slash = name.find_last_of("/\\");
+    if (slash != std::string::npos)
+        name = name.substr(slash + 1);
+    const size_t dot = name.find_last_of('.');
+    if (dot != std::string::npos)
+        name = name.substr(0, dot);
+    const std::string dir = "sdmc:/tico/cheats/" + TicoConfig::CURRENT_SLUG + "/";
+    TicoConfig::MakeDirs(dir);
+    return dir + name;
+}
+
+// One cheat's codes: GameShark lines ("80012345 0063") joined with + or ;
+static void SplitCodes(const std::string &text, std::vector<std::string> &out)
+{
+    std::string code;
+    for (const char c : text + ";")
+    {
+        if (c == '+' || c == ';' || c == ',')
+        {
+            code = TicoUtils::Trim(code);
+            if (!code.empty())
+                out.push_back(code);
+            code.clear();
+        }
+        else
+            code += c;
+    }
+}
+
+void TicoCore::LoadCheats()
+{
+    m_cheats.clear();
+    const std::string base = CheatsBase(m_gamePath);
+
+    // RetroArch .cht: cheatN_desc / cheatN_code (enable flags are ignored:
+    // every cheat starts off)
+    std::ifstream cht(base + ".cht");
+    if (cht.is_open())
+    {
+        std::map<int, Cheat> byIndex;
+        std::string line;
+        while (std::getline(cht, line))
+        {
+            const size_t eq = line.find('=');
+            if (eq == std::string::npos)
+                continue;
+            const std::string key = TicoUtils::Trim(line.substr(0, eq));
+            std::string value = TicoUtils::Trim(line.substr(eq + 1));
+            if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+                value = value.substr(1, value.size() - 2);
+            int index = -1;
+            char field[16] = {0};
+            if (sscanf(key.c_str(), "cheat%d_%15s", &index, field) != 2 || index < 0)
+                continue;
+            if (!strcmp(field, "desc"))
+                byIndex[index].name = value;
+            else if (!strcmp(field, "code"))
+                SplitCodes(value, byIndex[index].codes);
+        }
+        for (auto &entry : byIndex)
+        {
+            if (entry.second.codes.empty())
+                continue;
+            if (entry.second.name.empty())
+                entry.second.name = "Cheat " + std::to_string(entry.first + 1);
+            m_cheats.push_back(entry.second);
+        }
+    }
+
+    // .cheats: "# Name", then one code (or several joined with +) per line
+    std::ifstream simple(base + ".cheats");
+    if (simple.is_open())
+    {
+        std::string line;
+        while (std::getline(simple, line))
+        {
+            const std::string text = TicoUtils::Trim(line);
+            if (text.empty() || text[0] == '!')
+                continue;
+            if (text[0] == '#')
+            {
+                m_cheats.push_back(Cheat());
+                m_cheats.back().name = TicoUtils::Trim(text.substr(1));
+                continue;
+            }
+            if (m_cheats.empty())
+            {
+                m_cheats.push_back(Cheat());
+                m_cheats.back().name = "Cheat";
+            }
+            SplitCodes(text, m_cheats.back().codes);
+        }
+    }
+    tico_debug_log("CHEATS: %zu for %s", m_cheats.size(), base.c_str());
+}
+
+// A cheat's lines stay one code: conditional GameShark lines (D0/E0...)
+// guard the line after them.
+void TicoCore::ApplyCheats()
+{
+    if (!m_gameLoaded)
+        return;
+    std::unique_ptr<CheatList> list;
+    uint32_t index = 0;
+    for (const Cheat &cheat : m_cheats)
+    {
+        if (!cheat.enabled)
+            continue;
+        std::string joined;
+        for (const std::string &code : cheat.codes)
+            joined += (joined.empty() ? "" : "+") + code;
+        CheatCode cc;
+        cc.description = cheat.name;
+        cc.enabled = true;
+        if (!CheatList::ParseLibretroCheat(&cc, joined.c_str()))
+        {
+            tico_debug_log("CHEATS: cannot read %s", cheat.name.c_str());
+            continue;
+        }
+        if (!list)
+            list = std::make_unique<CheatList>();
+        list->SetCode(index++, std::move(cc));
+    }
+    System::SetCheatList(std::move(list));
+}
+
+void TicoCore::ToggleCheat(size_t index)
+{
+    if (index >= m_cheats.size() || IsHardcoreActive())
+        return;
+    m_cheats[index].enabled = !m_cheats[index].enabled;
+    ApplyCheats();
+}
+
+bool TicoCore::IsHardcoreActive() const
+{
+    return m_rcClient && rc_client_get_hardcore_enabled(m_rcClient);
+}
+
+bool TicoCore::CanPause(int &secondsRemaining)
+{
+    secondsRemaining = 0;
+    if (!m_gameLoaded || !IsHardcoreActive())
+        return true;
+    uint32_t framesRemaining = 0;
+    if (rc_client_can_pause(m_rcClient, &framesRemaining))
+        return true;
+    const double fps = m_fps > 0.0 ? m_fps : 60.0;
+    secondsRemaining = (int)((framesRemaining + fps - 1.0) / fps);
+    if (secondsRemaining < 1)
+        secondsRemaining = 1;
+    return false;
+}
+
+void TicoCore::Idle()
+{
+    ProcessPendingBadgeUploads();
+    std::vector<std::function<void()>> cbs;
+    {
+        std::lock_guard<std::mutex> lock(m_raCallbackMutex);
+        cbs = std::move(m_raPendingCallbacks);
+    }
+    for (auto &cb : cbs)
+        cb();
+    if (m_rcClient)
+        rc_client_idle(m_rcClient);
 }
 
 void TicoCore::Pause() { m_paused = true; }
@@ -892,68 +992,74 @@ void TicoCore::ClearInputs()
 // Save States
 //==============================================================================
 
-void TicoCore::SaveState(const std::string &path)
+// rc_client's achievement progress (hit counts, measured values) for a state
+// file, so loading it restores where every achievement stood.
+static std::string ProgressPath(const std::string &statePath)
+{
+    return statePath + ".ra";
+}
+
+bool TicoCore::SaveState(const std::string &path)
 {
     if (!m_gameLoaded)
-        return;
+        return false;
 
-    // CRITICAL: Bind HW context for GPU state access
-    BindHWContext(true);
-    // Sync point: Ensure prior UI commands are done
-    glFinish();
-
-    // Ensure no FBO is bound so core doesn't read from wrong buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    size_t size = retro_serialize_size();
-    if (size == 0)
+    std::vector<uint8_t> data(System::MAX_SAVE_STATE_SIZE);
+    std::unique_ptr<ByteStream> stream =
+        ByteStream_CreateMemoryStream(data.data(), static_cast<uint32_t>(data.size()));
+    if (!System::SaveState(stream.get()))
     {
-        LOG_WARN("CORE", "SaveState: size 0");
-        BindHWContext(false);
-        return;
+        tico_debug_log("ERROR: SwanStation could not save the state");
+        return false;
     }
+    const size_t size = static_cast<size_t>(stream->GetPosition());
 
-    std::vector<uint8_t> data(size);
-    bool success = retro_serialize(data.data(), size);
-
-    // Reset GL state after core operations to protect frontend
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Sync point: Ensure core commands are done before UI resumes
-    glFinish();
-
-    BindHWContext(false);
-
-    if (success)
+    // the slot's previous state stays in backups/ (one level)
+    const bool written = TicoSafeFile::Write(path, data.data(), size, kStateBackups);
+    if (!written)
     {
-        FILE *fp = fopen(path.c_str(), "wb");
-        if (fp)
+        tico_debug_log("ERROR: Failed to write save state: %s", path.c_str());
+        return false;
+    }
+    tico_debug_log("Saved state to %s", path.c_str());
+
+    const std::string progressPath = ProgressPath(path);
+    const size_t progressSize = m_rcClient ? rc_client_progress_size(m_rcClient) : 0;
+    std::vector<uint8_t> progress(progressSize);
+    if (progressSize > 0 &&
+        rc_client_serialize_progress_sized(m_rcClient, progress.data(), progressSize) == RC_OK)
+    {
+        if (FILE *pf = fopen(progressPath.c_str(), "wb"))
         {
-            fwrite(data.data(), 1, size, fp);
-            fclose(fp);
-            LOG_CORE("Saved state to %s", path.c_str());
-        }
-        else
-        {
-            LOG_ERROR("CORE", "Failed to open file for save state: %s", path.c_str());
+            fwrite(progress.data(), 1, progressSize, pf);
+            fclose(pf);
         }
     }
     else
     {
-        LOG_ERROR("CORE", "retro_serialize failed");
+        // a stale file would restore progress from an older state
+        remove(progressPath.c_str());
     }
+    return written;
 }
 
-void TicoCore::LoadState(const std::string &path)
+bool TicoCore::LoadState(const std::string &path)
 {
     if (!m_gameLoaded)
-        return;
+        return false;
+
+    // RetroAchievements hardcore forbids loading states.
+    if (IsHardcoreActive())
+    {
+        tico_debug_log("LoadState: refused, hardcore mode is active");
+        return false;
+    }
 
     FILE *fp = fopen(path.c_str(), "rb");
     if (!fp)
     {
-        LOG_WARN("CORE", "LoadState: File not found: %s", path.c_str());
-        return;
+        tico_debug_log("LoadState: File not found: %s", path.c_str());
+        return false;
     }
 
     fseek(fp, 0, SEEK_END);
@@ -963,470 +1069,110 @@ void TicoCore::LoadState(const std::string &path)
     if (fileSize == 0)
     {
         fclose(fp);
-        return;
+        return false;
     }
 
     std::vector<uint8_t> data(fileSize);
     if (fread(data.data(), 1, fileSize, fp) != fileSize)
     {
         fclose(fp);
-        return;
+        return false;
     }
     fclose(fp);
 
-    // CRITICAL: Bind HW context for GPU state restoration
-    BindHWContext(true);
-    // Sync point: Wait for UI
-    glFinish();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // CRITICAL: Flush BOTH swanstation's internal audio buffer AND SDL queue
-    // This must happen BEFORE unserialize to prevent stale audio playback
-    // 1. Flush swanstation's internal audio buffer (not applicable here directly, so skip)
-
-    // 2. Flush SDL audio queue
+    // Flush audio
     if (m_audioFlushCallback)
     {
-        LOG_CORE("Resetting SDL audio device...");
+        tico_debug_log("Resetting SDL audio device...");
         m_audioFlushCallback();
     }
 
-    bool success = retro_unserialize(data.data(), fileSize);
-
-    // Reset GL state after core operations
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Sync point: Wait for core
-    glFinish();
-
-    BindHWContext(false);
+    std::unique_ptr<ByteStream> stream =
+        ByteStream_CreateReadOnlyMemoryStream(data.data(), static_cast<uint32_t>(fileSize));
+    bool success = System::LoadState(stream.get());
 
     if (success)
     {
-        LOG_CORE("Loaded state from %s", path.c_str());
-
-        // CRITICAL FIX: Run one frame to force display update
-        // The core's DoState does NOT call UpdateDisplay.
-        // This means the GPU's VRAM is restored but the FBO output is stale.
-        LOG_CORE("Running one frame to force display update...");
-        retro_run();
+        tico_debug_log("Loaded state from %s", path.c_str());
+        // Restore achievement progress with the state; a state saved without
+        // it resets progress, so nothing from the abandoned timeline counts.
+        if (m_rcClient)
+        {
+            std::vector<uint8_t> progress;
+            if (FILE *pf = fopen(ProgressPath(path).c_str(), "rb"))
+            {
+                fseek(pf, 0, SEEK_END);
+                const long progressSize = ftell(pf);
+                fseek(pf, 0, SEEK_SET);
+                if (progressSize > 0)
+                {
+                    progress.resize((size_t)progressSize);
+                    if (fread(progress.data(), 1, progress.size(), pf) != progress.size())
+                        progress.clear();
+                }
+                fclose(pf);
+            }
+            if (progress.empty() ||
+                rc_client_deserialize_progress_sized(m_rcClient, progress.data(), progress.size()) != RC_OK)
+                rc_client_deserialize_progress_sized(m_rcClient, nullptr, 0);
+        }
+        tico_debug_log("Running one frame to force display update...");
+        SwanHost::RunFrame();
     }
     else
     {
-        LOG_ERROR("CORE", "retro_unserialize failed");
+        tico_debug_log("ERROR: SwanStation could not load the state");
     }
+    return success;
 }
 
 //==============================================================================
-// Libretro Callbacks
+// Rumble
 //==============================================================================
 
-bool TicoCore::EnvironmentCallback(unsigned cmd, void *data)
-{
-    if (!s_instance)
-        return false;
-    return s_instance->HandleEnvironment(cmd, data);
-}
-
-void TicoCore::VideoRefreshCallback(const void *data, unsigned width,
-                                    unsigned height, size_t pitch)
-{
-    if (!s_instance)
-        return;
-    s_instance->HandleVideoRefresh(data, width, height, pitch);
-}
-
-void TicoCore::AudioSampleCallback(int16_t left, int16_t right)
-{
-    if (s_instance && s_instance->m_audioSampleCallback)
-    {
-        s_instance->m_audioSampleCallback(left, right);
-    }
-}
-
-size_t TicoCore::AudioSampleBatchCallback(const int16_t *data, size_t frames)
-{
-    if (s_instance && s_instance->m_audioSampleBatchCallback)
-    {
-        return s_instance->m_audioSampleBatchCallback(data, frames);
-    }
-    return frames;
-}
-
-void TicoCore::InputPollCallback()
-{
-    // Input is polled externally
-}
-
-int16_t TicoCore::InputStateCallback(unsigned port, unsigned device,
-                                     unsigned index, unsigned id)
-{
-    if (!s_instance)
-        return 0;
-    return s_instance->HandleInputState(port, device, index, id);
-}
-
-void TicoCore::LogCallback(enum retro_log_level level, const char *fmt, ...)
-{
-    // Map retro level to Tico level
-    const char *levelStr = "CORE";
-    if (level == RETRO_LOG_ERROR)
-        levelStr = "CORE_ERR";
-    else if (level == RETRO_LOG_WARN)
-        levelStr = "CORE_WARN";
-    else if (level == RETRO_LOG_INFO)
-        levelStr = "CORE_INFO";
-    else if (level == RETRO_LOG_DEBUG)
-        levelStr = "CORE_DBG";
-
-    // Use our logger
-    va_list args;
-    va_start(args, fmt);
-
-    // Format string locally first
-    char buffer[1024];
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
-    va_end(args);
-
-    // Remove trailing newline if present since logger adds one
-    size_t len = strlen(buffer);
-    if (len > 0 && buffer[len - 1] == '\n')
-        buffer[len - 1] = '\0';
-
-    Logger::Instance().Log(Logger::Level::DEBUG, levelStr, Logger::None, "%s", buffer);
-}
-
-bool TicoCore::SetRumbleStateCallback(unsigned port, enum retro_rumble_effect effect, uint16_t strength)
+void TicoCore::SetRumble(unsigned port, float large, float small)
 {
 #ifdef __SWITCH__
-    if (!s_vibrationInitialized || port >= 4) 
-        return false;
-        
-    if (s_instance && s_instance->GetConfigValue("swanstation_Controller_EnableRumble", "true") != "true")
-        return true;
-    
-    float amplitude = (float)strength / 65535.0f;
-    
-    int target_device = 1;
-    if (port == 0) {
-        // P1 takes Handheld or No1 based on dock state
-        u8 opMode = appletGetOperationMode();
-        target_device = (opMode == AppletOperationMode_Handheld) ? 0 : 1;
-    } else {
-        // P2 is index 2 (No2), P3 is index 3 (No3), P4 is index 4 (No4)
-        target_device = port + 1;
+    if (!s_vibrationInitialized || port >= 4 ||
+        GetConfigValue("swanstation_Controller_EnableRumble", "true") != "true")
+        return;
+    // player 1 is the handheld pair or pad 1, as the system shows them
+    int device = port + 1;
+    if (port == 0 && appletGetOperationMode() == AppletOperationMode_Handheld)
+        device = 0;
+    HidVibrationValue *v = s_currentVibration[device];
+    if (v[0].amp_low == large && v[0].amp_high == small)
+        return;
+    for (int i = 0; i < 2; ++i)
+    {
+        v[i].amp_low = large;
+        v[i].amp_high = small;
     }
-
-    HidVibrationValue *v = s_currentVibration[target_device];
-
-    if (effect == RETRO_RUMBLE_STRONG) {
-        v[0].amp_low = amplitude;
-        v[1].amp_low = amplitude;
-    } else if (effect == RETRO_RUMBLE_WEAK) {
-        v[0].amp_high = amplitude;
-        v[1].amp_high = amplitude;
-    }
-
-    hidSendVibrationValues(s_vibrationHandles[target_device], v, 2);
-    
-    return true;
-#else
-    return false;
+    hidSendVibrationValues(s_vibrationHandles[device], v, 2);
 #endif
 }
 
-//==============================================================================
-// Instance Callbacks
-//==============================================================================
-
-bool TicoCore::HandleEnvironment(unsigned cmd, void *data)
+SwanHost::PadType TicoCore::ParsePadType(const std::string &value)
 {
-    switch (cmd)
-    {
-    case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
-    {
-        auto *cb = (struct retro_log_callback *)data;
-        cb->log = LogCallback;
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE:
-    {
-        auto *cb = (retro_rumble_interface *)data;
-        if (cb) {
-            cb->set_rumble_state = SetRumbleStateCallback;
-            LOG_CORE("Provided Rumble Interface");
-            return true;
-        }
-        return false;
-    }
-
-    case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
-    {
-        *(const char **)data = m_systemDir.c_str();
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
-    {
-        *(const char **)data = m_saveDir.c_str();
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
-    {
-        // Accept any format
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_SET_MEMORY_MAPS:
-    {
-        auto *maps = (const struct retro_memory_map *)data;
-        if (maps && maps->descriptors) {
-            m_memoryMaps.clear();
-            for (unsigned i = 0; i < maps->num_descriptors; i++) {
-                const auto& desc = maps->descriptors[i];
-                if (desc.ptr) {
-                    TicoMemoryMap map;
-                    map.start = desc.start;
-                    map.length = desc.len;
-                    map.ptr = (uint8_t*)desc.ptr;
-                    // Optional: handle desc.offset if supported
-                    m_memoryMaps.push_back(map);
-                }
-            }
-        }
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_SET_HW_RENDER:
-    {
-        auto *hw = (struct retro_hw_render_callback *)data;
-        s_hwRenderCallback = *hw;
-        m_hwRender = true;
-
-        // Provide get_current_framebuffer and get_proc_address
-        hw->get_current_framebuffer = []() -> uintptr_t
-        {
-            if (s_instance)
-                return s_instance->m_fbo;
-            return 0;
-        };
-        hw->get_proc_address = [](const char *sym) -> retro_proc_address_t
-        {
-            return (retro_proc_address_t)eglGetProcAddress(sym);
-        };
-
-        LOG_CORE("HW render requested: context_type=%d", hw->context_type);
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_GET_VARIABLE:
-    {
-        auto *var = (struct retro_variable *)data;
-        if (!var || !var->key)
-            return false;
-
-        // Ensure config is loaded
-        if (!m_configLoaded)
-            LoadConfig();
-
-        // Handle swanstation_ options
-        if (strncmp(var->key, "swanstation_", 12) == 0)
-        {
-            auto it = m_configOptions.find(var->key);
-            if (it != m_configOptions.end())
-            {
-                var->value = it->second.c_str();
-                return true;
-            }
-            return false;
-        }
-
-        var->value = nullptr;
-        return false;
-    }
-
-    case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
-    {
-        auto *avInfo = (struct retro_system_av_info *)data;
-        m_frameWidth = avInfo->geometry.base_width;
-        m_frameHeight = avInfo->geometry.base_height;
-        if (avInfo->geometry.aspect_ratio > 0)
-        {
-            m_aspectRatio = avInfo->geometry.aspect_ratio;
-        }
-        m_fps = avInfo->timing.fps > 0 ? avInfo->timing.fps : 60.0;
-        // Resize FBO if max dimensions changed
-        int newMaxW = avInfo->geometry.max_width > 0 ? (int)avInfo->geometry.max_width : m_frameWidth;
-        int newMaxH = avInfo->geometry.max_height > 0 ? (int)avInfo->geometry.max_height : m_frameHeight;
-        if (newMaxW != m_fboWidth || newMaxH != m_fboHeight)
-        {
-            m_fboWidth = newMaxW;
-            m_fboHeight = newMaxH;
-            ResizeFBO(m_fboWidth, m_fboHeight);
-        }
-        LOG_CORE("SET_SYSTEM_AV_INFO: base %dx%d, FBO %dx%d @ %.2f fps",
-                 m_frameWidth, m_frameHeight, m_fboWidth, m_fboHeight, m_fps);
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_SET_GEOMETRY:
-    {
-        auto *geom = (struct retro_game_geometry *)data;
-        m_frameWidth = geom->base_width;
-        m_frameHeight = geom->base_height;
-        if (geom->aspect_ratio > 0)
-        {
-            m_aspectRatio = geom->aspect_ratio;
-        }
-        // Resize FBO if max dimensions changed
-        int newMaxW = geom->max_width > 0 ? (int)geom->max_width : m_frameWidth;
-        int newMaxH = geom->max_height > 0 ? (int)geom->max_height : m_frameHeight;
-        if (newMaxW != m_fboWidth || newMaxH != m_fboHeight)
-        {
-            m_fboWidth = newMaxW;
-            m_fboHeight = newMaxH;
-            ResizeFBO(m_fboWidth, m_fboHeight);
-        }
-        return true;
-    }
-    
-    case RETRO_ENVIRONMENT_SET_MESSAGE:
-    {
-        auto *msg = (const retro_message *)data;
-        if (msg && msg->msg)
-        {
-            m_osdMessage = msg->msg;
-            m_osdFrames = msg->frames;
-            LOG_CORE("OSD Message (SET_MESSAGE): %s (%d frames)", m_osdMessage.c_str(), m_osdFrames);
-        }
-        return true;
-    }
-    
-    case RETRO_ENVIRONMENT_SET_MESSAGE_EXT:
-    {
-        auto *msg = (const retro_message_ext *)data;
-        if (msg && msg->msg)
-        {
-            m_osdMessage = msg->msg;
-            m_osdFrames = msg->duration; // Usually given in ms but we store frames/duration depending on how it's sent. Let's just store as frames and let TicoMain convert.
-            LOG_CORE("OSD Message (SET_MESSAGE_EXT): %s (%d max frames)", m_osdMessage.c_str(), m_osdFrames);
-        }
-        return true;
-    }
-
-    case RETRO_ENVIRONMENT_GET_CAN_DUPE:
-        *(bool *)data = true;
-        return true;
-
-    case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-        *(bool *)data = m_variablesUpdated;
-        m_variablesUpdated = false;
-        return true;
-
-    default:
-        break;
-    }
-
-    // Disc control interfaces
-    unsigned maskedCmd = cmd & 0xFFFF;
-    if (maskedCmd == RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE)
-    {
-        const auto *cb = (const retro_disk_control_callback *)data;
-        if (cb)
-        {
-            memset(&m_diskControl, 0, sizeof(m_diskControl));
-            m_diskControl.set_eject_state = cb->set_eject_state;
-            m_diskControl.get_eject_state = cb->get_eject_state;
-            m_diskControl.get_image_index = cb->get_image_index;
-            m_diskControl.set_image_index = cb->set_image_index;
-            m_diskControl.get_num_images = cb->get_num_images;
-            m_diskControl.replace_image_index = cb->replace_image_index;
-            m_diskControl.add_image_index = cb->add_image_index;
-            m_hasDiskControl = true;
-        }
-        return true;
-    }
-    if (maskedCmd == RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE)
-    {
-        const auto *cb = (const retro_disk_control_ext_callback *)data;
-        if (cb)
-        {
-            m_diskControl = *cb;
-            m_hasDiskControl = true;
-        }
-        return true;
-    }
-
-    return false;
+    if (value == "Digital")
+        return SwanHost::PadType::Digital;
+    if (value == "None")
+        return SwanHost::PadType::None;
+    return SwanHost::PadType::DualShock;
 }
 
-void TicoCore::HandleVideoRefresh(const void *data, unsigned width,
-                                  unsigned height, size_t pitch)
+//==============================================================================
+// Configuration
+//==============================================================================
+
+void TicoCore::SetOption(const std::string &key, const std::string &value)
 {
-    if (!data && !m_hwRender)
+    std::string &stored = m_configOptions[key];
+    if (stored == value)
         return;
-
-    // Resize FBO if dimensions changed (matching LibretroCoreStatic behavior)
-    if ((int)width != m_frameWidth || (int)height != m_frameHeight)
-    {
-        m_frameWidth = width;
-        m_frameHeight = height;
-        m_fboWidth = width;
-        m_fboHeight = height;
-
-        if (m_hwRender && m_frameTexture != 0)
-        {
-            ResizeFBO(width, height);
-        }
-    }
-
-    // For HW render, the core renders directly to our FBO
-    // For SW render, we need to upload the pixel data
-    if (!m_hwRender && data)
-    {
-        if (m_frameTexture == 0)
-        {
-            glGenTextures(1, &m_frameTexture);
-        }
-
-        glBindTexture(GL_TEXTURE_2D, m_frameTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                     GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
+    stored = value;
+    m_variablesUpdated = true;
 }
-
-int16_t TicoCore::HandleInputState(unsigned port, unsigned device,
-                                   unsigned index, unsigned id)
-{
-    if (port >= 4)
-        return 0;
-
-    if (device == RETRO_DEVICE_JOYPAD)
-    {
-        if (id < 16)
-        {
-            return m_inputState[port][id] ? 1 : 0;
-        }
-    }
-    else if (device == RETRO_DEVICE_ANALOG)
-    {
-        if (index < 2 && id < 2)
-        {
-            return m_analogState[port][index][id];
-        }
-    }
-
-    return 0;
-}
-
-//==============================================================================
-// Configuration & RetroAchievements
-//==============================================================================
 
 void TicoCore::LoadConfig()
 {
@@ -1443,42 +1189,37 @@ void TicoCore::LoadConfig()
     std::ifstream f(configPath);
     if (!f.good())
     {
-        LOG_WARN("CORE", "No config found at %s. Using defaults.", configPath);
+        tico_debug_log("No config found at %s. Using defaults.", configPath);
+        m_configLoaded = true; // Mark as loaded so we don't retry
         return;
     }
 
-    try
+    nlohmann::json j = nlohmann::json::parse(f, nullptr, false, true);
+    if (j.is_discarded())
     {
-        nlohmann::json j = nlohmann::json::parse(f, nullptr, false, true);
-        if (j.is_discarded())
-        {
-            LOG_ERROR("CORE", "Failed to parse config at %s", configPath);
-            return;
-        }
-
-        for (auto &el : j.items())
-        {
-            if (el.value().is_string())
-            {
-                m_configOptions[el.key()] = el.value().get<std::string>();
-            }
-            else if (el.value().is_boolean())
-            {
-                m_configOptions[el.key()] = el.value().get<bool>() ? "true" : "false";
-            }
-            else if (el.value().is_number())
-            {
-                m_configOptions[el.key()] = std::to_string(el.value().get<float>());
-            }
-        }
-
+        tico_debug_log("ERROR: Failed to parse config at %s", configPath);
         m_configLoaded = true;
-        LOG_CORE("Loaded %lu options from %s", m_configOptions.size(), configPath);
+        return;
     }
-    catch (const std::exception &e)
+
+    for (auto &el : j.items())
     {
-        LOG_ERROR("CORE", "Error loading config: %s", e.what());
+        if (el.value().is_string())
+        {
+            m_configOptions[el.key()] = el.value().get<std::string>();
+        }
+        else if (el.value().is_boolean())
+        {
+            m_configOptions[el.key()] = el.value().get<bool>() ? "true" : "false";
+        }
+        else if (el.value().is_number())
+        {
+            m_configOptions[el.key()] = std::to_string(el.value().get<float>());
+        }
     }
+
+    m_configLoaded = true;
+    tico_debug_log("Loaded %lu options from %s", m_configOptions.size(), configPath);
 }
 
 std::string TicoCore::GetConfigValue(const std::string &key, const std::string &defaultVal)
@@ -1491,105 +1232,27 @@ std::string TicoCore::GetConfigValue(const std::string &key, const std::string &
     return defaultVal;
 }
 
-//==============================================================================
-// Disk Control
-//==============================================================================
-
-unsigned TicoCore::GetDiskCount() const
+bool TicoCore::GetVariable(const char *key, const char **value)
 {
-    if (!m_hasDiskControl || !m_diskControl.get_num_images)
-        return 0;
-    return m_diskControl.get_num_images();
-}
-
-unsigned TicoCore::GetCurrentDiskIndex() const
-{
-    if (!m_hasDiskControl || !m_diskControl.get_image_index)
-        return 0;
-    return m_diskControl.get_image_index();
-}
-
-bool TicoCore::SwapDisk(unsigned index)
-{
-    if (!m_hasDiskControl || !m_diskControl.set_eject_state ||
-        !m_diskControl.set_image_index)
-        return false;
-
-    LOG_CORE("SwapDisk: index=%u", index);
-
-    if (!m_diskControl.set_eject_state(true))
+    auto it = m_configOptions.find(key);
+    if (it != m_configOptions.end())
     {
-        LOG_ERROR("CORE", "SwapDisk: Eject failed");
-        return false;
-    }
-
-    if (!m_diskControl.set_image_index(index))
-    {
-        LOG_ERROR("CORE", "SwapDisk: set_image_index(%u) failed", index);
-        m_diskControl.set_eject_state(false); 
-        return false;
-    }
-
-    if (!m_diskControl.set_eject_state(false))
-    {
-        LOG_ERROR("CORE", "SwapDisk: Insert failed");
-        return false;
-    }
-
-    LOG_CORE("SwapDisk: Successfully swapped to disc %u", index);
-    return true;
-}
-
-bool TicoCore::GetDiskLabel(unsigned index, std::string &label) const
-{
-    if (!m_hasDiskControl || !m_diskControl.get_image_label)
-        return false;
-
-    char buf[256];
-    if (m_diskControl.get_image_label(index, buf, sizeof(buf)))
-    {
-        label = buf;
+        *value = it->second.c_str();
         return true;
     }
     return false;
 }
-
-bool TicoCore::SwapDiskByPath(const std::string &discPath)
-{
-    if (!m_hasDiskControl || !m_diskControl.set_eject_state ||
-        !m_diskControl.replace_image_index || !m_diskControl.set_image_index)
-    {
-        return false;
-    }
-
-    if (!m_diskControl.set_eject_state(true))
-    {
-        LOG_ERROR("CORE", "SwapDiskByPath: Eject failed");
-        return false;
-    }
-
-    m_swapPending = true;
-    m_swapDelayFrames = 120; // Wait 2 seconds of emulated time (at 60fps) before inserting
-    m_pendingSwapPath = discPath;
-
-    LOG_CORE("SwapDiskByPath: Ejected tray, queued replacement");
-    return true;
-}
-
-//==============================================================================
-// RetroAchievements
-//==============================================================================
 
 void TicoCore::LoadRAConfig()
 {
     std::string accountsPath = "sdmc:/tico/config/accounts.jsonc";
     std::ifstream file(accountsPath);
     if (!file.is_open()) {
-        LOG_CORE("WARN: accounts.jsonc not found at %s", accountsPath.c_str());
+        tico_debug_log("WARN: accounts.jsonc not found at %s", accountsPath.c_str());
         return;
     }
 
-    LOG_CORE("RA: Found accounts.jsonc at %s", accountsPath.c_str());
+    tico_debug_log("RA: Found accounts.jsonc at %s", accountsPath.c_str());
     nlohmann::json j = nlohmann::json::parse(file, nullptr, false, true);
     if (!j.is_discarded() && j.is_object()) {
         m_raEnabled = j.value("ra_enabled", false);
@@ -1598,13 +1261,17 @@ void TicoCore::LoadRAConfig()
         m_raPassword = j.value("ra_password", "");
         m_raHardcore = j.value("ra_hardcore_mode", false);
         
+        // Read alert position
         std::string posStr = j.value("ra_alert_position", "top_right");
         if (posStr == "top_left") m_raAlertPosition = RAAlertPosition::TopLeft;
         else if (posStr == "top_right") m_raAlertPosition = RAAlertPosition::TopRight;
         else if (posStr == "bottom_left") m_raAlertPosition = RAAlertPosition::BottomLeft;
         else if (posStr == "bottom_right") m_raAlertPosition = RAAlertPosition::BottomRight;
         
-        LOG_CORE("RA: Config loaded (Enabled: %d, User: %s)", m_raEnabled, m_raUsername.c_str());
+        tico_debug_log("RA: Config loaded (Enabled: %d, User: %s, HasToken: %d, HasPassword: %d)",
+            m_raEnabled, m_raUsername.c_str(), !m_raToken.empty(), !m_raPassword.empty());
+    } else {
+        tico_debug_log("WARN: Failed to parse accounts.jsonc for RA settings.");
     }
 }
 
@@ -1612,131 +1279,195 @@ void TicoCore::SaveRAToken(const std::string& token)
 {
     std::string accountsPath = "sdmc:/tico/config/accounts.jsonc";
     nlohmann::json j = nlohmann::json::object();
+    
+    // Read existing config
     std::ifstream inFile(accountsPath);
     if (inFile.is_open()) {
         auto parsed = nlohmann::json::parse(inFile, nullptr, false, true);
         inFile.close();
         if (!parsed.is_discarded()) j = parsed;
     }
+    
+    // Update token
     j["ra_token"] = token;
     m_raToken = token;
+    
+    // Write back
     std::ofstream outFile(accountsPath);
-    if (outFile.is_open()) outFile << j.dump(4);
+    if (outFile.is_open()) {
+        outFile << j.dump(4);
+        outFile.close();
+        tico_debug_log("RA: Token saved to accounts.jsonc");
+    } else {
+        tico_debug_log("RA: WARNING - Failed to save token to %s", accountsPath.c_str());
+    }
 }
 
 void TicoCore::RAIdentifyGame(rc_client_t* c, TicoCore* core)
 {
-    uint32_t console_id = 12; // Sony PlayStation
-    LOG_CORE("RA: Identifying game... (Console ID: %u)", console_id);
+    const uint32_t console_id = TicoConfig::GetRcConsoleId();
+
+    tico_debug_log("RA: Identifying game... (Console ID: %u)", console_id);
+    // hashed from the disc image (its executable), read through rcheevos' cd reader
     rc_client_begin_identify_and_load_game(c, console_id, core->m_gamePath.c_str(), nullptr, 0,
         [](int result, const char* error_message, rc_client_t* client, void* userdata) {
             TicoCore* core = (TicoCore*)userdata;
             if (result == RC_OK) {
+                tico_debug_log("RA: Game loaded and identified!");
                 const rc_client_game_t* game = rc_client_get_game_info(client);
                 if (game && game->title) {
-                    core->PushRANotification("RetroAchievements", std::string("Playing: ") + game->title, "ra_icon");
+                    core->PushRANotification("RetroAchievements",
+                        std::string("Playing: ") + game->title, "ra_icon");
                 }
+                // Preload all achievement badges in the background
                 core->PreloadRABadges();
             } else {
-                core->PushRANotification("RetroAchievements", "Rom hash doesn't match or unable to recognize the game.", "ra_icon");
+                tico_debug_log("RA: Failed to identify game: %s", error_message ? error_message : "Unknown");
+                core->PushRANotification("RetroAchievements", 
+                    "Rom hash doesn't match or unable to recognize the game, achievements disabled.", "ra_icon");
             }
         }, core);
 }
 
 void TicoCore::RALoginWithPassword(rc_client_t* c, TicoCore* core)
 {
-    if (core->m_raPassword.empty()) return;
+    if (core->m_raPassword.empty()) {
+        tico_debug_log("RA: No password configured. Continuing without RA.");
+        return;
+    }
+    
+    tico_debug_log("RA: Logging in with password...");
     rc_client_begin_login_with_password(c, core->m_raUsername.c_str(), core->m_raPassword.c_str(),
         [](int res, const char* err, rc_client_t* c, void* ud) {
             TicoCore* core = (TicoCore*)ud;
             if (res == RC_OK) {
                 const rc_client_user_t* user = rc_client_get_user_info(c);
-                if (user && user->token) core->SaveRAToken(user->token);
+                if (user && user->token) {
+                    tico_debug_log("RA: Password login successful! Saving token...");
+                    core->SaveRAToken(user->token);
+                } else {
+                    tico_debug_log("RA: Password login OK but no token returned");
+                }
                 RAIdentifyGame(c, core);
             } else {
-                core->PushRANotification("RetroAchievements", "Failed to authenticate, check your username/password.", "ra_icon");
+                tico_debug_log("RA: Password login failed: %s. Continuing without RA.", err ? err : "Unknown");
+                core->PushRANotification("RetroAchievements", 
+                    "Failed to authenticate, check your username/password and try again.", "ra_icon");
             }
         }, core);
 }
 
-void TicoCore::PushRANotification(const std::string& title, const std::string& desc, const std::string& badge)
+void TicoCore::PushRANotification(const std::string& title, const std::string& desc,
+                                   const std::string& badge)
 {
     RANotification n;
     n.title = title;
     n.description = desc;
     n.badge_name = badge;
     n.timer = 0.0f;
-    n.textureId = 0;  // Let the overlay resolve textures lazily during render
-    if (m_raNotifications.size() >= 5) m_raNotifications.erase(m_raNotifications.begin());
+    
+    // Look up badge texture
+    if (badge == "ra_icon") {
+        n.textureId = m_raIconTexture;
+    } else if (!badge.empty()) {
+        n.textureId = GetRABadgeTexture(badge);
+    }
+    
+    // Cap at 5 visible notifications
+    if (m_raNotifications.size() >= 5) {
+        m_raNotifications.erase(m_raNotifications.begin());
+    }
     m_raNotifications.push_back(std::move(n));
+    tico_debug_log("RA: Notification pushed: %s - %s (badge: %s)",
+        title.c_str(), desc.c_str(), badge.c_str());
 }
 
-unsigned int TicoCore::GetRABadgeTexture(const std::string& badge_name)
+ImTextureID TicoCore::GetRABadgeTexture(const std::string& badge_name)
 {
+    // Check cache first
     auto it = m_raBadgeCache.find(badge_name);
     if (it != m_raBadgeCache.end()) return it->second;
+    
+    // Try loading from SD card cache
     std::string path = "sdmc:/tico/assets/ra/" + badge_name + ".png";
-    // Check if file exists first to avoid stbi crash on non-existent files
-    FILE* check = fopen(path.c_str(), "rb");
-    if (!check) return 0;  // Badge not downloaded yet
-    fclose(check);
     int w, h, ch;
     unsigned char* data = stbi_load(path.c_str(), &w, &h, &ch, 4);
     if (data) {
-        unsigned int tex = 0;
-        glGenTextures(1, &tex);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        ImTextureID tex = TicoVulkan::CreateTextureRGBA(data, w, h);
         stbi_image_free(data);
         m_raBadgeCache[badge_name] = tex;
         return tex;
     }
-    return 0;
+    return ImTextureID_Invalid;
 }
 
 void TicoCore::DownloadAndCacheBadge(const std::string& badge_name)
 {
+    // Check if already cached on disk
     std::string cachePath = "sdmc:/tico/assets/ra/" + badge_name + ".png";
     FILE* check = fopen(cachePath.c_str(), "rb");
-    if (check) { fclose(check); return; }
+    if (check) { fclose(check); return; } // already on disk
+    
+    // Download from RA
     std::string url = "https://media.retroachievements.org/Badge/" + badge_name + ".png";
     std::string response;
+    
     CURL* curl = curl_easy_init();
     if (!curl) return;
+    
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, RAUserAgent());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    
     CURLcode res = curl_easy_perform(curl);
     long httpCode = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
     curl_easy_cleanup(curl);
-    if (res != CURLE_OK || httpCode != 200 || response.empty()) return;
+    
+    if (res != CURLE_OK || httpCode != 200 || response.empty()) {
+        tico_debug_log("RA: Failed to download badge %s (http %ld)", badge_name.c_str(), httpCode);
+        return;
+    }
+    
+    // Ensure directory exists
     mkdir("sdmc:/tico/assets/ra", 0777);
+    
+    // Save to disk
     FILE* fp = fopen(cachePath.c_str(), "wb");
     if (fp) {
         fwrite(response.data(), 1, response.size(), fp);
         fclose(fp);
+        tico_debug_log("RA: Cached badge %s (%zu bytes)", badge_name.c_str(), response.size());
     }
 }
 
 void TicoCore::PreloadRABadges()
 {
     if (!m_rcClient) return;
+    
+    tico_debug_log("RA: Preloading achievement badges...");
+    
+    // Get all achievement lists
     rc_client_achievement_list_t* list = rc_client_create_achievement_list(m_rcClient,
-        RC_CLIENT_ACHIEVEMENT_CATEGORY_CORE_AND_UNOFFICIAL, RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_PROGRESS);
-    if (!list) return;
+        RC_CLIENT_ACHIEVEMENT_CATEGORY_CORE_AND_UNOFFICIAL,
+        RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_PROGRESS);
+    if (!list) {
+        tico_debug_log("RA: No achievement list to preload");
+        return;
+    }
+    
+    // Collect all unique badge names
     std::vector<std::string> badges;
     for (uint32_t b = 0; b < list->num_buckets; b++) {
         for (uint32_t a = 0; a < list->buckets[b].num_achievements; a++) {
             const rc_client_achievement_t* ach = list->buckets[b].achievements[a];
             if (ach && ach->badge_name[0]) {
                 std::string bn = ach->badge_name;
+                // Check if not already cached on disk
                 std::string path = "sdmc:/tico/assets/ra/" + bn + ".png";
                 FILE* check = fopen(path.c_str(), "rb");
                 if (check) { fclose(check); continue; }
@@ -1745,15 +1476,41 @@ void TicoCore::PreloadRABadges()
         }
     }
     rc_client_destroy_achievement_list(list);
-    for (const auto& badge : badges) {
-        std::lock_guard<std::mutex> lock(m_raJobMutex);
-        RAJob job; job.url = "__badge__"; job.post_data = badge; job.callback = nullptr;
-        m_raJobQueue.push_back(std::move(job));
+    
+    if (badges.empty()) {
+        tico_debug_log("RA: All badges already cached");
+        return;
     }
-    m_raJobCond.notify_one();
+    
+    tico_debug_log("RA: Need to download %zu badges", badges.size());
+    
+    // Queue downloads on the RA worker thread (via a regular job mechanism)
+    // We'll use a simple approach: spawn them as background tasks
+    for (const auto& badge : badges) {
+        // Push to job queue so worker thread does the download
+        std::string badgeCopy = badge;
+        {
+            std::lock_guard<std::mutex> lock(m_raJobMutex);
+            // We abuse the job queue: url = badge download URL, post_data = badge_name,
+            // callback = nullptr (special marker for badge download)
+            RAJob job;
+            job.url = "__badge__";
+            job.post_data = badgeCopy;
+            job.callback = nullptr;
+            job.callback_data = nullptr;
+            m_raJobQueue.push_back(std::move(job));
+        }
+        m_raJobCond.notify_one();
+    }
 }
 
-void TicoCore::LoadRAIcon() { }
+void TicoCore::LoadRAIcon()
+{
+    // Try loading ra.svg - but nanosvg is only in the overlay.
+    // Instead, try loading a cached PNG version, or just skip if not available.
+    // The SVG will be loaded by the overlay, which has nanosvg.
+    tico_debug_log("RA: LoadRAIcon called (will be loaded by overlay)");
+}
 
 void TicoCore::ProcessPendingBadgeUploads()
 {
@@ -1763,21 +1520,13 @@ void TicoCore::ProcessPendingBadgeUploads()
         if (m_raPendingBadgeUploads.empty()) return;
         uploads = std::move(m_raPendingBadgeUploads);
     }
+    
     for (auto& [name, data] : uploads) {
-        if (data.empty()) continue;  // Skip empty data to avoid stbi crash
         int w, h, ch;
         unsigned char* pixels = stbi_load_from_memory(data.data(), (int)data.size(), &w, &h, &ch, 4);
         if (pixels) {
-            unsigned int tex = 0;
-            glGenTextures(1, &tex);
-            glBindTexture(GL_TEXTURE_2D, tex);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            m_raBadgeCache[name] = TicoVulkan::CreateTextureRGBA(pixels, w, h);
             stbi_image_free(pixels);
-            m_raBadgeCache[name] = tex;
         }
     }
 }
-

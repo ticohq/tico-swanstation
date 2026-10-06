@@ -1,31 +1,51 @@
 /// @file TicoConfig.h
-/// @brief Minimal hardcoded configuration for tico overlay
+/// @brief Minimal hardcoded configuration for tico overlay (swanstation)
 #pragma once
 
 #include <string>
 
 namespace TicoConfig {
-    // Hardcoded test ROM for easy testing
     constexpr const char* TEST_ROM = "sdmc:/tico/roms/psx/game.cue";
-    
-    // Asset paths
+
     constexpr const char* FONT_PATH = "romfs:/fonts/font.ttf";
-    constexpr const char* SYSTEM_PATH = "sdmc:/tico/system/psx/";
-    constexpr const char* SAVES_PATH = "sdmc:/tico/saves/psx/";
-    constexpr const char* STATES_PATH = "sdmc:/tico/states/psx/";
-    
-    // Window settings
+
+    // Current console slug (psx, from argv[1])
+    inline std::string CURRENT_SLUG = "psx";
+
+    /// @brief Set the console being booted (psx)
+    inline void SetSlug(const std::string& slug) {
+        if (!slug.empty())
+            CURRENT_SLUG = slug;
+    }
+
+    /// Content directories, with a trailing slash. Tico's per-module Paths tab
+    /// stores custom roots as tico_{system,saves,states}_path in swanstation.jsonc;
+    /// empty or missing keys fall back to sdmc:/tico/<kind>/. Like tico's own
+    /// {saves}/{states}/{system}, the console slug is appended to the root.
+    std::string SystemPath();
+    std::string SavesPath();
+    std::string StatesPath();
+
+    /// Create a directory and any missing parents.
+    void MakeDirs(const std::string& path);
+
+    /// @brief RetroAchievements console ID
+    inline int GetRcConsoleId() {
+        return 12; // RC_CONSOLE_PLAYSTATION
+    }
+
+    /// The GPU renderer's shader cache (pipelines for Vulkan and OpenGL).
+    inline std::string CachePath() { return "sdmc:/tico/cache/swanstation/"; }
+
     constexpr int WINDOW_WIDTH = 1280;
     constexpr int WINDOW_HEIGHT = 720;
     constexpr float FONT_SIZE = 32.0f;
 
-    // Audio backend configuration
-    // true = Use SDL_QueueAudio (Push model, better for swanstation)
-    // false = Use Mix_HookMusic + RingBuffer (Callback model, better for other cores)
-    constexpr bool USE_SDLQUEUEAUDIO = true;
+    /// @brief Use callback/ring-buffer path (supports resampling)
+    constexpr bool USE_SDLQUEUEAUDIO = false;
 }
 
-// UI Actions for HelpersBar
+/// @brief UI action identifiers for the helpers bar
 enum UIActions {
     ACTION_CONFIRM,
     ACTION_BACK,

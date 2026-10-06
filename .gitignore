@@ -55,3 +55,14 @@ Generated Files
 /build/
 /build_check*/
 build_tico
+/build_core/
+build_glslang_nx/
+build_desktop/
+/shaders
+/cache/
+tico/config/
+/imgui.ini
+.DS_Store
+
+# prebuilt libusbhsfs + read-only NTFS (usbntfs), see tico/deps/usbhsfs
+!tico/deps/usbhsfs/lib/*.a

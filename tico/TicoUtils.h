@@ -1,10 +1,12 @@
+/// @file TicoUtils.h
+/// @brief String utility functions for filename processing
 #pragma once
 #include <string>
 #include <vector>
 
 namespace TicoUtils {
 
-    // Helper to trim whitespace
+    /// @brief Trim leading and trailing whitespace
     static inline std::string Trim(const std::string& str) {
         size_t first = str.find_first_not_of(" \t\r\n");
         if (std::string::npos == first) {
@@ -14,8 +16,8 @@ namespace TicoUtils {
         return str.substr(first, (last - first + 1));
     }
 
-    // Exception-free title cleaner
-    // Strips content within () and []
+    /// @brief Extract a display-friendly title from a ROM filename
+    /// @details Removes file extension and strips content within () and []
     static inline std::string GetCleanTitle(const std::string& filename) {
         // First remove extension
         std::string title = filename;
@@ -50,15 +52,7 @@ namespace TicoUtils {
             }
 
             if (parenDepth == 0 && bracketDepth == 0) {
-                // Determine if we should append this character
-                // Logic: coalesce spaces, don't start with space
                 if (c == ' ' || c == '_') {
-                     // Treat underscore as space or just keep it? 
-                     // Usually filenames have underscores. Let's convert to space for title?
-                     // Standard practice is often to replace _ with space. 
-                     // Let's stick to user request: strip regions. 
-                     // But usually "Game_Name" -> "Game Name" is desired too.
-                     // I'll stick to just passing space if it is one.
                      if (!result.empty() && !lastWasSpace) {
                          result += ' ';
                          lastWasSpace = true;
