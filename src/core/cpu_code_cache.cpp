@@ -1,6 +1,7 @@
 #include "cpu_code_cache.h"
 #include "bus.h"
 #include "common/log.h"
+#include "common/platform.h" // CPU_AARCH64, for the code buffer sizes
 #include "cpu_core.h"
 #include "cpu_core_private.h"
 #include "settings.h"
@@ -34,6 +35,15 @@ static constexpr uint32_t INVALIDATE_THRESHOLD_TO_DISABLE_LINKING = 10;
 // Use a smaller code buffer size on AArch32 to have a better chance of being in range.
 static constexpr uint32_t RECOMPILER_CODE_CACHE_SIZE = 16 * 1024 * 1024;
 static constexpr uint32_t RECOMPILER_FAR_CODE_CACHE_SIZE = 8 * 1024 * 1024;
+#elif defined(CPU_AARCH64)
+// A backpatched fastmem access, and a linked block, is a single B (+-128 MB),
+// so near and far code together must stay inside that: a fastmem access in
+// near code branches to its slow path in far code. 128 MB of near code put
+// the far code out of reach, and the branch offset wrapped 256 MB short.
+static constexpr uint32_t RECOMPILER_CODE_CACHE_SIZE = 96 * 1024 * 1024;
+static constexpr uint32_t RECOMPILER_FAR_CODE_CACHE_SIZE = 24 * 1024 * 1024;
+static_assert(RECOMPILER_CODE_CACHE_SIZE + RECOMPILER_FAR_CODE_CACHE_SIZE < 128 * 1024 * 1024,
+              "near and far code must be within a B instruction's reach");
 #else
 static constexpr uint32_t RECOMPILER_CODE_CACHE_SIZE = 128 * 1024 * 1024;
 static constexpr uint32_t RECOMPILER_FAR_CODE_CACHE_SIZE = 16 * 1024 * 1024;

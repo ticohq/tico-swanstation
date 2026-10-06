@@ -1654,9 +1654,12 @@ bool CodeGenerator::BackpatchLoadStore(const LoadStoreBackpatchInfo& lbi)
   void* host_pc_write = lbi.host_pc;
 #endif
 
-  // check jump distance
+  // check jump distance: a single B reaches +-128 MB, and an out-of-range
+  // offset would be encoded wrapped (a jump to the wrong place)
   const int64_t jump_distance =
     static_cast<int64_t>(reinterpret_cast<intptr_t>(lbi.host_slowmem_pc) - reinterpret_cast<intptr_t>(lbi.host_pc));
+  if (!a64::Instruction::IsValidImmPCOffset(a64::UncondBranchType, jump_distance >> 2))
+    return false;
 
   // turn it into a jump to the slowmem handler
   vixl::aarch64::MacroAssembler emit(static_cast<vixl::byte*>(host_pc_write), lbi.host_code_size,
