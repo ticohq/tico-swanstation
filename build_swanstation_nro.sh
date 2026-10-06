@@ -106,7 +106,12 @@ CC="${DEVKITA64}/bin/aarch64-none-elf-gcc"
 CXX="${DEVKITA64}/bin/aarch64-none-elf-g++"
 
 COMMON_FLAGS="-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -O2 -g"
-COMMON_FLAGS="$COMMON_FLAGS -ffunction-sections -fdata-sections -DDISABLE_LOGGING -D__SWITCH__ -DHAVE_LIBNX"
+COMMON_FLAGS="$COMMON_FLAGS -ffunction-sections -fdata-sections -D__SWITCH__ -DHAVE_LIBNX"
+# SWAN_DEBUG=1 keeps the log (the frontend's and the core's), written to
+# sdmc:/tico/debug/swanstation.txt; release builds leave it out.
+if [ "${SWAN_DEBUG:-0}" != "1" ]; then
+    COMMON_FLAGS="$COMMON_FLAGS -DDISABLE_LOGGING"
+fi
 COMMON_FLAGS="$COMMON_FLAGS -DLIBARCHIVE_STATIC -DVK_USE_PLATFORM_VI_NN -DTICO_APP_VERSION=\"$APP_VERSION\""
 COMMON_FLAGS="$COMMON_FLAGS -I$LIBNX/include -I$PORTLIBS/include -I$PORTLIBS/include/SDL2"
 COMMON_FLAGS="$COMMON_FLAGS -I$TICO_DIR -I$TICO_DIR/deps"
