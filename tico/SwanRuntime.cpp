@@ -602,6 +602,7 @@ bool SwanRuntime::Initialize(const LaunchInfo &)
     TicoConfig::MakeDirs(TicoConfig::SavesPath());
     TicoConfig::MakeDirs(TicoConfig::StatesPath());
     TicoConfig::MakeDirs(TicoConfig::SystemPath());
+    TicoConfig::MakeDirs(TicoConfig::CachePath()); // the renderer's pipeline cache
 
     core_ = std::make_unique<TicoCore>();
     s_core = core_.get();
