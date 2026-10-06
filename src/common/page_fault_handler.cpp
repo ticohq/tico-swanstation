@@ -235,19 +235,23 @@ void switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t 
 }
 
 static bool s_libnx_handler_installed = false;
+// Not thread_local, and no lock taken: thread-local storage reads as null
+// inside the exception entry (a guard there faulted at address 0), and only
+// the CPU thread faults on purpose. The handlers only change while the
+// recompiler starts or stops, outside any fault.
+static bool s_switch_in_handler = false;
 
 static bool HandleSwitchFault(ExceptionFrameA64* frame)
 {
   // a fault inside a handler is not one to handle again
-  if (!s_libnx_handler_installed || s_in_handler)
+  if (!s_libnx_handler_installed || s_switch_in_handler)
     return false;
 
   void* const exception_pc = reinterpret_cast<void*>(frame->pc);
   void* const fault_address = reinterpret_cast<void*>(frame->far);
   const bool is_write = IsStoreInstruction(exception_pc);
 
-  std::lock_guard<std::mutex> guard(m_handler_lock);
-  s_in_handler = true;
+  s_switch_in_handler = true;
   bool handled = false;
   for (const RegisteredHandler& rh : m_handlers)
   {
@@ -257,7 +261,7 @@ static bool HandleSwitchFault(ExceptionFrameA64* frame)
       break;
     }
   }
-  s_in_handler = false;
+  s_switch_in_handler = false;
   return handled;
 }
 
