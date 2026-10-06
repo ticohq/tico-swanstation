@@ -15,6 +15,12 @@
           "title": "settings_swanstation_section_system",
           "options": [
             {
+              "key": "bios_openbios",
+              "label": "settings_swanstation_bios_openbios",
+              "type": "bool",
+              "default": "false"
+            },
+            {
               "key": "swanstation_Console_Region",
               "label": "settings_swanstation_console_region",
               "type": "enum",

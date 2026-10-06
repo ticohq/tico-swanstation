@@ -422,7 +422,8 @@ public:
 
     // --- Per-game layer: sdmc:/tico/config/games/<core>/<game>.jsonc holds
     // what one game sets differently. While it exists it is read first and
-    // takes every change (but the library's folders, which stay the core's).
+    // takes every change (but the library's folders and bios_openbios, which stay
+    // the core's).
 
     void SetGame(const std::string& rom_path) {
         game_file.clear();
@@ -502,8 +503,11 @@ public:
     }
 
 private:
+    // The library's folders, and whether OpenBIOS stands in for a missing
+    // BIOS (tico reads it from the core's file before launching), are the
+    // core's, never one game's.
     bool UsesGameLayer(std::string_view key) const {
-        return game_active && key != "tico_rom_folders";
+        return game_active && key != "tico_rom_folders" && key != "bios_openbios";
     }
 
     // sdmc:/tico/config/games/<core>/, the core named as its own config file is

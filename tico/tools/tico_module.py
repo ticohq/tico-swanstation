@@ -172,7 +172,12 @@ def frontend(key: str, default: str, choices, label: str | None = None) -> dict:
 # A layout entry is a core option key or a frontend option (a dict).
 LAYOUT = [
     ("tab_system", [
-        ("section_system", ["swanstation_Console_Region", "swanstation_BIOS_PatchFastBoot",
+        ("section_system", [
+            # tico's check before launching waives the BIOS while this is on
+            # (module.json's unless_option), and the core boots OpenBIOS
+            {"key": "bios_openbios", "label": PREFIX + "bios_openbios", "type": "bool",
+             "default": "false"},
+            "swanstation_Console_Region", "swanstation_BIOS_PatchFastBoot",
                             "swanstation_Main_ApplyGameSettings", "swanstation_Console_Enable8MBRAM"]),
         ("section_cd_rom", ["swanstation_CDROM_ReadSpeedup", "swanstation_CDROM_SeekSpeedup",
                             "swanstation_CDROM_ReadThread", "swanstation_CDROM_ReadaheadSectors",
@@ -270,6 +275,10 @@ LAYOUT = [
 
 # Labels neither the core nor tico-nx has. suffix -> (en, de, es, fr, ja, pt, ru, zh)
 LABELS = {
+    "bios_openbios": ("Use OpenBIOS when no BIOS is found", "OpenBIOS verwenden, wenn kein BIOS gefunden wird",
+                      "Usar OpenBIOS si no se encuentra una BIOS", "Utiliser OpenBIOS si aucun BIOS n'est trouvé",
+                      "BIOSがない場合はOpenBIOSを使う", "Usar OpenBIOS quando nenhuma BIOS for encontrada",
+                      "Использовать OpenBIOS, если BIOS не найден", "未找到 BIOS 时使用 OpenBIOS"),
     "section_rendering": ("Rendering", "Rendering", "Renderizado", "Rendu", "レンダリング", "Renderização",
                           "Рендеринг", "渲染"),
     "tab_display": ("Display", "Anzeige", "Pantalla", "Affichage", "表示", "Tela", "Экран", "显示"),

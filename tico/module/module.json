@@ -30,7 +30,11 @@
       "bios": [
         {
           "any_of_size": 524288,
-          "example": "scph5501.bin"
+          "example": "scph5501.bin",
+          "unless_option": {
+            "key": "bios_openbios",
+            "value": "true"
+          }
         }
       ],
       "colors": {

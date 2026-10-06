@@ -676,16 +676,20 @@ bool SwanRuntime::LoadContent(const std::string &path)
     if (!InitOverlay(romPath_))
         LOG_WARN("HOME", "Overlay init failed; continuing without Tico overlay");
 
-    // Without a BIOS the core boots its own OpenBIOS, which some games do not
-    // work with: say what is missing and where it goes first.
+    // Without a BIOS it knows the core boots its own OpenBIOS, which some
+    // games do not work with: say what is missing and where it goes first,
+    // unless Settings > System says to use OpenBIOS (tico's own check before
+    // launching waives the BIOS then too, see module.json).
     const SwanBios::Status bios = SwanBios::Check();
-    if (!bios.ok && overlayReady_)
+    if (!bios.ok && overlayReady_ && OverlayConfig::GetConfigValue("bios_openbios", "false") != "true")
     {
         biosNotice_ = true;
         OpenMenu();
-        OverlayUI::ShowNotice(TrFormat2("emulator_bios_openbios", bios.file, bios.folder),
-                              {SwitchFrontend::OverlayTranslation::tr("emulator_bios_use_openbios"),
-                               SwitchFrontend::OverlayTranslation::tr("emulator_exit_game")});
+        const std::string text = bios.unknown.empty()
+            ? TrFormat2("emulator_bios_missing", bios.file, bios.folder)
+            : TrFormat2("emulator_bios_unknown", bios.unknown, bios.folder);
+        OverlayUI::ShowNotice(text, {SwitchFrontend::OverlayTranslation::tr("emulator_bios_use_openbios"),
+                                     SwitchFrontend::OverlayTranslation::tr("emulator_exit_game")});
     }
     else
         BootGame();
@@ -968,12 +972,15 @@ void SwanRuntime::RunMenuAction()
         return;
     case Action::NoticeChoice:
     {
-        // the missing-BIOS notice: boot on OpenBIOS, or leave
+        // the missing-BIOS notice: OpenBIOS from now on (the setting tico
+        // reads too), or leave
         const int choice = OverlayUI::ConsumeNoticeChoice();
         biosNotice_ = false;
         CloseMenu();
         if (choice == 0)
         {
+            OverlayConfig::SetConfigValue("bios_openbios", "true");
+            OverlayConfig::SaveConfig();
             BootGame();
             return;
         }
