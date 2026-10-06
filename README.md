@@ -8,7 +8,7 @@
 
 **SwanStation** is a PlayStation (PS1) emulator focused on accuracy, modern rendering features, and reliable performance across a wide range of titles.
 
-This fork adapts SwanStation to work with the Tico frontend and provides a standalone build for the Nintendo Switch, adding a small set of practical features while preserving the behavior and compatibility of the original emulator.
+This fork runs SwanStation standalone on the Nintendo Switch for the Tico frontend, driving the emulator directly rather than through libretro, and adds a small set of practical features while preserving the behavior and compatibility of the original emulator.
 
 ----------
 
@@ -19,16 +19,24 @@ This fork focuses on making SwanStation more usable in practice without changing
 It adds:
 
 -   Custom overlay matching Tico design, including time, date, user avatar, and game title
+-   A choice of renderer in Settings: Vulkan, OpenGL, Zink (OpenGL on Vulkan) or Software
+-   Disc changes from the menu for multi-disc games (`.m3u` or the disc's folder)
 -   Explicit control over display (integer scaling and aspect ratios)
--   Runtime-selectable rendering filters  
--   Built-in save and load state support
+-   Runtime-selectable rendering filters (Vulkan and Software)
+-   Built-in save and load state support, with a picture of each slot
+-   Cheats in RetroArch's `.cht` format, run by SwanStation's own cheat engine
 -   Integrated RetroAchievements with custom alerts
+-   A game library when started without a game
 
 ----------
 
-## Notes
+## Credits
 
--   Some VIXL classes and enums were renamed with a `swanstation` prefix to avoid symbol conflicts during static linking of multiple cores
+This fork is built on top of SwanStation, itself derived from DuckStation.
+All core emulation work belongs to their authors and contributors.
+
+- **SwanStation repository** — https://github.com/libretro/swanstation
+- **DuckStation repository** — https://github.com/stenzek/duckstation
 
 ----------
 
