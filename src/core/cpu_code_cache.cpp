@@ -7,6 +7,7 @@
 #include "system.h"
 #include "timing_event.h"
 #include <cstring>
+#include <unordered_map>
 Log_SetChannel(CPU::CodeCache);
 
 #ifdef WITH_RECOMPILER
@@ -210,6 +211,14 @@ static std::array<std::vector<CodeBlock*>, Bus::RAM_8MB_CODE_PAGE_COUNT> m_ram_b
 #ifdef WITH_RECOMPILER
 static HostCodeMap s_host_code_map;
 
+// Every fastmem load/store by the host instruction that may fault, as
+// DuckStation keeps them: a fault is matched by its pc alone, so it is found
+// even when it is not inside the block that s_host_code_map points to (a
+// block invalidated while its code still runs). Entries live until the code
+// buffer is reset; a patched one is kept with host_code_size 0, so that
+// nothing is freed inside the exception handler.
+static std::unordered_map<void*, Recompiler::LoadStoreBackpatchInfo> s_fastmem_backpatch_info;
+
 static void AddBlockToHostCodeMap(CodeBlock* block);
 static void RemoveBlockFromHostCodeMap(CodeBlock* block);
 
@@ -267,6 +276,7 @@ void ClearState()
   s_blocks.clear();
 #ifdef WITH_RECOMPILER
   s_host_code_map.clear();
+  s_fastmem_backpatch_info.clear();
   s_code_buffer.Reset();
   ResetFastMap();
 #endif
@@ -702,6 +712,10 @@ bool CompileBlock(CodeBlock* block, bool allow_flush)
       Log_ErrorPrintf("Failed to compile host code for block at 0x%08X", block->key.GetPC());
       return false;
     }
+
+    for (const Recompiler::LoadStoreBackpatchInfo& bpi : block->loadstore_backpatch_info)
+      s_fastmem_backpatch_info[bpi.host_pc] = bpi;
+    block->loadstore_backpatch_info.clear();
   }
 #endif
 
@@ -1035,102 +1049,73 @@ Common::PageFaultHandler::HandlerResult MMapPageFaultHandler(void* exception_pc,
   const PhysicalMemoryAddress fastmem_address =
     static_cast<PhysicalMemoryAddress>(static_cast<ptrdiff_t>(static_cast<uint8_t*>(fault_address) - g_state.fastmem_base));
 
-  // use upper_bound to find the next block after the pc
-  HostCodeMap::iterator upper_iter =
-    s_host_code_map.upper_bound(reinterpret_cast<CodeBlock::HostCodePointer>(exception_pc));
-  if (upper_iter == s_host_code_map.begin())
-    return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
-
-  // then decrement it by one to (hopefully) get the block we want
-  upper_iter--;
-
-  // find the loadstore info in the code block
-  CodeBlock* block = upper_iter->second;
-  for (auto bpi_iter = block->loadstore_backpatch_info.begin(); bpi_iter != block->loadstore_backpatch_info.end();
-       ++bpi_iter)
+  const auto it = s_fastmem_backpatch_info.find(exception_pc);
+  if (it == s_fastmem_backpatch_info.end() || it->second.host_code_size == 0)
   {
-    Recompiler::LoadStoreBackpatchInfo& lbi = *bpi_iter;
-    if (lbi.host_pc == exception_pc)
-    {
-      if (is_write && !g_state.cop0_regs.sr.Isc && Bus::IsRAMAddress(fastmem_address))
-      {
-        // this is probably a code page, since we aren't going to fault due to requiring fastmem on RAM.
-        const uint32_t code_page_index = Bus::GetRAMCodePageIndex(fastmem_address);
-        if (Bus::IsRAMCodePage(code_page_index))
-        {
-          if (++lbi.fault_count < CODE_WRITE_FAULT_THRESHOLD_FOR_SLOWMEM)
-          {
-            InvalidateBlocksWithPageIndex(code_page_index);
-            return Common::PageFaultHandler::HandlerResult::ContinueExecution;
-          }
-        }
-      }
+    uint32_t insn;
+    std::memcpy(&insn, exception_pc, sizeof(insn));
+    Log_ErrorPrintf("No fastmem access known at %p (instruction %08X, fault at %p, %s, code buffer %p-%p)",
+                    exception_pc, insn, fault_address, is_write ? "write" : "read",
+                    s_code_buffer.GetCodePointer(),
+                    static_cast<uint8_t*>(s_code_buffer.GetCodePointer()) + s_code_buffer.GetTotalSize());
+    return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
+  }
+  Recompiler::LoadStoreBackpatchInfo& lbi = it->second;
 
-      // found it, do fixup
-      s_code_buffer.WriteProtect(false);
-      const bool backpatch_result = Recompiler::CodeGenerator::BackpatchLoadStore(lbi);
-      s_code_buffer.WriteProtect(true);
-      if (backpatch_result)
+  if (is_write && !g_state.cop0_regs.sr.Isc && Bus::IsRAMAddress(fastmem_address))
+  {
+    // this is probably a code page, since we aren't going to fault due to requiring fastmem on RAM.
+    const uint32_t code_page_index = Bus::GetRAMCodePageIndex(fastmem_address);
+    if (Bus::IsRAMCodePage(code_page_index))
+    {
+      if (++lbi.fault_count < CODE_WRITE_FAULT_THRESHOLD_FOR_SLOWMEM)
       {
-        // remove the backpatch entry since we won't be coming back to this one
-        block->loadstore_backpatch_info.erase(bpi_iter);
+        InvalidateBlocksWithPageIndex(code_page_index);
         return Common::PageFaultHandler::HandlerResult::ContinueExecution;
-      }
-      else
-      {
-        Log_ErrorPrintf("Failed to backpatch %p in block 0x%08X", exception_pc, block->GetPC());
-        return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
       }
     }
   }
 
-  // we didn't find the pc in our list..
-  Log_ErrorPrintf("Loadstore PC not found for %p in block 0x%08X", exception_pc, block->GetPC());
-  return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
+  // send this access down the slow path from now on
+  s_code_buffer.WriteProtect(false);
+  const bool backpatch_result = Recompiler::CodeGenerator::BackpatchLoadStore(lbi);
+  s_code_buffer.WriteProtect(true);
+  if (!backpatch_result)
+  {
+    Log_ErrorPrintf("Failed to backpatch %p (guest pc 0x%08X)", exception_pc, lbi.guest_pc);
+    return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
+  }
+  lbi.host_code_size = 0; // patched
+  return Common::PageFaultHandler::HandlerResult::ContinueExecution;
 }
 
 #endif
 
 Common::PageFaultHandler::HandlerResult LUTPageFaultHandler(void* exception_pc, void* fault_address, bool is_write)
 {
-  // use upper_bound to find the next block after the pc
-  HostCodeMap::iterator upper_iter =
-    s_host_code_map.upper_bound(reinterpret_cast<CodeBlock::HostCodePointer>(exception_pc));
-  if (upper_iter == s_host_code_map.begin())
-    return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
-
-  // then decrement it by one to (hopefully) get the block we want
-  upper_iter--;
-
-  // find the loadstore info in the code block
-  CodeBlock* block = upper_iter->second;
-  for (auto bpi_iter = block->loadstore_backpatch_info.begin(); bpi_iter != block->loadstore_backpatch_info.end();
-       ++bpi_iter)
+  const auto it = s_fastmem_backpatch_info.find(exception_pc);
+  if (it == s_fastmem_backpatch_info.end() || it->second.host_code_size == 0)
   {
-    Recompiler::LoadStoreBackpatchInfo& lbi = *bpi_iter;
-    if (lbi.host_pc == exception_pc)
-    {
-      // found it, do fixup
-      s_code_buffer.WriteProtect(false);
-      const bool backpatch_result = Recompiler::CodeGenerator::BackpatchLoadStore(lbi);
-      s_code_buffer.WriteProtect(true);
-      if (backpatch_result)
-      {
-        // remove the backpatch entry since we won't be coming back to this one
-        block->loadstore_backpatch_info.erase(bpi_iter);
-        return Common::PageFaultHandler::HandlerResult::ContinueExecution;
-      }
-      else
-      {
-        Log_ErrorPrintf("Failed to backpatch %p in block 0x%08X", exception_pc, block->GetPC());
-        return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
-      }
-    }
+    uint32_t insn;
+    std::memcpy(&insn, exception_pc, sizeof(insn));
+    Log_ErrorPrintf("No fastmem access known at %p (instruction %08X, fault at %p, %s, code buffer %p-%p)",
+                    exception_pc, insn, fault_address, is_write ? "write" : "read",
+                    s_code_buffer.GetCodePointer(),
+                    static_cast<uint8_t*>(s_code_buffer.GetCodePointer()) + s_code_buffer.GetTotalSize());
+    return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
   }
+  Recompiler::LoadStoreBackpatchInfo& lbi = it->second;
 
-  // we didn't find the pc in our list..
-  Log_ErrorPrintf("Loadstore PC not found for %p in block 0x%08X", exception_pc, block->GetPC());
-  return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
+  s_code_buffer.WriteProtect(false);
+  const bool backpatch_result = Recompiler::CodeGenerator::BackpatchLoadStore(lbi);
+  s_code_buffer.WriteProtect(true);
+  if (!backpatch_result)
+  {
+    Log_ErrorPrintf("Failed to backpatch %p (guest pc 0x%08X)", exception_pc, lbi.guest_pc);
+    return Common::PageFaultHandler::HandlerResult::ExecuteNextHandler;
+  }
+  lbi.host_code_size = 0; // patched
+  return Common::PageFaultHandler::HandlerResult::ContinueExecution;
 }
 
 #endif // WITH_RECOMPILER
