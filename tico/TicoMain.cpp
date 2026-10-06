@@ -60,6 +60,49 @@ uint64_t MapButtons(u64 hid)
 }
 #endif
 
+#ifdef __SWITCH__
+// What the program leaves mapped when it is done: the homebrew loader
+// reclaims the heap before starting the next program, and fails (kernel
+// result 106, InvalidCurrentMemory) on pages still lent to a device,
+// aliased or locked. Logged in debug builds.
+void LogMemoryLeftAtExit(const LogCallback &log)
+{
+    if (!log)
+        return;
+    u64 heap = 0, heapSize = 0;
+    svcGetInfo(&heap, InfoType_HeapRegionAddress, CUR_PROCESS_HANDLE, 0);
+    svcGetInfo(&heapSize, InfoType_HeapRegionSize, CUR_PROCESS_HANDLE, 0);
+    int reported = 0;
+    u64 addr = 0;
+    while (reported < 48)
+    {
+        MemoryInfo info = {};
+        u32 page = 0;
+        if (R_FAILED(svcQueryMemory(&info, &page, addr)) || info.size == 0)
+            break;
+        const u32 type = info.type & MemState_Type;
+        const bool inHeap = info.addr < heap + heapSize && info.addr + info.size > heap;
+        // anything lent out, and anything but plain heap inside the heap region
+        if (type != MemType_Unmapped &&
+            (info.attr != 0 || (inHeap && type != MemType_Heap)))
+        {
+            char line[160];
+            std::snprintf(line, sizeof(line), "left mapped: %#lx-%#lx type %#x attr %#x perm %#x%s",
+                          info.addr, info.addr + info.size, type, info.attr, info.perm, inHeap ? " (heap)" : "");
+            log(line);
+            reported++;
+        }
+        const u64 next = info.addr + info.size;
+        if (next <= addr)
+            break;
+        addr = next;
+    }
+    char line[96];
+    std::snprintf(line, sizeof(line), "memory check at exit: %d range(s) reported", reported);
+    log(line);
+}
+#endif
+
 }  // namespace
 
 Main::Main(CoreRuntime &runtime, LogCallback log)
@@ -121,6 +164,9 @@ int Main::Run(int argc, char **argv)
     const bool relaunch = runtime_.ShouldRelaunch();
     runtime_.Shutdown();
     ShutdownPlatform();
+#ifdef __SWITCH__
+    LogMemoryLeftAtExit(log_);
+#endif
     if (relaunch)
         RelaunchSelf(argc, argv, log_);
     else if (chainload)

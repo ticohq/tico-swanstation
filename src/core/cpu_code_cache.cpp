@@ -27,7 +27,9 @@ static constexpr uint32_t INVALIDATE_THRESHOLD_TO_DISABLE_LINKING = 10;
 #ifdef WITH_RECOMPILER
 
 // Currently remapping the code buffer doesn't work in macOS or Haiku.
-#if !defined(__HAIKU__) && !defined(__APPLE__)
+// On the Switch the JIT needs memory of its own (jitCreate), so a static
+// buffer would only be 120 MB of unused BSS in the NRO.
+#if !defined(__HAIKU__) && !defined(__APPLE__) && !defined(__SWITCH__) && !defined(HAVE_LIBNX)
 #define USE_STATIC_CODE_BUFFER 1
 #endif
 
