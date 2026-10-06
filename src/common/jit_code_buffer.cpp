@@ -1,4 +1,5 @@
 #include "jit_code_buffer.h"
+#include "log.h"
 #include "align.h"
 #include "platform.h"
 #include <algorithm>
@@ -22,6 +23,8 @@
 #if defined(__APPLE__)
 #include <libkern/OSCacheControl.h>
 #endif
+
+Log_SetChannel(JitCodeBuffer);
 
 JitCodeBuffer::JitCodeBuffer() = default;
 
@@ -59,14 +62,11 @@ bool JitCodeBuffer::Allocate(uint32_t size /* = 64 * 1024 * 1024 */, uint32_t fa
     return false;
   }
 
-/*
-  FILE* fp = fopen("sdmc:/tiicu/debug/debug_jit.txt", "a");
-  if (fp)
-  {
-    fprintf(fp, "JitAllocate: RW=%p RX=%p Size=%u\n", m_code_ptr, m_rx_ptr, size);
-    fclose(fp);
-  }
-*/
+  // CodeMemory keeps both views mapped; SetProcessMemoryPermission swaps
+  // them on every WriteProtect, so the RX view is gone while code is written
+  Log_InfoPrintf("JIT %s: RW %p, RX %p, %u bytes",
+                 m_jit.type == JitType_CodeMemory ? "CodeMemory" : "SetProcessMemoryPermission", m_code_ptr,
+                 m_rx_ptr, m_total_size);
 #elif defined(__linux__) || defined(__ANDROID__) || defined(__APPLE__) || defined(__HAIKU__) || defined(__FreeBSD__)
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
 #if defined(__APPLE__) && defined(__aarch64__)

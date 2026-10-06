@@ -300,6 +300,18 @@ static ALWAYS_INLINE_RELEASE void SetLUTFastmemPage(uint32_t address, uint8_t* p
   m_fastmem_lut[FASTMEM_LUT_NUM_PAGES + FastmemAddressToLUTPageIndex(address)] = writable ? ptr : nullptr;
 }
 
+uint8_t* GetFastmemBase(bool isc)
+{
+#ifdef WITH_MMAP_FASTMEM
+  if (m_fastmem_mode == CPUFastmemMode::MMap)
+    return isc ? nullptr : m_fastmem_base;
+#endif
+  if (m_fastmem_mode == CPUFastmemMode::LUT)
+    return reinterpret_cast<uint8_t*>(m_fastmem_lut + (isc ? FASTMEM_LUT_NUM_SLOTS : 0));
+
+  return nullptr;
+}
+
 uint8_t* GetFastmemBase()
 {
 #ifdef WITH_MMAP_FASTMEM
@@ -397,7 +409,10 @@ void UpdateFastmemViews(CPUFastmemMode mode)
 
   if (!m_fastmem_lut)
   {
-    m_fastmem_lut = static_cast<uint8_t**>(std::calloc(FASTMEM_LUT_NUM_SLOTS, sizeof(uint8_t*)));
+    // a second table, all null, is the base while the cache is isolated (as
+    // DuckStation does): the table read stays valid and the access itself
+    // faults, where the recompiler can backpatch it to the slow path
+    m_fastmem_lut = static_cast<uint8_t**>(std::calloc(FASTMEM_LUT_NUM_SLOTS * 2, sizeof(uint8_t*)));
     if (!m_fastmem_lut)
     {
       // fastmem cannot function without its lookup table; fall back to disabled

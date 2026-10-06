@@ -59,6 +59,8 @@ void Reset();
 bool DoState(StateWrapper& sw);
 
 uint8_t* GetFastmemBase();
+/// The base the recompiled code uses: none for mmap, an all-null table for LUT, while the cache is isolated.
+uint8_t* GetFastmemBase(bool isc);
 void UpdateFastmemViews(CPUFastmemMode mode);
 bool CanUseFastmemForAddress(VirtualMemoryAddress address);
 

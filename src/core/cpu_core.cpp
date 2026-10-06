@@ -121,10 +121,7 @@ bool DoState(StateWrapper& sw)
 
 void UpdateFastmemBase()
 {
-  if (g_state.cop0_regs.sr.Isc)
-    g_state.fastmem_base = nullptr;
-  else
-    g_state.fastmem_base = Bus::GetFastmemBase();
+  g_state.fastmem_base = Bus::GetFastmemBase(g_state.cop0_regs.sr.Isc);
 }
 
 ALWAYS_INLINE_RELEASE void SetPC(uint32_t new_pc)

@@ -227,11 +227,12 @@ uint32_t GetHandlerCodeSize()
 // kernel calls it on a fault with the exception frame, and it calls
 // switch_exception_handler below on a dedicated stack. A fastmem fault is
 // backpatched (the code at pc is rewritten) and the thread resumes at the
-// same pc; anything else ends in svcBreak, for a crash report.
+// same pc; anything else is returned to the kernel unhandled, for a crash
+// report of the original fault.
 
 extern "C" {
 alignas(16) uint8_t switch_exception_stack_top[0x8000];
-void switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t fp);
+uint32_t switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t fp);
 }
 
 static bool s_libnx_handler_installed = false;
@@ -247,9 +248,16 @@ static bool HandleSwitchFault(ExceptionFrameA64* frame)
   if (!s_libnx_handler_installed || s_switch_in_handler)
     return false;
 
+  // Only data aborts (from this EL or a lower one) can be fastmem accesses;
+  // anything else (a jump to a bad address, an undefined instruction) is not
+  // ours, and reading the instruction at pc could fault again there.
+  const uint32_t exception_class = frame->esr >> 26;
+  if (exception_class != 0x24 && exception_class != 0x25)
+    return false;
+
   void* const exception_pc = reinterpret_cast<void*>(frame->pc);
   void* const fault_address = reinterpret_cast<void*>(frame->far);
-  const bool is_write = IsStoreInstruction(exception_pc);
+  const bool is_write = (frame->esr & (1u << 6)) != 0; // ISS.WnR
 
   s_switch_in_handler = true;
   bool handled = false;
@@ -265,15 +273,22 @@ static bool HandleSwitchFault(ExceptionFrameA64* frame)
   return handled;
 }
 
-extern "C" void switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t fp)
+// Returns what switch_exception_entry.S passes to svcReturnFromException: 0
+// resumes the thread; 0xF801 (as libnx's own entry does) marks the exception
+// unhandled, so the kernel ends the process and Atmosphere reports the
+// original fault, with the registers it happened with.
+extern "C" uint32_t switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t fp)
 {
   (void)fp;
   if (HandleSwitchFault(frame))
-    return; // the entry returns to the thread through svcReturnFromException
-
-  // not ours: stop here, so Atmosphere writes a crash report
-  svcBreak(BreakReason_Panic, reinterpret_cast<uintptr_t>(frame), sizeof(*frame));
-  (void)reason;
+    return 0;
+  if (s_libnx_handler_installed)
+  {
+    Log_ErrorPrintf("Unhandled exception 0x%x: class 0x%02X (esr %08X) at pc %p, address %p, lr %p", reason,
+                    frame->esr >> 26, frame->esr, reinterpret_cast<void*>(frame->pc),
+                    reinterpret_cast<void*>(frame->far), reinterpret_cast<void*>(frame->lr));
+  }
+  return 0xF801;
 }
 
 uint32_t GetHandlerCodeSize()

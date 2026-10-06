@@ -2,7 +2,8 @@
 // kernel enters here with x0 = reason and x1 = the exception frame, having
 // saved only x0-x8, lr, sp and pc there: the rest of the caller-saved state
 // is kept on a dedicated stack around switch_exception_handler, and the
-// kernel restores the thread from the frame on svcReturnFromException.
+// kernel restores the thread from the frame on svcReturnFromException (or,
+// when the handler returns 0xF801, treats the exception as unhandled).
 
 .text
 
@@ -72,6 +73,7 @@ __libnx_exception_entry:
     ldp x15, x16, [sp, #16*3]
     ldp x17, x18, [sp, #16*4]
 
-    // the kernel restores everything else (sp included) from the frame
-    mov x0, 0
+    // the kernel restores everything else (sp included) from the frame; x0 is
+    // the handler's result: 0 resumes the thread, 0xF801 leaves the
+    // exception unhandled (a crash report of the original fault)
     bl svcReturnFromException
