@@ -209,6 +209,20 @@ for src in "${TICO_SOURCES[@]}"; do
     TICO_OBJS+=("$obj")
 done
 
+# The Switch exception entry that hands fastmem faults to the core: an
+# object of its own, so it overrides libnx's weak __libnx_exception_entry
+ASM_SOURCES=("$ROOT_DIR/src/common/switch_exception_entry.S")
+for src in "${ASM_SOURCES[@]}"; do
+    obj="$BUILD_DIR/$(basename ${src%.S}.o)"
+    echo "  AS  $src"
+    $CC -march=armv8-a+crc+crypto -fPIE -c "$src" -o "$obj"
+    if [ $? -ne 0 ]; then
+        echo "Error assembling $src"
+        exit 1
+    fi
+    TICO_OBJS+=("$obj")
+done
+
 # Compile SPIRV-Reflect
 for src in "${TICO_C_SOURCES[@]}"; do
     obj="$BUILD_DIR/$(basename ${src%.c}.o)"

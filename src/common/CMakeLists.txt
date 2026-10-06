@@ -145,3 +145,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # We need -lrt for shm_unlink
   target_link_libraries(common PRIVATE rt)
 endif()
+
+if(NINTENDO_SWITCH)
+  # switch_exception_entry.S is linked into the NRO as an object, not from
+  # this library: libnx's crt0 defines a weak __libnx_exception_entry, so an
+  # archive member would never be pulled in to override it
+  target_sources(common PRIVATE switch_exception_frame.h)
+endif()

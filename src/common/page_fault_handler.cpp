@@ -20,6 +20,7 @@ Log_SetChannel(Common::PageFaultHandler);
 #define USE_SIGSEGV 1
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
 #include <switch.h>
+#include "switch_exception_frame.h"
 #define USE_LIBNX_EXCEPTION 1
 #endif
 
@@ -222,41 +223,53 @@ uint32_t GetHandlerCodeSize()
 #elif defined(USE_LIBNX_EXCEPTION)
 
 // Switch/libnx exception handler implementation
-// Uses __libnx_exception_handler which is called by the libnx runtime on exceptions
-// ThreadExceptionDump provides pc, far (fault address), and all CPU registers
+// switch_exception_entry.S replaces libnx's __libnx_exception_entry: the
+// kernel calls it on a fault with the exception frame, and it calls
+// switch_exception_handler below on a dedicated stack. A fastmem fault is
+// backpatched (the code at pc is rewritten) and the thread resumes at the
+// same pc; anything else ends in svcBreak, for a crash report.
 
-static Callback s_libnx_callback = nullptr;
+extern "C" {
+alignas(16) uint8_t switch_exception_stack_top[0x8000];
+void switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t fp);
+}
+
 static bool s_libnx_handler_installed = false;
 
-extern "C" void swanstation_nx_exception_handler(ThreadExceptionDump* ctx)
+static bool HandleSwitchFault(ExceptionFrameA64* frame)
 {
-  if (!s_libnx_callback || !ctx)
-  {
-    // No handler registered or no context, let libnx handle it (crash)
-    // We can't call the default handler easily, so just return which will crash
-    return;
-  }
+  // a fault inside a handler is not one to handle again
+  if (!s_libnx_handler_installed || s_in_handler)
+    return false;
 
-  // Get exception info from ThreadExceptionDump
-  void* const exception_pc = reinterpret_cast<void*>(ctx->pc.x);
-  void* const fault_address = reinterpret_cast<void*>(ctx->far.x);
+  void* const exception_pc = reinterpret_cast<void*>(frame->pc);
+  void* const fault_address = reinterpret_cast<void*>(frame->far);
   const bool is_write = IsStoreInstruction(exception_pc);
 
   std::lock_guard<std::mutex> guard(m_handler_lock);
+  s_in_handler = true;
+  bool handled = false;
   for (const RegisteredHandler& rh : m_handlers)
   {
     if (rh.callback(exception_pc, fault_address, is_write) == HandlerResult::ContinueExecution)
     {
-      // Handler processed the fault, continue execution
-      // On Switch, we need to call svcReturnFromException(0) to resume
-      svcReturnFromException(0);
-      // svcReturnFromException doesn't return, so this is just for safety
-      return;
+      handled = true;
+      break;
     }
   }
+  s_in_handler = false;
+  return handled;
+}
 
-  // No handler processed the exception - this will cause the app to crash
-  // which is the expected behavior when an unhandled fault occurs
+extern "C" void switch_exception_handler(Result reason, ExceptionFrameA64* frame, uint64_t fp)
+{
+  (void)fp;
+  if (HandleSwitchFault(frame))
+    return; // the entry returns to the thread through svcReturnFromException
+
+  // not ours: stop here, so Atmosphere writes a crash report
+  svcBreak(BreakReason_Panic, reinterpret_cast<uintptr_t>(frame), sizeof(*frame));
+  (void)reason;
 }
 
 uint32_t GetHandlerCodeSize()
@@ -315,8 +328,8 @@ bool InstallHandler(const void* owner, void* start_pc, uint32_t code_size, Callb
 #endif
 
 #elif defined(USE_LIBNX_EXCEPTION)
-    // For libnx, the exception handler is automatically registered via weak symbol
-    // __libnx_exception_handler. We just need to track that we're installed.
+    // switch_exception_entry.S is always the process's exception entry; it
+    // only hands faults on while a handler is installed.
     s_libnx_handler_installed = true;
     Log_InfoPrint("Installed libnx exception handler for fastmem");
 
@@ -364,7 +377,7 @@ bool RemoveHandler(const void* owner)
     s_old_sigsegv_action = {};
 
 #elif defined(USE_LIBNX_EXCEPTION)
-    // For libnx, just mark as uninstalled. The weak symbol remains but won't do anything.
+    // faults are no longer handed on (see InstallHandler)
     s_libnx_handler_installed = false;
     Log_InfoPrint("Removed libnx exception handler");
 

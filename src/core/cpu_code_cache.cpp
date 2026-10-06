@@ -992,6 +992,25 @@ bool InitializeFastmem()
   }
 
   Bus::UpdateFastmemViews(mode);
+
+#ifdef WITH_MMAP_FASTMEM
+  // mmap fastmem needs the platform to map RAM mirrors (on the Switch, the
+  // loader has to grant the syscalls); without them, use the lookup table
+  if (mode == CPUFastmemMode::MMap && !Bus::GetFastmemBase())
+  {
+    Log_WarningPrintf("mmap fastmem is not available, using LUT instead");
+    Common::PageFaultHandler::RemoveHandler(&s_host_code_map);
+    g_settings.cpu_fastmem_mode = CPUFastmemMode::LUT;
+    if (!Common::PageFaultHandler::InstallHandler(&s_host_code_map, s_code_buffer.GetCodePointer(),
+                                                  s_code_buffer.GetTotalSize(), LUTPageFaultHandler))
+    {
+      Log_ErrorPrintf("Failed to install page fault handler");
+      return false;
+    }
+    Bus::UpdateFastmemViews(CPUFastmemMode::LUT);
+  }
+#endif
+
   CPU::UpdateFastmemBase();
   return true;
 }

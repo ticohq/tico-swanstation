@@ -20,9 +20,124 @@ Log_SetChannel(Common::MemoryArena);
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
 #include <malloc.h>
 #include <switch.h>
+#include <vector>
 #endif
 
 namespace Common {
+
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+// The Switch has no shared memory objects, so mmap fastmem is built from
+// kernel aliases (as DuckStation's and Dolphin's Switch ports do):
+//
+// - the arena is heap memory, mapped once with svcMapProcessCodeMemory as a
+//   read/write alias in the code region. The heap pages themselves are
+//   inaccessible from then on: every view, g_ram included, goes through the
+//   alias.
+// - each fastmem RAM mirror maps the alias again with svcMapProcessMemory,
+//   inside a 4 GB address range reserved for the fastmem base; the rest of
+//   that range stays unmapped, so a fastmem access outside RAM faults and is
+//   backpatched to the slow path.
+// - such a mirror cannot be made read-only, so a page with code in it is
+//   unmapped from the mirrors instead (reads fault too, and are backpatched).
+//
+// Without the syscalls (the loader did not grant them) or when a mapping
+// fails, views point straight into the heap and fastmem uses LUT instead.
+namespace {
+constexpr unsigned SVC_MAP_PROCESS_MEMORY = 0x74;
+constexpr unsigned SVC_UNMAP_PROCESS_MEMORY = 0x75;
+constexpr unsigned SVC_MAP_PROCESS_CODE_MEMORY = 0x77;
+constexpr unsigned SVC_UNMAP_PROCESS_CODE_MEMORY = 0x78;
+constexpr size_t SWITCH_PAGE_SIZE = 0x1000;
+
+struct SwitchMirror
+{
+  uint8_t* addr;
+  uint64_t source; // in the alias
+  size_t size;
+  std::vector<bool> mapped; // per page
+};
+
+struct SwitchAlias
+{
+  uint8_t* addr = nullptr; // the code-region alias of the heap buffer
+  uint64_t heap = 0;
+  size_t size = 0;
+};
+
+SwitchAlias s_alias;
+std::vector<SwitchMirror> s_mirrors;
+uint8_t* s_fastmem_region = nullptr;
+size_t s_fastmem_region_size = 0;
+VirtmemReservation* s_fastmem_reservation = nullptr;
+
+bool HasFastmemSyscalls()
+{
+  return envIsSyscallHinted(SVC_MAP_PROCESS_MEMORY) && envIsSyscallHinted(SVC_UNMAP_PROCESS_MEMORY) &&
+         envIsSyscallHinted(SVC_MAP_PROCESS_CODE_MEMORY) && envIsSyscallHinted(SVC_UNMAP_PROCESS_CODE_MEMORY);
+}
+
+SwitchMirror* FindMirror(const void* address, size_t length)
+{
+  const uint8_t* p = static_cast<const uint8_t*>(address);
+  for (SwitchMirror& m : s_mirrors)
+    if (p >= m.addr && p + length <= m.addr + m.size)
+      return &m;
+  return nullptr;
+}
+
+// Maps (or unmaps) the mirror's pages in [offset, offset + length), a run
+// of pages in the same state at a time.
+bool SetMirrorPages(SwitchMirror& m, size_t offset, size_t length, bool map)
+{
+  size_t page = offset / SWITCH_PAGE_SIZE;
+  const size_t end = (offset + length + SWITCH_PAGE_SIZE - 1) / SWITCH_PAGE_SIZE;
+  while (page < end)
+  {
+    if (m.mapped[page] == map)
+    {
+      page++;
+      continue;
+    }
+    size_t run = 1;
+    while (page + run < end && m.mapped[page + run] != map)
+      run++;
+    void* const dst = m.addr + page * SWITCH_PAGE_SIZE;
+    const uint64_t src = m.source + page * SWITCH_PAGE_SIZE;
+    const Result rc = map ? svcMapProcessMemory(dst, envGetOwnProcessHandle(), src, run * SWITCH_PAGE_SIZE) :
+                            svcUnmapProcessMemory(dst, envGetOwnProcessHandle(), src, run * SWITCH_PAGE_SIZE);
+    if (R_FAILED(rc))
+    {
+      Log_ErrorPrintf("%s of %zu pages at %p failed: 0x%x", map ? "svcMapProcessMemory" : "svcUnmapProcessMemory",
+                      run, dst, rc);
+      return false;
+    }
+    for (size_t i = 0; i < run; i++)
+      m.mapped[page + i] = map;
+    page += run;
+  }
+  return true;
+}
+
+void ReleaseMirror(std::vector<SwitchMirror>::iterator it)
+{
+  SetMirrorPages(*it, 0, it->size, false);
+  s_mirrors.erase(it);
+}
+
+void ReleaseAlias()
+{
+  while (!s_mirrors.empty())
+    ReleaseMirror(s_mirrors.begin());
+  if (!s_alias.addr)
+    return;
+  const Result rc = svcUnmapProcessCodeMemory(envGetOwnProcessHandle(), reinterpret_cast<uint64_t>(s_alias.addr),
+                                              s_alias.heap, s_alias.size);
+  if (R_FAILED(rc))
+    Log_ErrorPrintf("svcUnmapProcessCodeMemory failed: 0x%x", rc);
+  s_alias = {};
+}
+} // namespace
+#endif
 
 // Borrowed from Dolphin
 #ifdef __ANDROID__
@@ -84,8 +199,29 @@ void* MemoryArena::FindBaseAddressForMapping(size_t size)
   if (base_address)
     munmap(base_address, size);
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
-  // Just try to allocate to assume it works, or return nullptr to disable fastmem?
+  // the range stays reserved (the mirrors are mapped into it), until the
+  // arena is destroyed
   base_address = nullptr;
+  if (s_fastmem_region && s_fastmem_region_size >= size)
+    return s_fastmem_region;
+  if (s_alias.addr)
+  {
+    virtmemLock();
+    base_address = virtmemFindAslr(size, SWITCH_PAGE_SIZE);
+    if (base_address)
+    {
+      s_fastmem_reservation = virtmemAddReservation(base_address, size);
+      if (!s_fastmem_reservation)
+        base_address = nullptr;
+    }
+    virtmemUnlock();
+    if (base_address)
+    {
+      s_fastmem_region = static_cast<uint8_t*>(base_address);
+      s_fastmem_region_size = size;
+      Log_InfoPrintf("Fastmem region: %zu bytes at %p", size, base_address);
+    }
+  }
 #else
   base_address = nullptr;
 #endif
@@ -224,6 +360,33 @@ bool MemoryArena::Create(size_t size, bool writable, bool executable)
   m_size = size;
   m_writable = writable;
   m_executable = executable;
+
+  if (!HasFastmemSyscalls())
+  {
+    Log_WarningPrintf("The memory mapping syscalls are not available: no mmap fastmem");
+    return true;
+  }
+  virtmemLock();
+  void* alias = virtmemFindCodeMemory(size, SWITCH_PAGE_SIZE);
+  Result rc = alias ? svcMapProcessCodeMemory(envGetOwnProcessHandle(), reinterpret_cast<uint64_t>(alias),
+                                              reinterpret_cast<uint64_t>(m_buffer), size) :
+                      MAKERESULT(Module_Libnx, LibnxError_OutOfMemory);
+  if (R_SUCCEEDED(rc))
+  {
+    rc = svcSetProcessMemoryPermission(envGetOwnProcessHandle(), reinterpret_cast<uint64_t>(alias), size, Perm_Rw);
+    if (R_FAILED(rc))
+      svcUnmapProcessCodeMemory(envGetOwnProcessHandle(), reinterpret_cast<uint64_t>(alias),
+                                reinterpret_cast<uint64_t>(m_buffer), size);
+  }
+  virtmemUnlock();
+  if (R_FAILED(rc))
+  {
+    Log_WarningPrintf("Mapping the memory arena's alias failed (0x%x): no mmap fastmem", rc);
+    return true;
+  }
+  s_alias.addr = static_cast<uint8_t*>(alias);
+  s_alias.heap = reinterpret_cast<uint64_t>(m_buffer);
+  s_alias.size = size;
   return true;
 #else
   return false;
@@ -245,6 +408,16 @@ void MemoryArena::Destroy()
     m_shmem_fd = -1;
   }
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  ReleaseAlias(); // the heap is accessible again once its alias is gone
+  if (s_fastmem_reservation)
+  {
+    virtmemLock();
+    virtmemRemoveReservation(s_fastmem_reservation);
+    virtmemUnlock();
+    s_fastmem_reservation = nullptr;
+    s_fastmem_region = nullptr;
+    s_fastmem_region_size = 0;
+  }
   if (m_buffer)
   {
     free(m_buffer);
@@ -289,10 +462,29 @@ void* MemoryArena::CreateViewPtr(size_t offset, size_t size, bool writable, bool
   if (base_pointer == reinterpret_cast<void*>(-1))
     return nullptr;
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
-  // Ignoring fixed_address for now.
   if (offset + size > m_size)
     return nullptr;
-  base_pointer = static_cast<uint8_t*>(m_buffer) + offset;
+  if (!fixed_address)
+  {
+    // a plain view: through the alias when there is one (the heap pages are
+    // not accessible then)
+    base_pointer = (s_alias.addr ? s_alias.addr : static_cast<uint8_t*>(m_buffer)) + offset;
+  }
+  else
+  {
+    // a fastmem mirror at the address asked for
+    if (!s_alias.addr)
+      return nullptr;
+    SwitchMirror mirror{static_cast<uint8_t*>(fixed_address), reinterpret_cast<uint64_t>(s_alias.addr) + offset,
+                        size, std::vector<bool>((size + SWITCH_PAGE_SIZE - 1) / SWITCH_PAGE_SIZE, false)};
+    if (!SetMirrorPages(mirror, 0, size, true))
+    {
+      SetMirrorPages(mirror, 0, size, false);
+      return nullptr;
+    }
+    s_mirrors.push_back(std::move(mirror));
+    base_pointer = fixed_address;
+  }
 #else
   return nullptr;
 #endif
@@ -323,7 +515,16 @@ bool MemoryArena::ReleaseViewPtr(void* address, size_t size)
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
   result = (munmap(address, size) >= 0);
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+  // a mirror is unmapped; a plain view lives as long as the arena's alias
   result = true;
+  for (auto it = s_mirrors.begin(); it != s_mirrors.end(); ++it)
+  {
+    if (it->addr == address)
+    {
+      ReleaseMirror(it);
+      break;
+    }
+  }
 #else
   result = false;
 #endif
@@ -350,7 +551,15 @@ void* MemoryArena::CreateReservedPtr(size_t size, void* fixed_address /*= nullpt
   if (base_pointer == reinterpret_cast<void*>(-1))
     return nullptr;
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
-  base_pointer = memalign(0x1000, size);
+  // inside the fastmem region the range is already reserved, and stays
+  // unmapped so that accesses there fault
+  const uint8_t* p = static_cast<const uint8_t*>(fixed_address);
+  if (p && s_fastmem_region && p >= s_fastmem_region && p + size <= s_fastmem_region + s_fastmem_region_size)
+    base_pointer = fixed_address;
+  else if (!fixed_address)
+    base_pointer = memalign(0x1000, size);
+  else
+    return nullptr;
 #else
   return nullptr;
 #endif
@@ -367,7 +576,9 @@ bool MemoryArena::ReleaseReservedPtr(void* address, size_t size)
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
   result = (munmap(address, size) >= 0);
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
-  free(address);
+  const uint8_t* p = static_cast<const uint8_t*>(address);
+  if (!(s_fastmem_region && p >= s_fastmem_region && p < s_fastmem_region + s_fastmem_region_size))
+    free(address);
   result = true;
 #else
   result = false;
@@ -397,7 +608,15 @@ bool MemoryArena::SetPageProtection(void* address, size_t length, bool readable,
   const int prot = (readable ? PROT_READ : 0) | (writable ? PROT_WRITE : 0) | (executable ? PROT_EXEC : 0);
   return (mprotect(address, length, prot) >= 0);
 #elif defined(__SWITCH__) || defined(HAVE_LIBNX)
-  return true;
+  // a mirror's pages are mapped while writable and unmapped otherwise (a
+  // process-memory mapping cannot be read-only); other memory is left as is
+  (void)readable;
+  (void)executable;
+  SwitchMirror* mirror = FindMirror(address, length);
+  if (!mirror)
+    return true;
+  return SetMirrorPages(*mirror, static_cast<size_t>(static_cast<uint8_t*>(address) - mirror->addr), length,
+                        writable);
 #else
   return false;
 #endif
