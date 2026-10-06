@@ -37,7 +37,16 @@ Value CodeGenerator::EmitLoadGuestMemory(const CodeBlockInstruction& cbi, const 
     {
       Value result = m_register_cache.AllocateScratch(size);
 
-      if (g_settings.IsUsingFastmem() && Bus::IsRAMAddress(static_cast<uint32_t>(address.constant_value)))
+#if defined(__SWITCH__) || defined(HAVE_LIBNX)
+      // The Switch's mmap mirrors cannot be read-only, so a page with code in
+      // it is unmapped there and a read of it faults; this load is not one the
+      // fault handler can patch, so a constant address reads g_ram directly.
+      const bool fastmem_reads_ram = g_settings.cpu_fastmem_mode != CPUFastmemMode::MMap;
+#else
+      const bool fastmem_reads_ram = true;
+#endif
+      if (fastmem_reads_ram && g_settings.IsUsingFastmem() &&
+          Bus::IsRAMAddress(static_cast<uint32_t>(address.constant_value)))
       {
         // have to mask away the high bits for mirrors, since we don't map them in fastmem
         EmitLoadGuestRAMFastmem(Value::FromConstantU32(static_cast<uint32_t>(address.constant_value) & Bus::g_ram_mask),
