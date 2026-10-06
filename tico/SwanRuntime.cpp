@@ -438,7 +438,15 @@ void ShareVulkanDevice()
         return true;
     };
     factory.destroy = [] {
-        Vulkan::Context::Destroy();
+        // The context does not own a device made on someone else's instance
+        // (CreateFromExistingInstance without take_ownership), so it is
+        // destroyed here: left alive, all its memory stayed lent to the GPU
+        // and the homebrew loader could not reclaim the heap for the next
+        // program (kernel result 106 on Exit Game and Restart).
+        const VkDevice device = g_vulkan_context ? g_vulkan_context->GetDevice() : VK_NULL_HANDLE;
+        Vulkan::Context::Destroy(); // its pools and command buffers
+        if (device != VK_NULL_HANDLE)
+            vkDestroyDevice(device, nullptr);
         Vulkan::UnloadVulkanLibrary();
     };
     TicoVulkan::SetDeviceFactory(std::move(factory));
